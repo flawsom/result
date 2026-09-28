@@ -18,6 +18,12 @@ const HomeAnalyticsLazy = lazy(() =>
   import("@/components/HomeAnalytics").then((m) => ({ default: m.HomeAnalytics })),
 );
 
+// Census section: renders nothing until the census has stored observations, so
+// it can be mounted unconditionally without adding an empty frame.
+const BputCensusLazy = lazy(() =>
+  import("@/components/BputCensus").then((m) => ({ default: m.BputCensus })),
+);
+
 // Client-only KaTeX renderer. Renders directly with katex.renderToString to
 // avoid any react-katex / bundler interaction that mangles LaTeX commands.
 const KatexBlockLazy = lazy(async () => {
@@ -495,6 +501,12 @@ function Index() {
             <ClientOnly fallback={null}>
               <Suspense fallback={null}>
                 <HomeAnalyticsLazy />
+              </Suspense>
+            </ClientOnly>
+
+            <ClientOnly fallback={null}>
+              <Suspense fallback={null}>
+                <BputCensusLazy />
               </Suspense>
             </ClientOnly>
 

@@ -27,6 +27,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
+import { CensusControl } from "@/components/admin/CensusControl";
 import { createResultPDFBlob, getResultPdfFilename, type PdfSemester } from "@/lib/pdf";
 import { exportBatchPdfZip, getBatchPdfZipFilename } from "@/lib/bulk/export";
 import { Download, FileText } from "lucide-react";
@@ -40,6 +41,7 @@ function AdminDashboard() {
     <div className="space-y-6">
       <NewBatchForm />
       <ActiveRunner />
+      <CensusControl />
       <BatchList />
     </div>
   );

@@ -110,6 +110,87 @@ export type Database = {
         }
         Relationships: []
       }
+      bput_census_cursor: {
+        Row: {
+          facts: number
+          id: number
+          next_index: number
+          not_found: number
+          range_end: string
+          range_start: string
+          started_at: string
+          status: string
+          updated_at: string
+          visited: number
+        }
+        Insert: {
+          facts?: number
+          id?: number
+          next_index?: number
+          not_found?: number
+          range_end: string
+          range_start: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          visited?: number
+        }
+        Update: {
+          facts?: number
+          id?: number
+          next_index?: number
+          not_found?: number
+          range_end?: string
+          range_start?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          visited?: number
+        }
+        Relationships: []
+      }
+      bput_census_events: {
+        Row: {
+          batch_year: number
+          branch: string
+          college: string
+          credits: number
+          grades: Json
+          id: number
+          outcome: string
+          points: number
+          semester: number
+          served_at: string
+          subjects: number
+        }
+        Insert: {
+          batch_year: number
+          branch: string
+          college?: string
+          credits?: number
+          grades?: Json
+          id?: number
+          outcome: string
+          points?: number
+          semester: number
+          served_at?: string
+          subjects?: number
+        }
+        Update: {
+          batch_year?: number
+          branch?: string
+          college?: string
+          credits?: number
+          grades?: Json
+          id?: number
+          outcome?: string
+          points?: number
+          semester?: number
+          served_at?: string
+          subjects?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -139,6 +220,26 @@ export type Database = {
       get_results_analytics: { Args: never; Returns: Json }
       get_results_analytics_v2: { Args: never; Returns: Json }
       log_result_events: { Args: { _events: Json }; Returns: number }
+      census_can_write: { Args: never; Returns: boolean }
+      census_cursor_state: {
+        Args: { _range_end: string; _range_start: string }
+        Returns: Json
+      }
+      census_cursor_upsert: {
+        Args: {
+          _facts_add: number
+          _next_index: number
+          _not_found_add: number
+          _range_end: string
+          _range_start: string
+          _status: string
+          _visited_add: number
+        }
+        Returns: number
+      }
+      census_progress: { Args: never; Returns: Json }
+      get_bput_census: { Args: never; Returns: Json }
+      log_census_events: { Args: { _rows: Json }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

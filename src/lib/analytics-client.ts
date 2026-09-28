@@ -9,8 +9,9 @@
 // Resilience contract:
 //  * every read has a hard timeout, so a dead or wrong database URL surfaces
 //    as a clear error state instead of an infinite loading skeleton;
-//  * a v1-only database (migration not applied yet) is detected and mapped
-//    onto the v2 shape, flagged as `mixed` so the UI can label it;
+//  * a database without the v2 schema fails loudly as `missing-schema` so the
+//    section can name the migration to run, instead of drawing a modelled
+//    series that nobody measured;
 //  * writes are fire-and-forget in a single batched round trip and can never
 //    disrupt the student-facing fetch flow.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -177,7 +178,7 @@ function classify(message: string, code?: string): TelemetryError {
   return new TelemetryError("unknown", message || "Unknown telemetry failure.");
 }
 
-async function withTimeout<T>(
+export async function withTimeout<T>(
   run: (signal: AbortSignal) => PromiseLike<T>,
   ms: number,
 ): Promise<T> {
