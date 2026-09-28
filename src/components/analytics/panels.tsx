@@ -33,7 +33,7 @@ import {
   publicationMatrix,
   WEEKDAY_LABELS,
   wilson,
-  yearComparison,
+  yearVolume,
   type Interval,
 } from "@/lib/analytics-stats";
 
@@ -917,21 +917,17 @@ export function PublicationPanel({ payload }: { payload: AnalyticsPayload }) {
   );
 }
 
-/* ──────────────────────────────────────────── observed vs modelled year ── */
+/* ───────────────────────────────────────────────────── observed by year ── */
 
 export function YearPanel({ payload }: { payload: AnalyticsPayload }) {
-  const rows = useMemo(() => yearComparison(payload), [payload]);
-  const max = useMemo(
-    () => Math.max(1, ...rows.map((r) => Math.max(r.observed, r.baseline))),
-    [rows],
-  );
+  const rows = useMemo(() => yearVolume(payload), [payload]);
+  const max = useMemo(() => Math.max(1, ...rows.map((r) => r.observed)), [rows]);
   const observedYears = rows.filter((r) => r.observed > 0);
-  const hasBaseline = rows.some((r) => r.baseline > 0);
 
   return (
     <PanelCard
       index="09"
-      title="Observed volume vs modelled baseline"
+      title="Observed volume by batch year"
       meta={`${observedYears.length} years observed`}
       style={{ animationDelay: "380ms" }}
     >
@@ -947,27 +943,15 @@ export function YearPanel({ payload }: { payload: AnalyticsPayload }) {
               {rows.map((r) => (
                 <div key={r.year} className="grid grid-cols-[2.5rem_1fr_7.5rem] items-center gap-2">
                   <span className="label-caps text-muted-foreground">{r.year}</span>
-                  <span className="block space-y-[3px]">
-                    <span className="relative block h-2 bg-muted">
-                      <span
-                        className="absolute inset-y-0 left-0"
-                        style={{ width: `${(r.observed / max) * 100}%`, background: ACCENT }}
-                        title={`observed ${fmtInt(r.observed)}`}
-                      />
-                    </span>
-                    <span className="relative block h-2 bg-muted">
-                      <span
-                        className="ad-hatch absolute inset-y-0 left-0"
-                        style={{ width: `${(r.baseline / max) * 100}%` }}
-                        title={`modelled baseline ${fmtInt(r.baseline)}`}
-                      />
-                    </span>
+                  <span className="relative block h-2 bg-muted">
+                    <span
+                      className="absolute inset-y-0 left-0"
+                      style={{ width: `${(r.observed / max) * 100}%`, background: ACCENT }}
+                      title={`${fmtInt(r.observed)} lookups`}
+                    />
                   </span>
                   <span className="text-right font-mono text-[10px] tabular-nums">
                     {fmtInt(r.observed)}
-                    {r.baseline > 0 ? (
-                      <span className="text-muted-foreground"> / {fmtCompact(r.baseline)}</span>
-                    ) : null}
                   </span>
                 </div>
               ))}
@@ -977,16 +961,11 @@ export function YearPanel({ payload }: { payload: AnalyticsPayload }) {
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-4" style={{ background: ACCENT }} /> observed
             </span>
-            {hasBaseline ? (
-              <span className="flex items-center gap-1">
-                <span className="ad-hatch inline-block h-2 w-4" /> modelled baseline · not observed
-              </span>
-            ) : null}
           </div>
           <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
-            {hasBaseline
-              ? "The hatched series is the 2018–2025 reference model shipped with the project. It is never added to an observed figure and is excluded from every aggregate above — the two are shown together only to give the observed volume a scale."
-              : "No baseline rows are present, so the dashboard is reporting observed traffic only."}
+            Every bar is a lookup this deployment actually served. Nothing modelled or seeded is
+            plotted anywhere on this page, so an empty year means no traffic rather than missing
+            data.
           </p>
         </>
       )}
@@ -1100,15 +1079,8 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
       "panels 07, 04",
     ],
     [
-      "Baseline",
-      "A modelled 2018–2025 reference series shipped with the project. Never mixed into an observed figure.",
-      "panel 09",
-    ],
-    [
       "Schema",
-      payload.meta.schema === "v2"
-        ? "v2 telemetry: outcome, latency, attempt index, source and subject counts are all real recorded fields."
-        : "v1 fallback: this database has not run the v2 migration, so outcome, latency and time-of-day panels are unavailable.",
+      "v2 telemetry: outcome, latency, attempt index, source and subject counts are fields this deployment records itself. No modelled or seeded series is plotted anywhere.",
       payload.meta.schema,
     ],
   ];
@@ -1156,12 +1128,6 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
           Counts describe activity on this site. They are not enrolment numbers, pass rates, or any
           statement about BPUT's own data.
         </li>
-        {payload.meta.mixed ? (
-          <li>
-            This deployment is reading the legacy aggregate, which cannot separate the modelled
-            baseline from observed traffic. Figures on this page are labelled mixed accordingly.
-          </li>
-        ) : null}
       </ul>
     </details>
   );

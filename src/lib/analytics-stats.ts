@@ -700,23 +700,15 @@ export function publicationMatrix(rows: AnalyticsPayload["observed"]["publicatio
 export interface YearRow {
   year: number;
   observed: number;
-  baseline: number;
 }
 
 /**
- * Observed vs modelled-baseline by year. The two are never summed: the baseline
- * is a modelled reference series, and a combined series would be presented as a
- * measurement it is not.
+ * Observed lookups by batch year. Only measured traffic reaches this function —
+ * there is no modelled series to blend in, so a year with no lookups is absent
+ * rather than filled with a reference number.
  */
-export function yearComparison(payload: AnalyticsPayload): YearRow[] {
-  const map = new Map<number, YearRow>();
-  for (const r of payload.observed.byYear) {
-    map.set(r.year, { year: r.year, observed: r.count, baseline: 0 });
-  }
-  for (const r of payload.baseline.byYear) {
-    const row = map.get(r.year) ?? { year: r.year, observed: 0, baseline: 0 };
-    row.baseline = r.count;
-    map.set(r.year, row);
-  }
-  return [...map.values()].sort((a, b) => a.year - b.year);
+export function yearVolume(payload: AnalyticsPayload): YearRow[] {
+  return payload.observed.byYear
+    .map((r) => ({ year: r.year, observed: r.count }))
+    .sort((a, b) => a.year - b.year);
 }

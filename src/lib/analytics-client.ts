@@ -49,13 +49,11 @@ export interface CountedRow {
 
 export interface AnalyticsPayload {
   meta: {
-    schema: "v2" | "v1";
+    schema: "v2";
     generatedAt: string;
     firstEventAt: string | null;
     lastEventAt: string | null;
     activeDays: number;
-    /** v1 databases cannot separate seeded baseline from observed traffic. */
-    mixed: boolean;
   };
   counts: {
     eventsTotal: number;
@@ -88,12 +86,6 @@ export interface AnalyticsPayload {
       count: number;
     }>;
     branchYear: Array<{ year: number; branch: string; count: number }>;
-  };
-  /** Modelled 2018–2025 reference series. Never observed traffic. */
-  baseline: {
-    total: number;
-    byYear: Array<{ year: number; count: number }>;
-    byBranch: Array<{ branch: string; count: number }>;
   };
 }
 
@@ -128,7 +120,6 @@ export class TelemetryError extends Error {
 
 const READ_TIMEOUT_MS = 8_000;
 const WRITE_TIMEOUT_MS = 6_000;
-export const REALTIME_FALLBACK_POLL_MS = 20_000;
 
 function isMissingFunction(message: string, code?: string): boolean {
   return (
@@ -191,67 +182,10 @@ async function withTimeout<T>(
 
 /* ──────────────────────────────────────────────────────────────── read ─── */
 
-/** v1 shape, kept so a database without the v2 migration still renders. */
-interface LegacyPayload {
-  total: number;
-  byYear: Array<{ year: number; count: number }>;
-  byYearSem: Array<{ year: number; semester: number; count: number }>;
-  byBranch: Array<{ branch: string; count: number }>;
-  pulse24hDistinct: number;
-  pulse24hTotal: number;
-  updatedAt: string;
-}
-
-function adaptLegacy(raw: LegacyPayload): AnalyticsPayload {
-  const total = Number(raw.total) || 0;
-  return {
-    meta: {
-      schema: "v1",
-      generatedAt: raw.updatedAt ?? new Date().toISOString(),
-      firstEventAt: null,
-      lastEventAt: raw.updatedAt ?? null,
-      activeDays: 0,
-      mixed: true,
-    },
-    counts: {
-      eventsTotal: total,
-      primaries: total,
-      probes: 0,
-      published: total,
-      notPublished: 0,
-      cacheHits: 0,
-      latencySamples: 0,
-      pulse1h: 0,
-      pulse24h: Number(raw.pulse24hTotal) || 0,
-      pulse7d: 0,
-    },
-    observed: {
-      byYear: (raw.byYear ?? []).map((r) => ({
-        year: Number(r.year),
-        count: Number(r.count),
-      })),
-      byYearSem: (raw.byYearSem ?? []).map((r) => ({
-        year: Number(r.year),
-        semester: Number(r.semester),
-        count: Number(r.count),
-      })),
-      byBranch: (raw.byBranch ?? []).map((r) => ({
-        branch: String(r.branch),
-        count: Number(r.count),
-      })),
-      byOutcome: [],
-      funnel: [],
-      latency: [],
-      subjects: [],
-      daily: [],
-      hourly: [],
-      seasonality: [],
-      publication: [],
-      branchYear: [],
-    },
-    baseline: { total: 0, byYear: [], byBranch: [] },
-  };
-}
+// There is deliberately no legacy adapter here. The v1 aggregate is modelled
+// reference data, and drawing it as though it were measured traffic is the
+// exact failure this dashboard exists to avoid. When the v2 schema is absent the
+// read fails loudly and the section names the migration to run.
 
 /**
  * Normalise anything thrown on the read path into a classified TelemetryError,
@@ -266,7 +200,10 @@ export function classifyTelemetryError(error: unknown): TelemetryError {
 
 /**
  * One round trip that returns the whole dashboard snapshot.
- * Order of preference: v2 → v1 → throw a classified TelemetryError.
+ *
+ * There is no fallback path. A missing v2 schema fails loudly with
+ * `missing-schema` so the section can name the migration to run, rather than
+ * drawing a modelled series that nobody measured.
  */
 export async function fetchAnalytics(): Promise<AnalyticsPayload> {
   let v2: Awaited<ReturnType<typeof readV2>>;
@@ -276,32 +213,12 @@ export async function fetchAnalytics(): Promise<AnalyticsPayload> {
     throw classifyTelemetryError(e);
   }
 
-  if (!v2.error && v2.data) {
-    const payload = v2.data as unknown as AnalyticsPayload;
-    return {
-      ...payload,
-      meta: { ...payload.meta, schema: "v2", mixed: false },
-    };
+  if (v2.error || !v2.data) {
+    throw classify(v2.error?.message ?? "Analytics read failed", v2.error?.code);
   }
 
-  const v2Error = classify(v2.error?.message ?? "", v2.error?.code);
-
-  // A missing v2 function is expected on a database that has not run the new
-  // migration yet — degrade to the legacy aggregate instead of failing.
-  if (v2Error.kind !== "missing-schema") throw v2Error;
-
-  try {
-    const v1 = await withTimeout(
-      (signal) => supabase.rpc("get_results_analytics").abortSignal(signal),
-      READ_TIMEOUT_MS,
-    );
-    if (v1.error || !v1.data) {
-      throw classify(v1.error?.message ?? v2Error.message, v1.error?.code);
-    }
-    return adaptLegacy(v1.data as unknown as LegacyPayload);
-  } catch (e) {
-    throw classifyTelemetryError(e);
-  }
+  const payload = v2.data as unknown as AnalyticsPayload;
+  return { ...payload, meta: { ...payload.meta, schema: "v2" } };
 }
 
 /** v2 read, split out so its synchronous throws are classified too. */

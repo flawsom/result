@@ -331,17 +331,6 @@ publication AS (
 branch_year AS (
   SELECT year, branch, COUNT(*)::bigint AS n
   FROM ev WHERE year IS NOT NULL GROUP BY year, branch ORDER BY year, branch
-),
-baseline AS (
-  SELECT COALESCE(SUM(count), 0)::bigint AS total FROM public.analytics_seed
-),
-baseline_year AS (
-  SELECT COALESCE(jsonb_agg(jsonb_build_object('year', year, 'count', n) ORDER BY year), '[]'::jsonb) AS j
-  FROM (SELECT year, SUM(count)::bigint AS n FROM public.analytics_seed GROUP BY year) t
-),
-baseline_branch AS (
-  SELECT COALESCE(jsonb_agg(jsonb_build_object('branch', branch, 'count', n) ORDER BY n DESC), '[]'::jsonb) AS j
-  FROM (SELECT branch, SUM(count)::bigint AS n FROM public.analytics_seed GROUP BY branch) t
 )
 SELECT jsonb_build_object(
   'meta', jsonb_build_object(
@@ -376,22 +365,18 @@ SELECT jsonb_build_object(
     'seasonality', COALESCE((SELECT jsonb_agg(jsonb_build_object('dow', dow, 'hour', hour, 'count', n)) FROM seasonality), '[]'::jsonb),
     'publication', COALESCE((SELECT jsonb_agg(jsonb_build_object('year', year, 'semester', semester, 'firstSeenAt', first_seen_at, 'lastSeenAt', last_seen_at, 'count', n)) FROM publication), '[]'::jsonb),
     'branchYear', COALESCE((SELECT jsonb_agg(jsonb_build_object('year', year, 'branch', branch, 'count', n)) FROM branch_year), '[]'::jsonb)
-  ),
-  'baseline', jsonb_build_object(
-    'total', b.total,
-    'byYear', (SELECT j FROM baseline_year),
-    'byBranch', (SELECT j FROM baseline_branch)
   )
 )
-FROM mixed m, pulse p, baseline b;
+FROM mixed m, pulse p;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_results_analytics_v2() TO anon, authenticated;
 
--- ────────────────────────────────────────────────────────────── seed clear ──
--- The synthetic 2018–2025 baseline is *modelled reference data*, not observed
--- traffic. It is returned under its own `baseline` key so the dashboard can
--- label it honestly and never add it to a live number. Run the statement
--- below (uncommented) if you would rather ship with no baseline at all:
+-- ─────────────────────────────────────────────────────────────── seed clear ──
+-- `public.analytics_seed` holds the synthetic 2018–2025 series that the v1
+-- aggregate drew on. This function deliberately does not read it and returns no
+-- key for it: the dashboard plots observed traffic only, so a modelled series
+-- has nowhere to appear and cannot be mistaken for a measurement. The table is
+-- left untouched by this migration. Remove it if you want it gone:
 --
 --   DELETE FROM public.analytics_seed;

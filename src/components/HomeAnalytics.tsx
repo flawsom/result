@@ -50,7 +50,16 @@ import {
   YearPanel,
 } from "@/components/analytics/panels";
 
-const POLL_FALLBACK_MS = 20_000;
+/**
+ * While the realtime channel is live, a slow reconciliation read guards against
+ * a dropped broadcast; when it is not, we poll often enough that the section
+ * still tracks the database closely. Both are short because the aggregate is
+ * bounded to 90 daily and 48 hourly buckets.
+ */
+const RECONCILE_MS = 30_000;
+const POLL_MS = 10_000;
+/** Bursts of writes collapse into one aggregate read this far apart. */
+const COALESCE_MS = 1_500;
 
 /* ────────────────────────────────────────────────────────── scoped styles ── */
 
@@ -68,14 +77,6 @@ const SCOPED_STYLES = `
     100% { transform: scaleY(1);   opacity: 1; }
   }
   .an-panel { animation: an-rise .5s cubic-bezier(.2,.7,.2,1) both; }
-  .ad-hatch {
-    background-image: repeating-linear-gradient(
-      45deg,
-      var(--muted-foreground) 0 2px,
-      transparent 2px 5px
-    );
-    opacity: .45;
-  }
   .an-branch-row {
     position: relative;
     padding: 4px 6px;
@@ -111,7 +112,7 @@ function StatusChip({ status }: { status: "connecting" | "live" | "offline" }) {
   const spec: Record<typeof status, { label: string; color: string }> = {
     connecting: { label: "Connecting", color: "var(--muted-foreground)" },
     live: { label: "Realtime push", color: "oklch(0.55 0.18 145)" },
-    offline: { label: "Polling · 20s", color: "oklch(0.72 0.19 65)" },
+    offline: { label: "Polling · 10s", color: "oklch(0.72 0.19 65)" },
   };
   const s = spec[status];
   return (
@@ -180,9 +181,10 @@ const ERROR_COPY: Record<TelemetryErrorKind, { title: string; detail: ReactNode 
     detail: (
       <>
         The database is reachable but does not expose <code>get_results_analytics_v2()</code> or{" "}
-        <code>log_result_events()</code>. Apply{" "}
-        <code>supabase/migrations/20260928120000_analytics_v2.sql</code>. Until then the section
-        falls back to the legacy aggregate when one exists.
+        <code>log_result_events()</code>, so there is nothing measured to draw. Apply{" "}
+        <code>supabase/migrations/20260928120000_analytics_v2.sql</code> in the Supabase SQL editor
+        and reload. Nothing is shown in the meantime, because the only series that would be
+        available is a modelled one.
       </>
     ),
   },
@@ -248,26 +250,26 @@ function ErrorState({
 
 export function HomeAnalytics() {
   const queryClient = useQueryClient();
+  const [live, setLive] = useState<LiveCounters | null>(null);
+  const [status, setStatus] = useState<"connecting" | "live" | "offline">("connecting");
 
   const q = useQuery({
     queryKey: ["home-analytics"],
     queryFn: fetchAnalytics,
     retry: 1,
     retryDelay: 700,
-    staleTime: 10_000,
-    refetchInterval: POLL_FALLBACK_MS,
+    staleTime: 5_000,
+    refetchInterval: status === "live" ? RECONCILE_MS : POLL_MS,
+    refetchOnWindowFocus: true,
     refetchIntervalInBackground: false,
   });
 
-  const [live, setLive] = useState<LiveCounters | null>(null);
-  const [status, setStatus] = useState<"connecting" | "live" | "offline">("connecting");
-  const isReady = q.isSuccess;
-
-  // Realtime: subscribe only after the first successful snapshot, and coalesce
-  // bursts of writes into at most one aggregate refetch every few seconds so a
-  // busy evening cannot turn into a request storm.
+  // Realtime: subscribe immediately rather than waiting for the first read, so
+  // the ticker starts moving the moment the database is written to. The counter
+  // row is painted straight from the pushed payload, and the aggregate is
+  // re-read a beat later — coalesced, so a busy evening cannot become a request
+  // storm.
   useEffect(() => {
-    if (!isReady) return;
     let timer: number | null = null;
     const sub = subscribeLiveCounters((row) => {
       setLive(row);
@@ -275,13 +277,13 @@ export function HomeAnalytics() {
       timer = window.setTimeout(() => {
         timer = null;
         void queryClient.invalidateQueries({ queryKey: ["home-analytics"] });
-      }, 5_000);
+      }, COALESCE_MS);
     }, setStatus);
     return () => {
       if (timer !== null) window.clearTimeout(timer);
       sub.close();
     };
-  }, [isReady, queryClient]);
+  }, [queryClient]);
 
   return (
     <section aria-labelledby="analytics-heading" className="mt-20">
@@ -308,11 +310,7 @@ export function HomeAnalytics() {
             )}
           </div>
           <div className="label-caps mt-1 text-muted-foreground">
-            {q.data?.meta.schema === "v2"
-              ? "telemetry schema v2"
-              : q.data?.meta.schema === "v1"
-                ? "legacy aggregate (v1)"
-                : "schema unknown"}
+            {q.data ? "telemetry schema v2 · observed only" : "schema unverified"}
           </div>
         </div>
       </div>
@@ -385,22 +383,6 @@ function AnalyticsBody({
         onRefresh={onRefresh}
         coldStart={coldStart}
       />
-
-      {(data.meta.mixed || data.meta.schema === "v1") && (
-        <div
-          className="border-thick border-l-[5px] p-4"
-          style={{ borderLeftColor: "oklch(0.72 0.19 65)" }}
-        >
-          <div className="label-caps" style={{ color: "oklch(0.72 0.19 65)" }}>
-            Degraded read · legacy aggregate
-          </div>
-          <p className="mt-2 font-mono text-[11px] leading-relaxed">
-            This database has not run the v2 migration, so outcome, latency, time-of-day and
-            publication panels have no source. Figures shown here come from the legacy aggregate,
-            which cannot separate the modelled baseline from observed traffic — treat them as mixed.
-          </p>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
         <div className="md:col-span-3">
