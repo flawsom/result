@@ -121,6 +121,22 @@ export class TelemetryError extends Error {
 const READ_TIMEOUT_MS = 8_000;
 const WRITE_TIMEOUT_MS = 6_000;
 
+/**
+ * The Supabase host this bundle was compiled against, surfaced in error states
+ * so a deployment built with the wrong environment is obvious at a glance
+ * rather than looking like an upstream outage. Not a secret: the value ships in
+ * the bundle either way, and the key is never exposed.
+ */
+export function compiledSupabaseHost(): string {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  if (!url) return "no Supabase URL was compiled into this build";
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
 function isMissingFunction(message: string, code?: string): boolean {
   return (
     code === "PGRST202" || /could not find the function|does not exist|schema cache/i.test(message)

@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import {
   classifyTelemetryError,
   fetchAnalytics,
+  compiledSupabaseHost,
   subscribeLiveCounters,
   type AnalyticsPayload,
   type LiveCounters,
@@ -233,6 +234,11 @@ function ErrorState({
       <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">{copy.detail}</p>
       <p className="mt-3 max-w-3xl border-l-4 border-foreground pl-3 font-mono text-[11px] break-words text-muted-foreground">
         {e.message}
+      </p>
+      <p className="mt-3 max-w-3xl font-mono text-[11px] text-muted-foreground">
+        This build was compiled against <span className="font-bold">{compiledSupabaseHost()}</span>.
+        If that is not the project you expect, the environment variables the site was built with are
+        wrong — a Vite build bakes them in, so changing them requires a rebuild.
       </p>
       <button
         type="button"
