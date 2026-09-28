@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-label="Results dashboard: a student card, an SGPA summary band with the credit-weighted formula, a subject table with per-subject grades and credit points, and a cumulative CGPA band">
+  <title>Dashboard — student card, SGPA band with formula, subject table and CGPA</title>
+  <defs>
+    <style>
+      .m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+      .s{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+      .caps{letter-spacing:.15em}
+      .num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+    </style>
+  </defs>
+
+  <rect width="1200" height="820" fill="#ffffff"/>
+
+  <rect x="0" y="0" width="1200" height="44" fill="#0a0a0a"/>
+  <circle cx="26" cy="22" r="5" fill="#4b5563"/><circle cx="44" cy="22" r="5" fill="#4b5563"/><circle cx="62" cy="22" r="5" fill="#4b5563"/>
+  <rect x="96" y="12" width="1010" height="21" fill="#16181d" stroke="#23262e"/>
+  <text class="m" x="601" y="27" font-size="11" fill="#9aa0ae" text-anchor="middle">result.unifies.codes</text>
+
+  <g transform="translate(88,62)">
+    <rect width="40" height="40" fill="#000000" stroke="#000000" stroke-width="3"/>
+    <text class="m caps" x="58" y="15" font-size="12" fill="#000000">BPUT / RESULT FETCHER</text>
+    <text class="s" x="58" y="40" font-size="20" font-weight="900" letter-spacing="-0.3" fill="#000000">results.bput.ac.in</text>
+  </g>
+  <rect x="928" y="66" width="150" height="38" fill="none" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="1003" y="90" font-size="11" fill="#000000" text-anchor="middle">NEED BULK ACCESS ?</text>
+  <text class="m caps" x="1112" y="90" font-size="11" fill="#3a3a3a" text-anchor="end">v1.0 // LIVE</text>
+  <rect x="0" y="114" width="1200" height="5" fill="#000000"/>
+
+  <!-- student card -->
+  <rect x="88" y="150" width="1024" height="196" fill="#ffffff" stroke="#000000" stroke-width="5"/>
+  <rect x="884" y="150" width="5" height="196" fill="#000000"/>
+  <text class="m caps" x="120" y="188" font-size="12" fill="#3a3a3a">STUDENT</text>
+  <text class="s" x="118" y="228" font-size="34" font-weight="900" letter-spacing="-0.8" fill="#000000">SOUMYA RANJAN PANDA</text>
+  <g class="m" font-size="12.5" fill="#000000">
+    <text class="caps" x="120" y="270" font-size="11" fill="#3a3a3a">ROLL NO</text><text class="num" x="212" y="270">2301429052</text>
+    <text class="caps" x="120" y="298" font-size="11" fill="#3a3a3a">COURSE</text><text x="212" y="298">B.TECH</text>
+    <text class="caps" x="120" y="326" font-size="11" fill="#3a3a3a">COLLEGE</text><text x="212" y="326">GOVERNMENT COLLEGE OF ENGG, KALAHANDI</text>
+    <text class="caps" x="580" y="270" font-size="11" fill="#3a3a3a">BATCH</text><text class="num" x="648" y="270">2023-27</text>
+    <text class="caps" x="580" y="298" font-size="11" fill="#3a3a3a">BRANCH</text><text x="648" y="298">COMPUTER SCIENCE AND ENGINEERING</text>
+    <text class="caps" x="580" y="326" font-size="11" fill="#3a3a3a">CODE</text><text x="648" y="326">014</text>
+  </g>
+  <rect x="928" y="272" width="152" height="46" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="1004" y="300" font-size="11" fill="#000000" text-anchor="middle">← NEW LOOKUP</text>
+
+  <!-- published results header -->
+  <text class="s" x="86" y="404" font-size="34" font-weight="900" letter-spacing="-0.8" fill="#000000">PUBLISHED RESULTS</text>
+  <text class="m caps" x="962" y="396" font-size="11" fill="#3a3a3a" text-anchor="end">8 / 8 CHECKED · 6 PUBLISHED</text>
+  <rect x="972" y="404" width="140" height="34" fill="#000000" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="1042" y="426" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">↓ DOWNLOAD PDF</text>
+
+  <!-- SGPA band -->
+  <rect x="88" y="452" width="1024" height="100" fill="#000000"/>
+  <text class="m caps" x="116" y="480" font-size="11" fill="#ffffff" fill-opacity="0.7">2301429052 · 3RD SEMESTER · ODD-(2024-25)</text>
+  <text class="s" x="116" y="518" font-size="22" font-weight="900" fill="#ffffff">SGPA</text>
+  <text class="num" x="560" y="524" font-size="52" font-weight="700" fill="#ffffff" text-anchor="middle">8.09</text>
+  <g class="m" font-size="12.5" fill="#ffffff" text-anchor="end">
+    <text x="1088" y="496">Σ CREDITS = <tspan font-weight="700">22</tspan></text>
+    <text x="1088" y="518">Σ GRADE PTS = <tspan font-weight="700">178</tspan></text>
+    <text x="1088" y="540" fill-opacity="0.7">LOCAL RECOMPUTE: 8.09</text>
+  </g>
+  <rect x="88" y="552" width="1024" height="46" fill="#ffffff" stroke="#000000" stroke-width="5"/>
+  <text class="m" x="600" y="580" font-size="14" fill="#000000" text-anchor="middle">SGPA = Σ ( Cᵢ × Gᵢ ) / Σ Cᵢ</text>
+  <text class="m" x="1096" y="580" font-size="10" fill="#3a3a3a" text-anchor="end">C = CREDITS · G = GRADE POINT</text>
+
+  <!-- subject table -->
+  <rect x="88" y="620" width="1024" height="34" fill="#000000"/>
+  <g class="m caps" font-size="10.5" fill="#ffffff">
+    <text x="116" y="642">CODE</text>
+    <text x="216" y="642">SUBJECT</text>
+    <text x="700" y="642" text-anchor="middle">T/P</text>
+    <text x="806" y="642" text-anchor="end">CREDITS</text>
+    <text x="892" y="642" text-anchor="middle">GRADE</text>
+    <text x="972" y="642" text-anchor="end">POINTS</text>
+    <text x="1088" y="642" text-anchor="end">CREDIT PTS</text>
+  </g>
+  <g class="m" font-size="11.5" fill="#000000">
+    <line x1="88" y1="654" x2="1112" y2="654" stroke="#000000"/>
+    <text x="112" y="678">BCS301</text><text x="216" y="678">DATA STRUCTURES</text>
+    <text x="700" y="678" text-anchor="middle">T</text><text x="806" y="678" text-anchor="end">3</text>
+    <rect x="878" y="664" width="26" height="18" fill="#ffffff" stroke="#000000" stroke-width="2.5"/>
+    <text x="891" y="678" text-anchor="middle" font-weight="700">A</text>
+    <text x="972" y="678" text-anchor="end">8</text><text x="1088" y="678" text-anchor="end" font-weight="700">24</text>
+
+    <line x1="88" y1="688" x2="1112" y2="688" stroke="#000000" stroke-opacity="0.25"/>
+    <text x="112" y="712">BCS302</text><text x="216" y="712">DISCRETE MATHEMATICS</text>
+    <text x="700" y="712" text-anchor="middle">T</text><text x="806" y="712" text-anchor="end">4</text>
+    <rect x="878" y="698" width="26" height="18" fill="#ffffff" stroke="#000000" stroke-width="2.5"/>
+    <text x="891" y="712" text-anchor="middle" font-weight="700">O</text>
+    <text x="972" y="712" text-anchor="end">10</text><text x="1088" y="712" text-anchor="end" font-weight="700">40</text>
+
+    <line x1="88" y1="722" x2="1112" y2="722" stroke="#000000" stroke-opacity="0.25"/>
+    <text x="112" y="746">BCS303</text><text x="216" y="746">DIGITAL ELECTRONICS</text>
+    <text x="700" y="746" text-anchor="middle">T</text><text x="806" y="746" text-anchor="end">3</text>
+    <rect x="878" y="732" width="26" height="18" fill="#ffffff" stroke="#000000" stroke-width="2.5"/>
+    <text x="891" y="746" text-anchor="middle" font-weight="700">B</text>
+    <text x="972" y="746" text-anchor="end">7</text><text x="1088" y="746" text-anchor="end" font-weight="700">21</text>
+
+    <line x1="88" y1="756" x2="1112" y2="756" stroke="#000000" stroke-opacity="0.25"/>
+    <text x="112" y="780">BCS391</text><text x="216" y="780">DATA STRUCTURES LAB</text>
+    <text x="700" y="780" text-anchor="middle">P</text><text x="806" y="780" text-anchor="end">2</text>
+    <rect x="878" y="766" width="26" height="18" fill="#ffffff" stroke="#000000" stroke-width="2.5"/>
+    <text x="891" y="780" text-anchor="middle" font-weight="700">O</text>
+    <text x="972" y="780" text-anchor="end">10</text><text x="1088" y="780" text-anchor="end" font-weight="700">20</text>
+    <line x1="88" y1="790" x2="1112" y2="790" stroke="#000000"/>
+    <text x="112" y="810" fill="#3a3a3a">UNOFFICIAL COPY · REGENERATED FROM BPUT'S PUBLIC RESULT PORTAL</text>
+  </g>
+</svg>

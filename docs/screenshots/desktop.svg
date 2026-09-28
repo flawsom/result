@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-label="Desktop view of BPUT Result Fetcher: the home page showing the registration-number search form above the live BPUT Results Intelligence analytics dashboard">
+  <title>Desktop — home page with result lookup and the BPUT Results Intelligence dashboard</title>
+  <defs>
+    <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1740cc" stop-opacity="0.38"/>
+      <stop offset="100%" stop-color="#1740cc" stop-opacity="0"/>
+    </linearGradient>
+    <style>
+      .m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+      .s{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+      .caps{letter-spacing:.15em}
+      .num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+    </style>
+  </defs>
+
+  <rect width="1200" height="820" fill="#ffffff"/>
+
+  <!-- browser chrome -->
+  <rect x="0" y="0" width="1200" height="44" fill="#0a0a0a"/>
+  <circle cx="26" cy="22" r="5" fill="#4b5563"/><circle cx="44" cy="22" r="5" fill="#4b5563"/><circle cx="62" cy="22" r="5" fill="#4b5563"/>
+  <rect x="96" y="12" width="1010" height="21" fill="#16181d" stroke="#23262e"/>
+  <text class="m" x="601" y="27" font-size="11" fill="#9aa0ae" text-anchor="middle">result.unifies.codes</text>
+
+  <!-- app header -->
+  <g transform="translate(88,62)">
+    <rect width="40" height="40" fill="#000000" stroke="#000000" stroke-width="3"/>
+    <text class="m caps" x="58" y="15" font-size="12" fill="#000000">BPUT / RESULT FETCHER</text>
+    <text class="s" x="58" y="40" font-size="20" font-weight="900" letter-spacing="-0.3" fill="#000000">results.bput.ac.in</text>
+  </g>
+  <rect x="928" y="66" width="150" height="38" fill="none" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="1003" y="90" font-size="11" fill="#000000" text-anchor="middle">NEED BULK ACCESS ?</text>
+  <text class="m caps" x="1112" y="90" font-size="11" fill="#3a3a3a" text-anchor="end">v1.0 // LIVE</text>
+  <rect x="0" y="114" width="1200" height="5" fill="#000000"/>
+
+  <!-- headline -->
+  <text class="s" x="86" y="216" font-size="56" font-weight="900" letter-spacing="-1.4" fill="#000000">FETCH YOUR</text>
+  <text class="s" x="86" y="272" font-size="56" font-weight="900" letter-spacing="-1.4" fill="#000000">BPUT RESULT.</text>
+  <text class="s" x="88" y="308" font-size="15" fill="#3a3a3a">Enter your registration number. We derive all 8 semester sessions from your batch year</text>
+  <text class="s" x="88" y="330" font-size="15" fill="#3a3a3a">and pull each published semester directly — no DOB or session input required.</text>
+
+  <!-- search form -->
+  <rect x="88" y="368" width="1024" height="226" fill="#ffffff" stroke="#000000" stroke-width="5"/>
+  <text class="m caps" x="120" y="406" font-size="12" fill="#000000">REGISTRATION NUMBER</text>
+  <rect x="120" y="420" width="960" height="72" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <text class="num" x="142" y="464" font-size="26" fill="#000000">2301429052</text>
+  <rect x="848" y="438" width="2" height="36" fill="#1000c9"/>
+  <rect x="120" y="512" width="196" height="52" fill="#000000" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="218" y="545" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">FETCH RESULT</text>
+  <text class="m caps" x="338" y="545" font-size="12" fill="#3a3a3a">LIVE · NO ACCOUNTS · REG NO ONLY</text>
+
+  <!-- analytics section header (border-b-4, exactly as the app renders it) -->
+  <rect x="88" y="640" width="1024" height="4" fill="#000000"/>
+  <text class="m caps" x="88" y="676" font-size="12" fill="#3a3a3a">SYSTEM DIAGNOSTICS // ANALYTICS ENGINE</text>
+  <text class="s" x="86" y="716" font-size="34" font-weight="900" letter-spacing="-0.8" fill="#000000">BPUT RESULTS INTELLIGENCE.</text>
+  <circle cx="1096" cy="666" r="5" fill="#008b1d"/>
+  <circle cx="1096" cy="666" r="9" fill="#008b1d" fill-opacity="0.25"/>
+  <text class="m caps" x="1112" y="670" font-size="11" fill="#3a3a3a" text-anchor="end">LIVE STREAM · AUTO-REFRESH 30s</text>
+
+  <!-- volume panel -->
+  <rect x="88" y="740" width="620" height="60" fill="#f2f2f2" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="104" y="762" font-size="10.5" fill="#3a3a3a">VOLUME DENSITY / 2019–2026</text>
+  <path d="M104 792 L180 782 L256 786 L332 770 L408 774 L484 762 L560 766 L692 756 L692 794 L104 794 Z" fill="url(#areaFill)"/>
+  <polyline points="104,792 180,782 256,786 332,770 408,774 484,762 560,766 692,756" fill="none" stroke="#1740cc" stroke-width="2.5"/>
+  <circle cx="560" cy="766" r="4" fill="#ffffff" stroke="#1740cc" stroke-width="2.5"/>
+
+  <!-- branch lollipops -->
+  <rect x="724" y="740" width="388" height="60" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <text class="m caps" x="740" y="762" font-size="10.5" fill="#3a3a3a">BRANCH DISTRIBUTION · k≥25</text>
+  <g class="m" font-size="10">
+    <text x="740" y="780" fill="#000000">CSE</text>
+    <line x1="790" y1="776" x2="1096" y2="776" stroke="#000000" stroke-opacity="0.2"/>
+    <line x1="790" y1="776" x2="1046" y2="776" stroke="#1740cc" stroke-width="2"/>
+    <circle cx="1046" cy="776" r="5" fill="#1740cc"/>
+    <text x="740" y="794" fill="#000000">ECE</text>
+    <line x1="790" y1="790" x2="1096" y2="790" stroke="#000000" stroke-opacity="0.2"/>
+    <line x1="790" y1="790" x2="952" y2="790" stroke="#000000" stroke-width="2"/>
+    <circle cx="952" cy="790" r="5" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  </g>
+</svg>

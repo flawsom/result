@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-label="Admin surface: the bulk batch form, a running batch with pause and cancel controls and a progress bar, and a completed batch ready to export as CSV or a ZIP of PDF marksheets">
+  <title>Admin — bulk batch runner, progress and export</title>
+  <defs>
+    <style>
+      .m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+      .s{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+      .caps{letter-spacing:.15em}
+    </style>
+  </defs>
+
+  <rect width="1200" height="820" fill="#ffffff"/>
+
+  <rect x="0" y="0" width="1200" height="44" fill="#0a0a0a"/>
+  <circle cx="26" cy="22" r="5" fill="#4b5563"/><circle cx="44" cy="22" r="5" fill="#4b5563"/><circle cx="62" cy="22" r="5" fill="#4b5563"/>
+  <rect x="96" y="12" width="1010" height="21" fill="#16181d" stroke="#23262e"/>
+  <text class="m" x="601" y="27" font-size="11" fill="#9aa0ae" text-anchor="middle">result.unifies.codes/admin</text>
+
+  <!-- admin header -->
+  <rect x="0" y="44" width="1200" height="62" fill="#ffffff"/>
+  <rect x="0" y="106" width="1200" height="1" fill="#000000" fill-opacity="0.18"/>
+  <rect x="88" y="63" width="62" height="24" fill="#eef0ff"/>
+  <text class="m" x="119" y="80" font-size="11.5" fill="#1000c9" text-anchor="middle" font-weight="700">Admin</text>
+  <text class="s" x="164" y="80" font-size="13.5" font-weight="600" fill="#000000">BPUT Result Fetcher</text>
+  <g class="s" font-size="12.5">
+    <text x="880" y="80" fill="#000000" text-anchor="middle">Batches</text>
+    <text x="952" y="80" fill="#000000" text-anchor="middle">Analytics</text>
+    <text x="1030" y="80" fill="#000000" text-anchor="middle">Public site</text>
+  </g>
+  <rect x="1064" y="62" width="48" height="26" fill="none" stroke="#000000" stroke-opacity="0.25"/>
+  <text class="m" x="1088" y="79" font-size="10.5" fill="#000000" text-anchor="middle">SIGN OUT</text>
+
+  <!-- access banner (border-primary/20 bg-primary/5) -->
+  <rect x="88" y="130" width="1024" height="42" fill="#f4f5ff" stroke="#c9cdf7"/>
+  <text class="s" x="106" y="156" font-size="12.5" fill="#000000"><tspan font-weight="700">Need bulk access?</tspan> <tspan fill="#3a3a3a">Contact us on Instagram for admin approval.</tspan></text>
+  <rect x="1006" y="139" width="92" height="24" fill="#1000c9"/>
+  <text class="m" x="1052" y="155" font-size="11" fill="#ffffff" text-anchor="middle">@vibes.him</text>
+
+  <!-- privacy banner (amber) -->
+  <rect x="88" y="184" width="1024" height="44" fill="#fffbeb" stroke="#fcd34d"/>
+  <text class="s" x="106" y="212" font-size="12.5" fill="#78350f"><tspan font-weight="700">Admin surface.</tspan> Bulk lookups are your responsibility as an admin, including having a lawful basis for the registration numbers you query. Public users on / never see this page.</text>
+
+  <!-- new bulk batch card -->
+  <rect x="88" y="248" width="1024" height="230" fill="#ffffff" stroke="#000000" stroke-opacity="0.18"/>
+  <text class="s" x="112" y="282" font-size="16" font-weight="600" fill="#000000">New bulk batch</text>
+  <text class="s" x="112" y="304" font-size="12.5" fill="#3a3a3a">Enter a registration-number range. The runner fetches student details and all 8 semesters per roll number, sequentially, at the pace below.</text>
+
+  <g class="m caps" font-size="10" fill="#000000">
+    <text x="112" y="336">START REG NO</text>
+    <text x="408" y="336">END REG NO</text>
+    <text x="704" y="336">LABEL (OPTIONAL)</text>
+    <text x="916" y="336">DELAY / REQUEST (MS)</text>
+  </g>
+  <g class="m" font-size="12.5" fill="#000000">
+    <rect x="112" y="344" width="272" height="38" fill="#ffffff" stroke="#000000" stroke-opacity="0.2"/>
+    <text x="126" y="368">2101010001</text>
+    <rect x="408" y="344" width="272" height="38" fill="#ffffff" stroke="#000000" stroke-opacity="0.2"/>
+    <text x="422" y="368">2101010120</text>
+    <rect x="704" y="344" width="196" height="38" fill="#ffffff" stroke="#000000" stroke-opacity="0.2"/>
+    <text x="718" y="368">CSE 2021 batch</text>
+    <rect x="916" y="344" width="88" height="38" fill="#ffffff" stroke="#000000" stroke-opacity="0.2"/>
+    <text x="930" y="368">300</text>
+  </g>
+  <text class="m caps" x="1020" y="368" font-size="10" fill="#000000">MAX RETRIES</text>
+  <rect x="1020" y="378" width="68" height="4" fill="#f2f2f2"/>
+  <text class="m" x="1116" y="386" font-size="12.5" fill="#000000" text-anchor="end">2</text>
+
+  <rect x="112" y="400" width="150" height="40" fill="#000000"/>
+  <text class="s" x="187" y="425" font-size="13" fill="#ffffff" text-anchor="middle">Start batch</text>
+  <text class="s" x="282" y="425" font-size="12" fill="#3a3a3a">120 registration numbers — 2101010001 … 2101010120. Est. runtime ≈ 6.2 min at current pace.</text>
+
+  <!-- running card -->
+  <rect x="88" y="494" width="1024" height="132" fill="#ffffff" stroke="#000000" stroke-opacity="0.18"/>
+  <text class="s" x="112" y="528" font-size="16" font-weight="600" fill="#000000">Running: CSE 2021 batch</text>
+  <text class="s" x="112" y="548" font-size="12.5" fill="#3a3a3a">Fetching 2101010043…</text>
+  <rect x="980" y="510" width="56" height="28" fill="none" stroke="#000000" stroke-opacity="0.25"/>
+  <text class="m" x="1008" y="528" font-size="10.5" fill="#000000" text-anchor="middle">PAUSE</text>
+  <rect x="1044" y="510" width="44" height="28" fill="#e60016"/>
+  <text class="m" x="1066" y="528" font-size="10.5" fill="#ffffff" text-anchor="middle">STOP</text>
+
+  <rect x="112" y="568" width="976" height="8" fill="#f2f2f2"/>
+  <rect x="112" y="568" width="605" height="8" fill="#000000"/>
+  <g class="m" font-size="11" fill="#3a3a3a">
+    <text x="112" y="600">74 / 120 PROCESSED</text>
+    <text x="272" y="600">· 68 SUCCEEDED</text>
+    <text x="420" y="600">· 2 NOT FOUND</text>
+    <text x="556" y="600" fill="#e60016">· 0 FAILED</text>
+    <text x="676" y="600">· 44 QUEUED</text>
+  </g>
+
+  <!-- batch row -->
+  <rect x="88" y="646" width="1024" height="96" fill="#ffffff" stroke="#000000" stroke-opacity="0.18"/>
+  <text class="s" x="112" y="678" font-size="13.5" font-weight="500" fill="#000000">CSE 2021 batch</text>
+  <rect x="240" y="662" width="82" height="22" fill="#f2f2f2"/>
+  <text class="m" x="281" y="678" font-size="10.5" fill="#000000" text-anchor="middle">COMPLETED</text>
+  <text class="m" x="112" y="700" font-size="11" fill="#3a3a3a">2101010001–2101010120 · 120 ROLLS · 300MS · 28/09/2026, 4:12:08 PM</text>
+  <rect x="112" y="712" width="976" height="6" fill="#f2f2f2"/>
+  <rect x="112" y="712" width="976" height="6" fill="#000000"/>
+  <g class="m" font-size="11" fill="#3a3a3a">
+    <text x="112" y="734">120/120</text>
+    <text x="196" y="734">· 116 OK</text>
+    <text x="284" y="734">· 4 NOT FOUND</text>
+  </g>
+  <g class="m" font-size="10.5" fill="#000000">
+    <rect x="700" y="700" width="176" height="26" fill="none" stroke="#000000" stroke-opacity="0.25"/>
+    <text x="788" y="717" text-anchor="middle">↓ DOWNLOAD PDFS (116)</text>
+    <rect x="886" y="700" width="112" height="26" fill="none" stroke="#000000" stroke-opacity="0.25"/>
+    <text x="942" y="717" text-anchor="middle">CSV EXPORT</text>
+    <rect x="1008" y="700" width="80" height="26" fill="none" stroke="#000000" stroke-opacity="0.25"/>
+    <text x="1048" y="717" text-anchor="middle">DELETE</text>
+  </g>
+
+  <text class="m" x="112" y="782" font-size="11" fill="#3a3a3a">ALL RESULTS STAY IN THIS BROWSER (INDEXEDDB · bput-admin-bulk) — NOTHING IS UPLOADED</text>
+</svg>

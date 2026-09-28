@@ -4,7 +4,7 @@
      ═══════════════════════════════════════════════════════════════════════════ -->
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/flawsom/result/main/public/og-image.svg" alt="BPUT Result Fetcher — live semester results, SGPA/CGPA and PDF marksheets" width="100%" />
+  <img src="docs/hero.svg" alt="BPUT Result Fetcher — live BPUT semester results, SGPA in seconds, PDF marksheets and no login" width="100%" />
 </p>
 
 <h1 align="center">BPUT&nbsp;Result&nbsp;Fetcher</h1>
@@ -61,6 +61,10 @@
   <a href="#-support">Support</a>
 </p>
 
+<p align="center">
+  <img src="docs/divider.svg" alt="" width="100%" />
+</p>
+
 ---
 
 <a name="toc" id="toc"></a>
@@ -104,6 +108,9 @@ flowchart LR
   C --> D["📈 SGPA · CGPA · trends<br/>grade distribution"]
   D --> E["📄 PDF marksheet<br/>+ QR to BPUT"]
   D --> F["📊 Anonymous aggregate<br/>analytics"]
+
+  classDef step fill:#eef2ff,stroke:#1740cc,stroke-width:2px,color:#0b1030
+  class A,B,C,D,E,F step
 ```
 
 <table>
@@ -204,38 +211,56 @@ flowchart LR
 
 ## 📸 Screenshots
 
-The share card below is the real Open Graph asset served at [`result.unifies.codes/og-image.png`](https://result.unifies.codes/og-image.png).
+Every tile below is a **vector recreation of the live interface** — drawn from the components, design tokens and copy that actually ship in `src/`, so each one stays razor-sharp at any zoom and costs a few kilobytes instead of megabytes. Prefer a real capture? The swap instructions sit under the gallery.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/flawsom/result/main/public/og-image.svg" alt="BPUT Result Fetcher social share card" width="720" />
-  <br/>
-  <sub><strong>Share card</strong> · 1200×630 · used for Open Graph and Twitter cards</sub>
-</p>
-
-### Shot list
-
-Drop captures into `docs/screenshots/` with the exact filenames below and they render here automatically — the gallery is written as real image references so maintainers only need to add files.
-
-| Surface                       | File                                    | What to capture                                                                     |
-| ----------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------- |
-| 🖥 **Desktop**                | `docs/screenshots/desktop.png`          | The hero at 1440×900 — headline, registration input and the analytics section below |
-| 📱 **Mobile**                 | `docs/screenshots/mobile.png`           | A 390×844 viewport showing the search form and a semester SGPA block                 |
-| 🧾 **Dashboard**              | `docs/screenshots/dashboard.png`        | Student card + published semester list with the CGPA summary band                    |
-| ⚙️ **Settings / Admin**       | `docs/screenshots/settings.png`         | `/admin` bulk batch form with the pacing and retry controls                          |
-| 🔑 **Authentication**         | `docs/screenshots/auth.png`             | `/auth` — Continue with Google, email/password and the restricted-surface note        |
-| 📊 **Analytics**              | `docs/screenshots/analytics.png`        | "BPUT Results Intelligence" — volume chart, branch lollipops, semester sparklines     |
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/desktop.svg" alt="Desktop home page: the registration-number search form above the live BPUT Results Intelligence analytics dashboard" width="100%" />
+      <br/>
+      <sub><b>🖥 Desktop</b> · 1440×900 · headline, registration-number form, analytics below the fold</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/mobile.svg" alt="Mobile layout: registration-number form, a semester SGPA block and the cumulative CGPA band on a 390 pixel wide screen" width="100%" />
+      <br/>
+      <sub><b>📱 Mobile</b> · 390×844 · one column, thumb-reachable actions</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/dashboard.svg" alt="Results dashboard: student card, SGPA band with the credit-weighted formula, and a subject table with grades and credit points" width="100%" />
+      <br/>
+      <sub><b>🧾 Dashboard</b> · student card, SGPA band + formula, subject table</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/analytics.svg" alt="BPUT Results Intelligence dashboard: all-time totals, a 24 hour live pulse, a year-wise volume chart, branch lollipops and per-semester sparklines" width="100%" />
+      <br/>
+      <sub><b>📊 Analytics</b> · volume density, live pulse, branch lollipops, sparklines</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/settings.svg" alt="Admin surface: the bulk batch form, a running batch with pause and cancel controls and a progress bar, and a completed batch with PDF and CSV export" width="100%" />
+      <br/>
+      <sub><b>⚙️ Settings / Admin</b> · batch form, pacing controls, exports</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/auth.svg" alt="Admin sign-in screen with Continue with Google, email and password fields, and a note that sign-up is disabled" width="100%" />
+      <br/>
+      <sub><b>🔑 Authentication</b> · Google + email sign-in, role-gated</sub>
+    </td>
+  </tr>
+</table>
 
 <details>
-<summary><strong>➕ How to add a screenshot (maintainers)</strong></summary>
+<summary><strong>➕ Swapping a vector tile for a real capture</strong></summary>
 
-```bash
-mkdir -p docs/screenshots
-# capture, then commit
-git add docs/screenshots/desktop.png
-git commit -m "docs: add desktop screenshot"
-```
+1. Capture at the size noted on the tile and export a PNG (keep it under ~500 KB).
+2. Save it beside the vector art as `docs/screenshots/desktop.png`, `mobile.png`, `dashboard.png`, `settings.png`, `auth.png`, `analytics.png`.
+3. Point that tile at the PNG instead: `<img src="docs/screenshots/desktop.png" ... width="100%" />`.
+4. Keep the `alt` text — it is what screen-reader users receive.
 
-Then extend the gallery below with an image table:
+For reference, a two-up gallery tile:
 
 ```html
 <table>
@@ -252,9 +277,13 @@ Then extend the gallery below with an image table:
 </table>
 ```
 
-Keep PNGs under ~500 KB (they are screenshots, not photos) and always set an `alt` attribute so the README stays accessible.
+Vector or raster, always reference **repo-relative** paths (`docs/screenshots/…`) rather than `raw.githubusercontent.com` URLs. Relative paths resolve for anyone with repository access — including in a **private** repository — and they survive a default-branch rename.
 
 </details>
+
+<p align="center">
+  <img src="docs/divider.svg" alt="" width="100%" />
+</p>
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -360,6 +389,15 @@ flowchart TB
   UI --> RPC
   RPC --> EVENTS
   RPC --> SEED
+
+  classDef client fill:#eef2ff,stroke:#1740cc,stroke-width:2px,color:#0b1030
+  classDef server fill:#0f172a,stroke:#3b6bff,stroke-width:2px,color:#ffffff
+  classDef upstream fill:#fff7ed,stroke:#f38500,stroke-width:2px,color:#3a2a00
+  classDef data fill:#ecfdf5,stroke:#008b1d,stroke-width:2px,color:#052e16
+  class UI,MEM,IDB client
+  class SSR,MW,SF server
+  class U1,U2,U3 upstream
+  class AUTH,ROLES,EVENTS,SEED,RPC data
 ```
 
 ### Lookup flow
@@ -448,6 +486,15 @@ flowchart LR
   N --> LIVE
   C --> LIVE
   D --> LIVE
+
+  classDef src fill:#eef2ff,stroke:#1740cc,stroke-width:2px,color:#0b1030
+  classDef build fill:#fff7ed,stroke:#f38500,stroke-width:2px,color:#3a2a00
+  classDef host fill:#ecfdf5,stroke:#008b1d,stroke-width:2px,color:#052e16
+  classDef live fill:#0f172a,stroke:#3b6bff,stroke-width:2px,color:#ffffff
+  class DEV src
+  class CI,BUILD,NITRO build
+  class V,N,C,D host
+  class LIVE live
 ```
 
 > [!NOTE]
