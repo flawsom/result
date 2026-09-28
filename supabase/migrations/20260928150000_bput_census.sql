@@ -103,6 +103,21 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.census_can_write() FROM PUBLIC;
 
+-- ─────────────────────────────────────────────────── safe integer parse ────
+-- A regex guard instead of a BEGIN/EXCEPTION cast. Two reasons: an exception
+-- block per column per row is expensive at 200 rows a batch, and a malformed
+-- payload must be dropped rather than coerced, which a guard does explicitly.
+
+CREATE OR REPLACE FUNCTION public.census_int(_value text, _fallback integer)
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE WHEN _value ~ '^-?[0-9]{1,6}$' THEN _value::integer ELSE _fallback END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.census_int(text, integer) FROM PUBLIC;
+
 -- ───────────────────────────────────────────────────────── batched write ────
 -- One round trip per crawl batch (up to 200 observations). Rows that fail the
 -- contract are dropped rather than coerced; the caller gets the count it
@@ -137,11 +152,8 @@ BEGIN
   END IF;
 
   FOR r IN SELECT value FROM jsonb_array_elements(_rows) AS t(value) LIMIT 200 LOOP
-    BEGIN
-      v_year    := NULLIF(r->>'batchYear', '')::integer;
-      v_sem     := NULLIF(r->>'semester', '')::integer;
-    EXCEPTION WHEN others THEN CONTINUE;
-    END;
+    v_year := public.census_int(r->>'batchYear', NULL);
+    v_sem  := public.census_int(r->>'semester', NULL);
 
     CONTINUE WHEN v_year IS NULL OR v_year < 1990 OR v_year > 2100;
     CONTINUE WHEN v_sem IS NULL OR v_sem < 1 OR v_sem > 12;
@@ -155,12 +167,9 @@ BEGIN
       v_outcome := 'failed';
     END IF;
 
-    BEGIN v_subjects := LEAST(GREATEST(COALESCE(NULLIF(r->>'subjects','')::integer, 0), 0), 40);
-    EXCEPTION WHEN others THEN v_subjects := 0; END;
-    BEGIN v_credits  := LEAST(GREATEST(COALESCE(NULLIF(r->>'credits','')::integer, 0), 0), 200);
-    EXCEPTION WHEN others THEN v_credits := 0; END;
-    BEGIN v_points   := LEAST(GREATEST(COALESCE(NULLIF(r->>'points','')::integer, 0), 0), 400);
-    EXCEPTION WHEN others THEN v_points := 0; END;
+    v_subjects := LEAST(GREATEST(COALESCE(public.census_int(r->>'subjects', 0), 0), 0), 40);
+    v_credits  := LEAST(GREATEST(COALESCE(public.census_int(r->>'credits', 0), 0), 0), 200);
+    v_points   := LEAST(GREATEST(COALESCE(public.census_int(r->>'points', 0), 0), 0), 400);
 
     -- Grade histogram is re-validated key by key: only the nine known grades,
     -- each a bounded count, so a malformed payload cannot poison a panel.
@@ -169,11 +178,11 @@ BEGIN
       SELECT COALESCE(jsonb_object_agg(k, LEAST(GREATEST(v, 0), 40)), '{}'::jsonb)
         INTO v_grades
         FROM (
-          SELECT key AS k, NULLIF(value #>> '{}', '')::integer AS v
+          SELECT key AS k, (value #>> '{}')::integer AS v
             FROM jsonb_each(r->'grades')
            WHERE key IN ('O','E','A','B','C','D','F','M','S')
-        ) g
-       WHERE v IS NOT NULL;
+             AND (value #>> '{}') ~ '^[0-9]{1,3}$'
+        ) g;
     END IF;
 
     INSERT INTO public.bput_census_events
