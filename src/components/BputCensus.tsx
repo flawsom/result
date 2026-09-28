@@ -230,6 +230,38 @@ export function BputCensus() {
   const maxBranch = useMemo(() => Math.max(1, ...branches.map((r) => r.observations)), [branches]);
   const grades = useMemo(() => data?.grades ?? [], [data]);
   const maxGrade = useMemo(() => Math.max(1, ...grades.map((g) => g.n)), [grades]);
+  const semLoad = useMemo(() => data?.bySemester ?? [], [data]);
+  const branchYear = useMemo(() => data?.branchYear ?? [], [data]);
+  const k = data?.meta.kAnonymity ?? 25;
+
+  // Coverage is drawn from branch × year cells, but only from cells that already
+  // clear the published anonymity threshold. The aggregate returns those raw, so
+  // the suppression has to happen here or a single-student cell would be drawn.
+  const coverage = useMemo(() => {
+    const rows = new Map<string, Map<number, number>>();
+    const years = new Set<number>();
+    let max = 1;
+    for (const r of branchYear) {
+      if (r.observations < k) continue;
+      let cells = rows.get(r.branch);
+      if (!cells) {
+        cells = new Map<number, number>();
+        rows.set(r.branch, cells);
+      }
+      cells.set(r.batchYear, r.observations);
+      years.add(r.batchYear);
+      max = Math.max(max, r.observations);
+    }
+    const list = [...rows.entries()]
+      .map(([branch, cells]) => ({
+        branch,
+        cells,
+        total: [...cells.values()].reduce((n, v) => n + v, 0),
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+    return { years: [...years].sort(), rows: list, max };
+  }, [branchYear, k]);
 
   // Silent while loading or unreadable: this section is additive, and a failed
   // read here must never become a broken promise on the landing page.
@@ -392,6 +424,110 @@ export function BputCensus() {
                           title={`${fmtInt(g.n)} grade rows`}
                         />
                       ))
+                    )}
+                  </div>
+                </Block>
+              </div>
+
+              <div className="md:col-span-6">
+                <Block title="Semester load" meta="median of published semesters">
+                  <div className="border-thick space-y-3 p-4">
+                    {semLoad.every((r) => r.published === 0) ? (
+                      <p className="font-mono text-[11px] text-muted-foreground">
+                        No published semester yet. Subject and grade-point medians appear with the
+                        first one, and carry no figure until then.
+                      </p>
+                    ) : (
+                      semLoad.map((r) => (
+                        <Bar
+                          key={r.semester}
+                          label={`Sem ${r.semester}`}
+                          value={r.published}
+                          max={maxSem}
+                          right={
+                            r.published === 0
+                              ? "—"
+                              : `${Math.round(Number(r.subjectsP50 ?? 0))} subj · ${Math.round(
+                                  Number(r.pointsP50 ?? 0),
+                                )} pts`
+                          }
+                          title={
+                            r.published === 0
+                              ? `Semester ${r.semester}: nothing published yet`
+                              : `Median over ${fmtInt(r.published)} published semesters: ${Math.round(
+                                  Number(r.subjectsP50 ?? 0),
+                                )} subjects, ${Math.round(Number(r.pointsP50 ?? 0))} grade points`
+                          }
+                        />
+                      ))
+                    )}
+                  </div>
+                </Block>
+              </div>
+
+              <div className="md:col-span-6">
+                <Block title="Coverage matrix" meta={`cells under ${k} withheld`}>
+                  <div className="border-thick p-4">
+                    {coverage.rows.length === 0 ? (
+                      <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
+                        Every branch-and-year cell is still below {k} observations. A cell that
+                        small would describe a handful of students, so the census shows the gap
+                        rather than the number, and fills this in as the crawl deepens.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="mb-1 flex gap-0.5 pl-20">
+                          {coverage.years.map((y) => (
+                            <span
+                              key={y}
+                              className="label-caps flex-1 text-center text-muted-foreground"
+                              style={{ fontSize: 9 }}
+                            >
+                              {String(y).slice(2)}
+                            </span>
+                          ))}
+                        </div>
+                        {coverage.rows.map((row) => (
+                          <div key={row.branch} className="mb-0.5 flex items-center gap-0.5">
+                            <span
+                              className="label-caps w-20 shrink-0 truncate text-muted-foreground"
+                              style={{ fontSize: 9 }}
+                              title={row.branch}
+                            >
+                              {row.branch.replace(/^B\.Tech\.\((.*)\)$/, "$1")}
+                            </span>
+                            {coverage.years.map((y) => {
+                              const n = row.cells.get(y) ?? 0;
+                              const t = n === 0 ? 0 : Math.min(1, n / coverage.max);
+                              return (
+                                <span
+                                  key={y}
+                                  className="h-6 flex-1"
+                                  title={
+                                    n === 0
+                                      ? `${row.branch} · ${y}: under ${k} observations`
+                                      : `${row.branch} · ${y}: ${fmtInt(n)} observations`
+                                  }
+                                  style={{
+                                    background:
+                                      n === 0
+                                        ? "repeating-linear-gradient(45deg, var(--muted) 0 3px, transparent 3px 6px)"
+                                        : `color-mix(in oklab, ${ACCENT} ${Math.max(
+                                            20,
+                                            Math.round(t * 100),
+                                          )}%, transparent)`,
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        ))}
+                        <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                          Hatched cells hold fewer than {k} observations and are withheld rather
+                          than drawn. A thin column here is the census being young, not a branch
+                          that does not exist.
+                        </p>
+                      </>
                     )}
                   </div>
                 </Block>

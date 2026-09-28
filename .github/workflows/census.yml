@@ -10,20 +10,22 @@ name: BPUT census
 #   Secrets:   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — writes need the service role
 #
 # Until a range is set, each scheduled run exits in seconds after the config
-# check below, which is still billed as one minute of runner time. If you would
-# rather not pay that while you are still choosing a range, delete the
-# `schedule:` block and drive it from the Actions → Run workflow button until you
-# are ready.
+# check below. Nothing is collected and nothing is broken — it just waits.
 #
-# Cadence and the minutes budget: private-repo Actions minutes are metered at
-# ~2,000/month on the free plan, and this schedule spends roughly 1,700 of them
-# (24 runs/day × ~2.4 min). Raising the cadence will exceed the allowance. To go
-# faster, use the manual dispatch below with a long `seconds` budget, run the job
-# on a self-hosted runner, or make the repository public for unmetered minutes.
+# Cadence: the repository is public, so Actions minutes are unmetered and the
+# crawl is limited by what the portal will tolerate rather than by a CI budget.
+# A fresh tick therefore starts every five minutes and walks for most of them,
+# which is about as continuous as a scheduler gets. `concurrency` below means a
+# slow tick delays the next start instead of piling runs on top of each other.
+#
+# The real limit is the upstream pace, not the runner: at the default 1s delay a
+# student costs nine requests (one record plus eight semesters), so roughly seven
+# students a minute is the sustained ceiling however often this fires. Lower
+# CENSUS_RATE_MS to raise it, and watch for 429s in the log if you do.
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       range_start:
@@ -33,16 +35,17 @@ on:
         description: Last registration number in the range (overrides the variable)
         required: false
       seconds:
-        description: Wall-clock budget for this run, in seconds
+        description: Wall-clock budget for this run, in seconds (max ~21000)
         required: false
-        default: "600"
+        default: "3000"
       rate_ms:
         description: Delay before each upstream request, in milliseconds
         required: false
         default: "1000"
 
 # One tick at a time. Two overlapping ticks would interleave flushes against the
-# same cursor, which is recoverable but pointless.
+# same cursor, which is recoverable but pointless. Not cancelling in progress
+# means a long dispatch run finishes rather than being cut off by the schedule.
 concurrency:
   group: bput-census
   cancel-in-progress: false
@@ -86,6 +89,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           CENSUS_RANGE_START: ${{ inputs.range_start || vars.CENSUS_RANGE_START }}
           CENSUS_RANGE_END: ${{ inputs.range_end || vars.CENSUS_RANGE_END }}
-          CENSUS_SECONDS: ${{ inputs.seconds || '120' }}
+          CENSUS_SECONDS: ${{ inputs.seconds || '270' }}
           CENSUS_RATE_MS: ${{ inputs.rate_ms || '1000' }}
         run: bun scripts/census-tick.mjs
