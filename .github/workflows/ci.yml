@@ -13,17 +13,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # This repository is Bun-managed: bun.lock is the lockfile that matches
+      # package.json. A stale package-lock.json is also checked in, and installing
+      # from it pulled a Prettier older than the one any local run uses, so this
+      # job reported formatting errors in files that are in fact correctly
+      # formatted. Installing with Bun makes CI and a local run agree.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "22"
-          cache: "npm"
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
       - name: Type-check & build
-        run: npm run build
+        run: bun run build
