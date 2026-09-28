@@ -1,382 +1,1612 @@
-# BPUT Result Fetcher
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     BPUT Result Fetcher — README
+     Unofficial student tool. Not affiliated with or endorsed by BPUT.
+     ═══════════════════════════════════════════════════════════════════════════ -->
 
-An unofficial live result viewer and PDF marksheet exporter for **Biju Patnaik University of Technology (BPUT)** students. It fetches published semester results directly from `results.bput.ac.in`, computes SGPA/CGPA on the fly, visualizes trends, and exports a clean PDF marksheet — with no student login required.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/flawsom/result/main/public/og-image.svg" alt="BPUT Result Fetcher — live semester results, SGPA/CGPA and PDF marksheets" width="100%" />
+</p>
 
-> This is an independent, student-built tool. It is **not** affiliated with or endorsed by BPUT. The authoritative source for any official record remains [results.bput.ac.in](https://results.bput.ac.in).
+<h1 align="center">BPUT&nbsp;Result&nbsp;Fetcher</h1>
+
+<p align="center">
+  <strong>SGPA in seconds.</strong><br/>
+  Live BPUT semester results, auto-computed SGPA&nbsp;/&nbsp;CGPA and a clean PDF marksheet — by registration number only.
+</p>
+
+<p align="center">
+  <a href="https://result.unifies.codes"><img alt="Live site" src="https://img.shields.io/website?url=https%3A%2F%2Fresult.unifies.codes&label=live%20site&up_message=online&down_message=offline&style=for-the-badge&color=22c55e" /></a>
+  <img alt="Release" src="https://img.shields.io/badge/release-v1.0-0ea5e9?style=for-the-badge" />
+  <img alt="License" src="https://img.shields.io/badge/license-not%20set-6b7280?style=for-the-badge" />
+  <a href="https://github.com/flawsom/result/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/flawsom/result/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/flawsom/result/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/flawsom/result?style=flat-square&logo=github&color=facc15" /></a>
+  <a href="https://github.com/flawsom/result/forks"><img alt="Forks" src="https://img.shields.io/github/forks/flawsom/result?style=flat-square&logo=github&color=6366f1" /></a>
+  <a href="https://github.com/flawsom/result/issues"><img alt="Issues" src="https://img.shields.io/github/issues/flawsom/result?style=flat-square&color=ef4444" /></a>
+  <a href="https://github.com/flawsom/result/pulls"><img alt="Pull requests" src="https://img.shields.io/github/issues-pr/flawsom/result?style=flat-square&color=a855f7" /></a>
+  <a href="https://github.com/flawsom/result/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/flawsom/result?style=flat-square&color=14b8a6" /></a>
+  <a href="https://github.com/flawsom/result"><img alt="Repo size" src="https://img.shields.io/github/repo-size/flawsom/result?style=flat-square&color=94a3b8" /></a>
+  <img alt="Top language" src="https://img.shields.io/github/languages/top/flawsom/result?style=flat-square&color=3178c6" />
+</p>
+
+<p align="center">
+  <a href="https://result.unifies.codes"><img alt="Open live demo" src="https://img.shields.io/badge/%E2%96%B6%20Live%20Demo-result.unifies.codes-0ea5e9?style=for-the-badge" /></a>
+  <a href="#-documentation"><img alt="Documentation" src="https://img.shields.io/badge/Documentation-Read%20the%20docs-1e293b?style=for-the-badge" /></a>
+  <a href="#-quick-start"><img alt="Installation" src="https://img.shields.io/badge/Installation-2%20minutes-14b8a6?style=for-the-badge" /></a>
+  <a href="https://github.com/flawsom/result"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-flawsom%2Fresult-181717?style=for-the-badge&logo=github&logoColor=white" /></a>
+</p>
+
+<p align="center">
+  <a href="https://www.producthunt.com/products/bput-result-fetcher-sgpa-in-seconds?utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bput-result-fetcher-sgpa-in-seconds" target="_blank" rel="noopener noreferrer">
+    <img alt="BPUT Result Fetcher — SGPA in seconds | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1196678&theme=dark" />
+  </a>
+</p>
+
+> [!IMPORTANT]
+> **Unofficial and independent.** This project is **not affiliated with, endorsed by, or operated by** Biju Patnaik University of Technology (BPUT) or any government body. It reads the university's **public** result endpoints and presents what they return. Your authoritative record always remains [`results.bput.ac.in`](https://results.bput.ac.in).
+
+<p align="center">
+  <a href="#-overview">Overview</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-screenshots">Screenshots</a> ·
+  <a href="#-demo">Demo</a> ·
+  <a href="#-architecture">Architecture</a> ·
+  <a href="#-tech-stack">Tech Stack</a> ·
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-api-reference">API</a> ·
+  <a href="#-roadmap">Roadmap</a> ·
+  <a href="#-faq">FAQ</a> ·
+  <a href="#-support">Support</a>
+</p>
 
 ---
 
-## Tech Stack
+<a name="toc" id="toc"></a>
 
-Verified against `package.json` and `vite.config.ts`.
+## 📚 Table of Contents
 
-- **Framework:** [TanStack Start v1](https://tanstack.com/start) (React 19, file-based routing, SSR)
-- **Build tool:** Vite 8, configured via the project's Vite + TanStack Start config (`vite.config.ts`)
-- **Server bundler / hosting:** [Nitro](https://nitro.build) — auto-targets Vercel, Netlify, or Cloudflare Workers based on the deploying platform's env vars (Cloudflare Workers by default when built locally).
-- **Language:** TypeScript 5.8 (strict)
-- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`), `tw-animate-css`, `class-variance-authority`, `tailwind-merge`
-- **UI:** shadcn/ui on Radix UI, `lucide-react`, `sonner`, `vaul`, `cmdk`
-- **Data:** `@tanstack/react-query` v5
-- **Charts:** Recharts 2
-- **Math rendering:** KaTeX 0.16 (`katex.renderToString`)
-- **Forms/validation:** `react-hook-form`, `@hookform/resolvers`, `zod`
-- **PDF / assets:** `jspdf`, `jspdf-autotable`, `html2canvas`, `qrcode`, `jszip`
-- **Client storage (admin):** `dexie` + `dexie-react-hooks` (IndexedDB)
-- **Auth / DB (admin only):** Supabase via `@supabase/supabase-js`
-- **Dates:** `date-fns`
-- **Lint / format:** ESLint 9 (flat config) + Prettier 3
+| #   | Section                                                          | #   | Section                                                        |
+| --- | ---------------------------------------------------------------- | --- | -------------------------------------------------------------- |
+| 01  | [🚀 Overview](#-overview)                                        | 12  | [🎯 Usage Examples](#-usage-examples)                          |
+| 02  | [✨ Features](#-features)                                        | 13  | [📊 Performance](#-performance)                                |
+| 03  | [📸 Screenshots](#-screenshots)                                  | 14  | [🧪 Testing & Quality](#-testing--quality)                     |
+| 04  | [🎥 Demo](#-demo)                                                | 15  | [🚀 Deployment](#-deployment)                                  |
+| 05  | [🏗 Architecture](#-architecture)                                | 16  | [🤝 Contributing](#-contributing)                              |
+| 06  | [🛠 Tech Stack](#-tech-stack)                                    | 17  | [🗺 Roadmap](#-roadmap)                                        |
+| 07  | [⚡ Quick Start](#-quick-start)                                  | 18  | [❓ FAQ](#-faq)                                                |
+| 08  | [📁 Project Structure](#-project-structure)                      | 19  | [🙌 Acknowledgements](#-acknowledgements)                      |
+| 09  | [🔐 Environment Variables](#-environment-variables)              | 20  | [📜 License](#-license)                                        |
+| 10  | [📖 Documentation](#-documentation)                              | 21  | [❤️ Support](#-support)                                        |
+| 11  | [🔌 API Reference](#-api-reference)                              | 22  | [🔏 Privacy & Data Handling](#-privacy--data-handling)         |
 
 ---
 
-## Features
+<a name="overview" id="overview"></a>
 
-**Public student flow (`/`, no login):**
+## 🚀 Overview
 
-- Live result lookup by roll no + DOB + session; all published semesters fetched in parallel.
-- Back-paper preservation — probes subsequent sessions per semester so republished attempts are kept alongside the primary.
-- SGPA per semester + running CGPA (credit-weighted).
-- KaTeX-rendered formulas, SGPA/CGPA trend chart, grade distribution chart.
-- Reverse SGPA (target CGPA) calculator.
-- PDF marksheet export via jsPDF + jspdf-autotable with a QR back to `results.bput.ac.in`.
+Every BPUT semester, hundreds of thousands of students refresh an ageing portal to find out whether they passed, what their SGPA is, and whether a backlog followed them into the next session. The data is public — the experience is not.
 
-**Home "BPUT Results Intelligence" analytics (`/`, no login):**
+**BPUT Result Fetcher** turns that raw public data into a fast, legible, shareable result page:
 
-- Live aggregate dashboard: total records tracked, YoY delta, 24h live pulse (distinct semesters + total lookups), year-wise volume area chart with peak annotation, k-anonymised branch lollipops (k≥25), clickable year strip, seaborn-style bell-curve small multiples per semester.
-- Mouse-reactive: cursor spotlight + grid reveal on the area chart, parallax peak label, hover ripples on branch lollipops, staggered draw-in on sparklines.
-- Fed by two SECURITY DEFINER Postgres functions (`log_result_view`, `get_results_analytics`). Only counts by year, semester, branch are stored — never roll numbers, names, grades, IPs. Cohorts under 25 are folded into "Other".
+- **One input.** Type a registration number. Sessions are derived from the batch year, so there is no DOB, no session dropdown and no login.
+- **All eight semesters at once.** Each semester is fetched in parallel, with automatic probing for back-paper republications.
+- **Real math, shown.** SGPA and CGPA are recomputed locally and cross-checked against BPUT's own numbers, with the formula rendered on screen.
+- **A PDF you can keep.** A multi-semester marksheet with a QR code back to the official portal.
+- **Privacy as a design constraint.** No accounts for students, no persistence of registration numbers, and analytics that only ever store anonymous year/semester/branch counters.
 
-**Admin surface (`/admin`, `admin` role required):**
-
-- Google + email/password sign-in via Supabase, role gated by `has_role()` and the `user_roles` table.
-- Bulk range fetch with pause/resume/cancel/retry, persisted in IndexedDB (Dexie).
-- CSV + ZIP-of-PDFs export.
-- Client-side analytics dashboard (CGPA distributions, grade mix, branch comparison, leaderboard, toughest subjects) — distinct from the public home analytics and computed entirely from the admin's local IndexedDB cache.
-
----
-
-## Local Development — Quickstart
-
-The **fastest** path if you only want to run the public flow (`/` search, PDF export, trend charts — everything except the home analytics section and `/admin`):
-
-```bash
-# 1. Prereqs: Node 20+ and Bun 1.x (or npm)
-node --version   # v20 or newer
-bun --version    # 1.x
-
-# 2. Clone + install
-git clone <this-repo> bput-result-fetcher
-cd bput-result-fetcher
-bun install       # or: npm install
-
-# 3. No .env needed for the public flow — just start dev
-bun run dev       # or: npm run dev
-# → http://localhost:5173
+```mermaid
+flowchart LR
+  A["🔢 Registration number"] --> B["🧮 Derive 8 sessions<br/>from batch year"]
+  B --> C["⚡ Parallel fetch<br/>+ back-paper probes"]
+  C --> D["📈 SGPA · CGPA · trends<br/>grade distribution"]
+  D --> E["📄 PDF marksheet<br/>+ QR to BPUT"]
+  D --> F["📊 Anonymous aggregate<br/>analytics"]
 ```
 
-That's it. The homepage, live result search, PDF export, and KaTeX/trend charts all work. **The "BPUT Results Intelligence" section at the bottom will render "Analytics unavailable"** because it needs Supabase; the rest of the app is unaffected.
+<table>
+  <tr>
+    <td align="center" width="25%"><strong>0</strong><br/><sub>accounts required</sub></td>
+    <td align="center" width="25%"><strong>8</strong><br/><sub>semesters fetched per lookup</sub></td>
+    <td align="center" width="25%"><strong>k ≥ 25</strong><br/><sub>anonymity floor on analytics</sub></td>
+    <td align="center" width="25%"><strong>100%</strong><br/><sub>client-side PDF generation</sub></td>
+  </tr>
+</table>
 
-To make the analytics section AND `/admin` work, keep reading — you need Supabase.
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="features" id="features"></a>
+
+## ✨ Features
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🔍 Zero-friction lookup</h3>
+      Registration number in, results out. Sessions are computed from the batch year, so students never guess an exam session or type a date of birth.
+    </td>
+    <td width="33%" valign="top">
+      <h3>⚡ Parallel semester fetch</h3>
+      All eight semesters are requested concurrently, each rendering its own skeleton, SPGA block and subject table as it lands.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🧾 Back-paper aware</h3>
+      BPUT republishes a full semester under a later session after supplementary exams. Those republications are probed and kept alongside the primary result instead of being silently overwritten.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🧮 SGPA / CGPA you can audit</h3>
+      Grade points are recomputed locally from the grade table, credit-weighted, and compared against BPUT's own <code>sgpadetails.sgpa</code>. Any drift is surfaced as a visible warning.
+    </td>
+    <td width="33%" valign="top">
+      <h3>📐 Real formulas on screen</h3>
+      The SGPA and CGPA definitions are rendered with KaTeX from a single source of truth, so the formula shown, the formula in the PDF, and the code that computes them cannot drift apart.
+    </td>
+    <td width="33%" valign="top">
+      <h3>📄 Marksheet PDF export</h3>
+      A multi-page, print-clean marksheet built with jsPDF + AutoTable, with a KaTeX-rasterised formula block and a QR code pointing back to the official portal.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🎯 Target-CGPA calculator</h3>
+      A reverse SGPA calculator answers the question every student actually asks: <em>what do I need this semester to hit my target CGPA?</em>
+    </td>
+    <td width="33%" valign="top">
+      <h3>📊 Analytics engine</h3>
+      A live, aggregate view of lookups — all-time volume, year-over-year delta, a 24-hour pulse, branch distribution and per-semester density — computed by two <code>SECURITY DEFINER</code> Postgres functions.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🕶 Mouse-reactive visuals</h3>
+      Cursor spotlight and grid reveal on the volume chart, parallax annotations, hover ripples on branch lollipops and staggered draw-ins on sparklines — all progressively enhanced and non-blocking.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🔐 Role-gated admin surface</h3>
+      A separate <code>/admin</code> workspace for bulk operations, gated by Supabase Auth plus a <code>user_roles</code> row, with RLS behind a <code>SECURITY DEFINER</code> <code>has_role()</code> check.
+    </td>
+    <td width="33%" valign="top">
+      <h3>📦 Bulk runner with a real queue</h3>
+      Range-based batch fetching (up to 5,000 registration numbers), single in-flight request at a time, pause / resume / cancel / retry, and progress persisted to IndexedDB so a refresh resumes cleanly.
+    </td>
+    <td width="33%" valign="top">
+      <h3>📤 CSV + ZIP-of-PDFs export</h3>
+      Export a batch as CSV, or as a ZIP containing one marksheet PDF per student, generated entirely in the browser with the formula raster cached across the run.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🧠 Admin analytics, locally computed</h3>
+      CGPA/SGPA histograms, grade mix, branch comparison, a leaderboard and a "toughest subjects" table — computed from the admin's own IndexedDB cache, never from a shared server.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🙈 Honest failure states</h3>
+      Every upstream outcome is classified — not published, timeout, rate limited, unreachable, malformed — and rendered as a distinct, actionable state. It never shows stale or invented data.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🔎 Ships SEO-ready</h3>
+      Per-route document head, Open Graph + Twitter cards, <code>robots.txt</code>, <code>sitemap.xml</code>, canonical URLs and JSON-LD (<code>WebSite</code>, <code>WebApplication</code>, <code>FAQPage</code>) out of the box.
+    </td>
+  </tr>
+</table>
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="screenshots" id="screenshots"></a>
+
+## 📸 Screenshots
+
+The share card below is the real Open Graph asset served at [`result.unifies.codes/og-image.png`](https://result.unifies.codes/og-image.png).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/flawsom/result/main/public/og-image.svg" alt="BPUT Result Fetcher social share card" width="720" />
+  <br/>
+  <sub><strong>Share card</strong> · 1200×630 · used for Open Graph and Twitter cards</sub>
+</p>
+
+### Shot list
+
+Drop captures into `docs/screenshots/` with the exact filenames below and they render here automatically — the gallery is written as real image references so maintainers only need to add files.
+
+| Surface                       | File                                    | What to capture                                                                     |
+| ----------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------- |
+| 🖥 **Desktop**                | `docs/screenshots/desktop.png`          | The hero at 1440×900 — headline, registration input and the analytics section below |
+| 📱 **Mobile**                 | `docs/screenshots/mobile.png`           | A 390×844 viewport showing the search form and a semester SGPA block                 |
+| 🧾 **Dashboard**              | `docs/screenshots/dashboard.png`        | Student card + published semester list with the CGPA summary band                    |
+| ⚙️ **Settings / Admin**       | `docs/screenshots/settings.png`         | `/admin` bulk batch form with the pacing and retry controls                          |
+| 🔑 **Authentication**         | `docs/screenshots/auth.png`             | `/auth` — Continue with Google, email/password and the restricted-surface note        |
+| 📊 **Analytics**              | `docs/screenshots/analytics.png`        | "BPUT Results Intelligence" — volume chart, branch lollipops, semester sparklines     |
+
+<details>
+<summary><strong>➕ How to add a screenshot (maintainers)</strong></summary>
+
+```bash
+mkdir -p docs/screenshots
+# capture, then commit
+git add docs/screenshots/desktop.png
+git commit -m "docs: add desktop screenshot"
+```
+
+Then extend the gallery below with an image table:
+
+```html
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/desktop.png" alt="Desktop view" />
+      <br /><sub><b>Desktop</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/mobile.png" alt="Mobile view" />
+      <br /><sub><b>Mobile</b></sub>
+    </td>
+  </tr>
+</table>
+```
+
+Keep PNGs under ~500 KB (they are screenshots, not photos) and always set an `alt` attribute so the README stays accessible.
+
+</details>
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="demo" id="demo"></a>
+
+## 🎥 Demo
+
+<p align="center">
+  <a href="https://result.unifies.codes"><img alt="Open the live demo" src="https://img.shields.io/badge/%E2%96%B6%20Open%20the%20live%20demo-result.unifies.codes-0ea5e9?style=for-the-badge" /></a>
+</p>
+
+Try it with any 8–12 digit registration number belonging to a BPUT batch whose results are published. Nothing to install, no account, no data retention.
+
+### The 60-second tour
+
+|     | Step                 | What you'll see                                                                              |
+| --- | -------------------- | -------------------------------------------------------------------------------------------- |
+| 01  | Enter a reg no       | Validation, then a live fetch of the master record (name, batch, branch, college)             |
+| 02  | Watch the semesters  | Eight parallel semester blocks resolving from skeletons to SGPA blocks                        |
+| 03  | Read the numbers     | Per-semester SGPA, credit totals, the KaTeX formula, and a running credit-weighted CGPA band  |
+| 04  | Inspect the trends   | SGPA trend line, grade distribution, and the reverse-calculator for a target CGPA             |
+| 05  | Download the PDF     | A multi-page marksheet with a QR code back to `results.bput.ac.in`                             |
+| 06  | Scroll to analytics  | The live aggregate dashboard, refreshed every 30 seconds                                      |
+
+<details>
+<summary><strong>🎬 Embedding a GIF / MP4 / YouTube walkthrough</strong></summary>
+
+**GIF** — record with [Kap](https://getkap.co) or [ScreenToGif](https://www.screentogif.com), keep it under 5 MB, and place it at `docs/demo.gif`:
+
+```html
+<p align="center">
+  <img src="docs/demo.gif" alt="Walkthrough: registration number to PDF marksheet" width="720" />
+</p>
+```
+
+**MP4** — GitHub renders `<video>` in Markdown; host the file in the repo or on a CDN:
+
+```html
+<video src="docs/demo.mp4" controls muted playsinline width="720"></video>
+```
+
+**YouTube** — link the thumbnail to the video (never autoplay):
+
+```html
+<p align="center">
+  <a href="https://youtu.be/VIDEO_ID">
+    <img src="https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg" alt="Watch the walkthrough on YouTube" width="720" />
+  </a>
+</p>
+```
+
+</details>
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="architecture" id="architecture"></a>
+
+## 🏗 Architecture
+
+A single TanStack Start application serves both the student-facing pages and the server functions that proxy BPUT. There is no separate backend service to deploy, and Supabase is only involved in authentication, roles and aggregate analytics.
+
+```mermaid
+flowchart TB
+  subgraph Client["🧑‍🎓 Student / admin browser"]
+    UI["TanStack Router pages<br/>/ · /privacy · /auth · /admin"]
+    MEM["In-memory result cache<br/>(per tab, never persisted)"]
+    IDB[("IndexedDB · bput-admin-bulk<br/>bulk batches + results")]
+  end
+
+  subgraph Server["⚙️ TanStack Start server (Nitro)"]
+    SSR["SSR shell + error boundary"]
+    MW["Supabase auth middleware"]
+    SF["Server functions<br/>fetchStudentDetails · fetchSubjects<br/>fetchResultList · getMyRoles"]
+  end
+
+  subgraph Upstream["🏛️ results.bput.ac.in (public, undocumented)"]
+    U1["POST /student-detsils-results"]
+    U2["POST /student-results-subjects-list"]
+    U3["POST /student-results-list"]
+  end
+
+  subgraph Supabase["🗄️ Supabase"]
+    AUTH["Auth · Google + email"]
+    ROLES[("user_roles<br/>+ has_role()")]
+    EVENTS[("analytics_events")]
+    SEED[("analytics_seed")]
+    RPC["log_result_view()<br/>get_results_analytics()"]
+  end
+
+  UI --> MEM
+  UI --> IDB
+  UI --> SSR
+  UI --> SF
+  SF --> U1
+  SF --> U2
+  SF --> U3
+  MW --> AUTH
+  MW --> ROLES
+  UI --> RPC
+  RPC --> EVENTS
+  RPC --> SEED
+```
+
+### Lookup flow
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor S as Student
+  participant B as Browser (React 19)
+  participant N as Server function (Nitro)
+  participant P as results.bput.ac.in
+  participant DB as Supabase RPC
+
+  S->>B: Enter registration number
+  B->>N: fetchStudentDetails({ rollNo })
+  N->>P: POST /student-detsils-results
+  P-->>N: Master record (batch, branch, college, course)
+  N-->>B: StudentDetails
+  B->>B: Parse batch year → derive 8 exam sessions
+
+  par Eight semesters in parallel
+    B->>N: fetchSubjects({ rollNo, semId, session })
+    N->>P: POST /student-results-subjects-list
+    P-->>N: grades[] + sgpadetails
+    N-->>B: SubjectsResponse
+  and Back-paper probes
+    B->>N: fetchSubjects(…, later session)
+    N-->>B: Republications (when published)
+  end
+
+  B->>B: Recompute SGPA locally · credit-weighted CGPA
+  B->>DB: log_result_view(year, semester, branch)
+  DB-->>B: void — fire and forget
+  B-->>S: SGPA blocks · trend chart · PDF marksheet
+```
+
+### Data model
+
+Only three objects exist server-side, and none of them can hold a student identifier.
+
+```mermaid
+erDiagram
+  AUTH_USERS ||--o{ USER_ROLES : "owns"
+  ANALYTICS_EVENTS {
+    bigserial id PK
+    int year
+    int semester
+    text branch
+    timestamptz served_at
+  }
+  ANALYTICS_SEED {
+    int year PK
+    int semester PK
+    text branch PK
+    int count
+  }
+  USER_ROLES {
+    uuid id PK
+    uuid user_id FK
+    app_role role
+    timestamptz created_at
+  }
+```
+
+| Object                       | Kind                                | Role                                                                                                             |
+| ---------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `public.user_roles`          | table (RLS)                         | One row per user role. Users can read only their own row; insertions are privileged.                             |
+| `public.has_role(uid, role)` | function · `SECURITY DEFINER`       | Role check that avoids RLS recursion. Execute is revoked from `anon` and `authenticated`, granted to `service_role`. |
+| `public.analytics_events`    | table (RLS)                         | One row per successful lookup: year, semester, branch, timestamp. No identifiers, ever.                           |
+| `public.analytics_seed`      | table (RLS)                         | Seeded historical counters so the charts are meaningful on day one.                                              |
+| `public.log_result_view(…)`  | function · `SECURITY DEFINER`       | Anonymous, clamped, fire-and-forget writer used by the browser.                                                   |
+| `public.get_results_analytics()` | function · `STABLE`, `SECURITY DEFINER` | Returns the single JSON payload the dashboard consumes, applying k = 25 anonymity to branch buckets.        |
+
+### Deployment topology
+
+```mermaid
+flowchart LR
+  DEV["git push / pull request"] --> CI["GitHub Actions<br/>npm ci · lint · build"]
+  CI --> BUILD["vite build"]
+  BUILD --> NITRO{"Nitro preset"}
+  NITRO -->|VERCEL| V["▲ Vercel"]
+  NITRO -->|NETLIFY| N["◈ Netlify"]
+  NITRO -->|CF_PAGES| C["◆ Cloudflare Workers"]
+  NITRO -->|NITRO_PRESET=node| D["🐳 Docker / any Node host"]
+  V --> LIVE["result.unifies.codes"]
+  N --> LIVE
+  C --> LIVE
+  D --> LIVE
+```
+
+> [!NOTE]
+> Nitro detects the target platform from the host's own environment variables (`VERCEL`, `NETLIFY`, `CF_PAGES`, …), so the same `npm run build` produces the right artifact everywhere. Locally, with none of those set, it falls back to a Cloudflare Workers bundle.
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="tech-stack" id="tech-stack"></a>
+
+## 🛠 Tech Stack
+
+Every entry below is verified against `package.json`, `vite.config.ts` and the source tree.
+
+**Frontend**
+
+<p>
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img alt="TanStack Start" src="https://img.shields.io/badge/TanStack_Start-v1-FF4154?style=for-the-badge&logo=reactquery&logoColor=white" />
+  <img alt="TanStack Router" src="https://img.shields.io/badge/TanStack_Router-file--based-FF4154?style=for-the-badge" />
+  <img alt="TanStack Query" src="https://img.shields.io/badge/TanStack_Query-v5-FF4154?style=for-the-badge" />
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
+  <img alt="shadcn/ui" src="https://img.shields.io/badge/shadcn%2Fui-new--york-000000?style=for-the-badge" />
+  <img alt="Radix UI" src="https://img.shields.io/badge/Radix_UI-primitives-161618?style=for-the-badge&logo=radixui&logoColor=white" />
+  <img alt="Lucide" src="https://img.shields.io/badge/Lucide_icons-0.575-F56565?style=for-the-badge&logo=lucide&logoColor=white" />
+  <img alt="Recharts" src="https://img.shields.io/badge/Recharts-2-22B5BF?style=for-the-badge" />
+  <img alt="Framer-ish motion" src="https://img.shields.io/badge/tw--animate--css-motion-8B5CF6?style=for-the-badge" />
+  <img alt="Sonner" src="https://img.shields.io/badge/sonner-toasts-1E293B?style=for-the-badge" />
+</p>
+
+**Backend & Runtime**
+
+<p>
+  <img alt="Nitro" src="https://img.shields.io/badge/Nitro-server_engine-00DC82?style=for-the-badge" />
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
+  <img alt="Node" src="https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white" />
+  <img alt="Server functions" src="https://img.shields.io/badge/Server_functions-typed_RPC-FF4154?style=for-the-badge" />
+  <img alt="Zod" src="https://img.shields.io/badge/Zod-validation-3E67B1?style=for-the-badge&logo=zod&logoColor=white" />
+  <img alt="React Hook Form" src="https://img.shields.io/badge/React_Hook_Form-forms-EC5990?style=for-the-badge&logo=reacthookform&logoColor=white" />
+</p>
+
+**Database, Auth & Storage**
+
+<p>
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-auth_%2B_postgres-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-RLS_%2B_SECURITY_DEFINER-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img alt="Dexie" src="https://img.shields.io/badge/Dexie.js-IndexedDB-3B82F6?style=for-the-badge" />
+</p>
+
+**Cloud & DevOps**
+
+<p>
+  <img alt="Vercel" src="https://img.shields.io/badge/Vercel-deploy_target-000000?style=for-the-badge&logo=vercel&logoColor=white" />
+  <img alt="Netlify" src="https://img.shields.io/badge/Netlify-deploy_target-00C7B7?style=for-the-badge&logo=netlify&logoColor=white" />
+  <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare_Workers-deploy_target-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" />
+  <img alt="GitHub Actions" src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-self--host-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+</p>
+
+**Documents, Math & Data Viz**
+
+<p>
+  <img alt="KaTeX" src="https://img.shields.io/badge/KaTeX-0.16-329894?style=for-the-badge&logo=katex&logoColor=white" />
+  <img alt="MathJax" src="https://img.shields.io/badge/MathJax_3-SVG_raster_for_PDF-0F172A?style=for-the-badge" />
+  <img alt="jsPDF" src="https://img.shields.io/badge/jsPDF_+_AutoTable-PDF_engine-E11D48?style=for-the-badge" />
+  <img alt="JSZip" src="https://img.shields.io/badge/JSZip-ZIP_exports-F59E0B?style=for-the-badge" />
+  <img alt="QRCode" src="https://img.shields.io/badge/qrcode-verify_links-334155?style=for-the-badge" />
+</p>
+
+**Quality & Tooling**
+
+<p>
+  <img alt="ESLint" src="https://img.shields.io/badge/ESLint-9_flat_config-4B32C3?style=for-the-badge&logo=eslint&logoColor=white" />
+  <img alt="Prettier" src="https://img.shields.io/badge/Prettier-3-F7B93E?style=for-the-badge&logo=prettier&logoColor=black" />
+  <img alt="Bun" src="https://img.shields.io/badge/Bun-package_manager-000000?style=for-the-badge&logo=bun&logoColor=white" />
+  <img alt="npm" src="https://img.shields.io/badge/npm-also_supported-CB3837?style=for-the-badge&logo=npm&logoColor=white" />
+</p>
+
+> [!TIP]
+> **AI/ML:** there is intentionally none. Every number in this app is deterministic arithmetic on published grades — SGPA is credit-weighted grade points, CGPA is the same weighted across semesters. No model, no inference, nothing to hallucinate. If that changes, it will be documented here rather than implied with a badge.
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="quick-start" id="quick-start"></a>
+
+## ⚡ Quick Start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) 20+ (no version is pinned; `@types/node` is v22 and the Cloudflare Workers target expects ≥ 20)
-- [Bun](https://bun.sh) 1.x _or_ npm — both `bun.lock` and `package-lock.json` are checked in; pick one and stick with it
-- (Optional, for the analytics section and `/admin`) either a hosted [Supabase](https://supabase.com) project OR [Supabase CLI](https://supabase.com/docs/guides/local-development) + [Docker Desktop](https://www.docker.com/products/docker-desktop/) for a fully local stack
+| Requirement                                                                 | Why                                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [Node.js](https://nodejs.org) **20+** (CI uses 22)                           | TanStack Start, Vite 8 and the Cloudflare Workers target all expect ≥ 20.        |
+| [Bun](https://bun.sh) **1.x** or **npm**                                     | Both `bun.lock` and `package-lock.json` are committed — pick one and stay on it. |
+| [Supabase](https://supabase.com) project **or** Supabase CLI + Docker        | Only for the analytics dashboard and `/admin`. The public flow needs neither.    |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) *(optional)* | Only if you want a fully local Supabase stack instead of a hosted project.        |
 
-### Scripts
-
-| Script      | What it does                                                                                                               |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `dev`       | `vite dev` — start local dev server on http://localhost:5173 with HMR                                                      |
-| `build`     | `vite build` — production build; Nitro picks the preset from the deploying platform (Vercel / Netlify / Cloudflare / etc.) |
-| `build:dev` | `vite build --mode development` (includes SSR prerender — useful to reproduce Vercel/Netlify SSR errors locally)           |
-| `preview`   | Serve the last `npm run build` output locally. Note: `vite preview` does **not** work for this Nitro build (it looks for `dist/`, but the build emits `.output/`). Use `npx nitro preview` instead, or `npm run dev` for local checks. |
-| `lint`      | `eslint .`                                                                                                                 |
-| `format`    | `prettier --write .`                                                                                                       |
-
----
-
-## Running the analytics locally
-
-The home page's "BPUT Results Intelligence" section (year-wise volume, branch lollipops, semester small multiples, live pulse) is driven by two Postgres RPCs plus a small aggregates table. Pick **one** of the two paths below — you do **not** need both.
-
-The database objects you must have in your Supabase project are:
-
-| Object                                           | Kind                                | Purpose                                                                                                                                                                     |
-| ------------------------------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `public.analytics_events`                        | table                               | One row per successful result fetch (year, semester, branch, served_at). Powers the 24h live pulse.                                                                         |
-| `public.analytics_seed`                          | table                               | Pre-seeded historical aggregate counters, folded into the "all-time" totals so the charts aren't empty on day one.                                                          |
-| `public.log_result_view(year, semester, branch)` | function (SECURITY DEFINER)         | Anonymous fire-and-forget writer called from the browser after every successful fetch. Validates ranges, trims branch to 80 chars, inserts one row into `analytics_events`. |
-| `public.get_results_analytics()`                 | function (SECURITY DEFINER, STABLE) | Returns the single JSON payload the home chart consumes. Applies k=25 anonymity: any branch bucket with fewer than 25 total records is folded into `Other`.                 |
-
-Both are defined in `supabase/migrations/20260714150001_*.sql` — running the migrations below creates all four.
-
-### Path A — Point at a hosted Supabase project (easiest)
-
-Use this if you don't want to install Docker.
-
-1. **Create a project** at [supabase.com/dashboard](https://supabase.com/dashboard) → New project. Pick any region; the free tier is enough.
-2. **Grab the URL + anon key** from **Project Settings → API**:
-   - `Project URL` → goes into `SUPABASE_URL` and `VITE_SUPABASE_URL`
-   - `Project API keys → anon / publishable` → goes into `SUPABASE_PUBLISHABLE_KEY` and `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `Project ref` (the `xxxxx` in `xxxxx.supabase.co`) → goes into `SUPABASE_PROJECT_ID` and `VITE_SUPABASE_PROJECT_ID`
-3. **Copy `.env.example` → `.env`** and paste those three values into both the server and client-side variables (they must match — server functions read `process.env.SUPABASE_*`, browser code reads `import.meta.env.VITE_SUPABASE_*`).
-   ```bash
-   cp .env.example .env
-   # edit .env with your real values
-   ```
-4. **Run the migrations** against the hosted project. Install the [Supabase CLI](https://supabase.com/docs/guides/cli), then:
-
-   ```bash
-   # one-time: log in and link this repo to your project
-   supabase login
-   supabase link --project-ref <your-project-ref>
-
-   # push every SQL file under supabase/migrations/ in order
-   supabase db push
-   ```
-
-   This creates `user_roles`, `analytics_events`, `analytics_seed`, both RPCs, all GRANTs, and RLS policies. If you'd rather skip the CLI, open **SQL Editor** in the Supabase dashboard and paste each file under `supabase/migrations/` in filename order (they're timestamped) and run them one by one.
-
-5. **Verify** — in the Supabase SQL editor:
-   ```sql
-   select count(*) from public.analytics_seed;         -- should be > 0 (the seed baseline)
-   select public.get_results_analytics() -> 'total';   -- should return a positive number
-   ```
-6. **Start the app**:
-   ```bash
-   bun run dev
-   ```
-   Scroll to "BPUT RESULTS INTELLIGENCE" at the bottom of the homepage. Charts should render immediately from the seed baseline. Fetch a real result at the top of the page and refresh — the 24h live pulse should tick up.
-
-### Path B — Fully local Supabase (needs Docker)
-
-Use this if you want zero external dependencies.
-
-1. **Install Docker Desktop** and the [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started).
-2. **Start the local stack** from the repo root — this reads `supabase/config.toml`, spins up Postgres/Auth/PostgREST in Docker, and applies every file under `supabase/migrations/` automatically:
-   ```bash
-   supabase start
-   ```
-   When it finishes it prints something like:
-   ```
-   API URL: http://127.0.0.1:54321
-   DB URL:  postgresql://postgres:postgres@127.0.0.1:54322/postgres
-   Studio URL: http://127.0.0.1:54323
-   anon key: eyJhbGciOi... (copy this)
-   service_role key: eyJhbGciOi... (copy this)
-   ```
-3. **Copy `.env.example` → `.env`** and paste those into all six SUPABASE* / VITE_SUPABASE* variables:
-
-   ```env
-   SUPABASE_PROJECT_ID="local"
-   SUPABASE_URL="http://127.0.0.1:54321"
-   SUPABASE_PUBLISHABLE_KEY="<anon key from `supabase start`>"
-
-   VITE_SUPABASE_PROJECT_ID="local"
-   VITE_SUPABASE_URL="http://127.0.0.1:54321"
-   VITE_SUPABASE_PUBLISHABLE_KEY="<same anon key>"
-
-   SUPABASE_SERVICE_ROLE_KEY="<service_role key>"   # optional; only if you use supabaseAdmin
-   ```
-
-4. **Start the app** — leave `supabase start` running in one terminal, and in another:
-   ```bash
-   bun run dev
-   ```
-5. **Inspect data** at [http://127.0.0.1:54323](http://127.0.0.1:54323) (Supabase Studio). Useful checks:
-   ```sql
-   select count(*) from public.analytics_events;
-   select public.get_results_analytics();
-   ```
-6. **Stop the stack** when you're done: `supabase stop`. Data persists across restarts; to wipe, `supabase stop --no-backup` then `supabase start`.
-
-### Making a code change to the analytics
-
-- **Change a chart or the client aggregation** → edit `src/components/HomeAnalytics.tsx` or `src/lib/analytics-client.ts`. HMR reflects it instantly.
-- **Change what gets stored or aggregated (schema, RPC logic, k-anonymity threshold)** → create a **new** SQL file under `supabase/migrations/` (do NOT edit an existing one — migrations are append-only). Name it `YYYYMMDDHHMMSS_short-description.sql`. Then:
-  - Path A: `supabase db push`
-  - Path B: `supabase migration up` (or just restart `supabase start`, which reapplies)
-- **Add fresh seed rows** → insert into `public.analytics_seed` (columns: `year int`, `semester int`, `branch text`, `count int`). Keep them realistic and clearly labelled as synthetic in the commit message.
-
-### Common analytics gotchas
-
-| Symptom                                                                                                       | Cause / Fix                                                                                                                                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Section shows "Analytics unavailable. Could not find the table 'public.analytics_events' in the schema cache" | Migrations haven't run against this project. Run `supabase db push` (Path A) or `supabase start` (Path B).                                                                                                                                          |
-| Section shows "Analytics unavailable. permission denied for function get_results_analytics"                   | The `GRANT EXECUTE ... TO anon, authenticated` on the RPC didn't apply. Re-run the analytics migration, or in the SQL editor: `grant execute on function public.get_results_analytics() to anon, authenticated;`                                    |
-| Charts render but "Live pulse · 24h" stays at 0                                                               | Nothing has called `log_result_view` yet in the last 24h. Fetch a real result at the top of the homepage — the client fires the RPC after each successful lookup (`src/lib/analytics-client.ts`).                                                   |
-| PostgREST error `Expected 3 parts in JWT; got 1`                                                              | You pasted a new-format `sb_publishable_...` opaque key into a hand-rolled `createClient` somewhere. Use the generated `@/integrations/supabase/client` (browser) or `@/integrations/supabase/auth-middleware` (server) — both handle it correctly. |
-| Same error, but only after you added a new SQL file                                                           | Schema cache is stale. In the Supabase SQL editor: `NOTIFY pgrst, 'reload schema';`. Hosted projects also auto-reload on the next migration push.                                                                                                   |
-
----
-
-## Environment Variables
-
-All variables listed here were located by searching `process.env.` and `import.meta.env.` across `src/`. Nothing else in the app source reads env vars.
-
-The **public student search flow requires zero environment variables** — it talks to BPUT directly. Supabase env vars are needed for **both** the home "BPUT Results Intelligence" section (analytics RPCs) and the `/admin` surface (auth + role gate + bulk fetch).
-
-| Variable                        | Scope            | Required?            | Purpose                                                                                                                                                                                                                         |
-| ------------------------------- | ---------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`             | Client (browser) | Analytics + `/admin` | Supabase project URL used by the browser Supabase client.                                                                                                                                                                       |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Client (browser) | Analytics + `/admin` | Supabase publishable/anon key used by the browser Supabase client.                                                                                                                                                              |
-| `VITE_SUPABASE_PROJECT_ID`      | Client (browser) | Analytics + `/admin` | Project ref used to derive storage keys.                                                                                                                                                                                        |
-| `SUPABASE_URL`                  | Server           | Analytics + `/admin` | Same URL, read inside server functions and the auth middleware. Also a fallback for the browser client during SSR.                                                                                                              |
-| `SUPABASE_PUBLISHABLE_KEY`      | Server           | Analytics + `/admin` | Publishable/anon key read inside the auth middleware. Also an SSR fallback for the browser client.                                                                                                                              |
-| `SUPABASE_PROJECT_ID`           | Server           | Analytics + `/admin` | Project ref for server-side helpers.                                                                                                                                                                                            |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server           | Optional             | Read by `src/integrations/supabase/client.server.ts` to build a service-role client. Only needed if you add server-side code that calls `supabaseAdmin` (nothing in this repo currently does). **Never expose to the browser.** |
-
-Notes:
-
-- No other `process.env.*` or `import.meta.env.*` references exist in the app source.
-- The bare search flow at `/` (roll no + DOB → PDF) will run with an entirely empty `.env`; only the analytics section at the bottom of the homepage will show "Analytics unavailable".
-- Server (`SUPABASE_*`) and client (`VITE_SUPABASE_*`) values **must match** — same project, same anon key. Vite only exposes `VITE_`-prefixed variables to the browser bundle.
-- On a managed platform these values may be auto-managed; otherwise you provide them from your own Supabase project (see §"Running the analytics locally" above).
-
----
-
-## Google OAuth Setup
-
-The `/admin` "Continue with Google" button calls Supabase's Google auth provider **directly** (`supabase.auth.signInWithOAuth`) — no third-party OAuth broker. That means it works on any host (Vercel, Netlify, Cloudflare, self-hosted, custom domain, or `localhost`) with the exact same code. There are **no `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars in this repo** — all Google config lives in the Supabase dashboard. The public flow (`/`) needs none of this.
-
-### 1. Create a Google OAuth client
-
-1. Open [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials).
-2. **Configure the OAuth consent screen** first (User type: **External**; add your Google account under Test users while in testing).
-3. **Create Credentials → OAuth client ID → Web application.**
-4. **Authorized JavaScript origins** — add every origin you'll sign in from:
-   - `http://localhost:5173` (default Vite dev port)
-   - `http://localhost:3000` (if you customized the port)
-   - Your production URL (e.g. `https://result.unifies.codes` or `https://your-app.vercel.app`)
-5. **Authorized redirect URIs** — add the Supabase callback exactly as shown in **Supabase Dashboard → Authentication → Providers → Google**. It looks like:
-   ```
-   https://<your-project-ref>.supabase.co/auth/v1/callback
-   ```
-   This is the ONLY redirect URI Google needs — it's Supabase's callback, not your app's. Do **not** add `/auth/callback` on your own domain here.
-6. Save. Copy the **Client ID** and **Client secret**.
-
-### 2. Wire the credentials into Supabase
-
-1. **Supabase Dashboard → Authentication → Providers → Google** → enable it and paste the **Client ID** and **Client secret** from step 1.
-2. **Authentication → URL Configuration:**
-   - **Site URL:** your primary URL (e.g. `https://result.unifies.codes` in prod, `http://localhost:5173` for local dev).
-   - **Redirect URLs (allowlist):** add every origin's `/auth/callback`:
-     - `http://localhost:5173/auth/callback`
-     - `https://result.unifies.codes/auth/callback`
-     - `https://<your-preview-domain>/auth/callback` (Vercel preview, Netlify deploy previews, etc.)
-
-     After Supabase finishes the Google round-trip it 302s the browser to one of these URLs (the app passes `redirectTo: ${window.location.origin}/auth/callback` from `src/routes/auth.tsx`), so every origin you sign in from must be allow-listed here.
-
-### 3. Run it locally
+### Installation
 
 ```bash
-cp .env.example .env       # then fill in your Supabase URL + anon key
+# 1 — clone
+git clone https://github.com/flawsom/result.git
+cd result
+
+# 2 — install (bun recommended; npm works identically)
 bun install
-bun run dev                # → http://localhost:5173
+# npm install
+
+# 3 — run
+bun run dev
+# → http://localhost:5173
 ```
 
-Visit [http://localhost:5173/auth](http://localhost:5173/auth) and click **Continue with Google**. First-time sign-in creates a Supabase user with no roles — grant yourself admin by inserting a row into `public.user_roles` (`user_id = auth.users.id`, `role = 'admin'`) via the Supabase SQL editor.
+The homepage, live result lookup, trend charts and PDF export work with an **empty `.env`**. Only the "BPUT Results Intelligence" section needs Supabase, and it degrades to a clear "Analytics unavailable" message — never a broken page.
 
-### Troubleshooting
+### Available scripts
 
-| Symptom                                         | Fix                                                                                                                                                      |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `redirect_uri_mismatch` from Google             | The exact `https://<ref>.supabase.co/auth/v1/callback` URL isn't in your Google OAuth client's **Authorized redirect URIs**. Paste it verbatim.          |
-| 404 on `/~oauth/initiate`                       | You're on an older build that used a third-party OAuth broker. Pull latest — the auth page now calls Supabase directly and no `/~oauth/*` route is used. |
-| Lands on `/auth` after Google returns           | The `${origin}/auth/callback` URL isn't in Supabase's Redirect URL allowlist. Add it.                                                                    |
-| `Unsupported provider: provider is not enabled` | Google provider isn't toggled on in Supabase → Authentication → Providers.                                                                               |
-| Signed in but `/admin` says Not authorized      | Expected — add a row to `public.user_roles` for your user with `role = 'admin'`.                                                                         |
+| Script      | Command                       | Description                                                                                              |
+| ----------- | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `dev`       | `vite dev`                    | Dev server on `http://localhost:5173` with HMR                                                            |
+| `build`     | `vite build`                  | Production build; Nitro picks the preset from the deploying platform                                      |
+| `build:dev` | `vite build --mode development` | Development-mode build including the SSR prerender pass — useful for reproducing SSR errors locally     |
+| `preview`   | `vite preview`                | Serves the build output. For Nitro output use `npx nitro preview` — `vite preview` looks for `dist/`       |
+| `lint`      | `eslint .`                    | Lint the whole repository                                                                                 |
+| `format`    | `prettier --write .`          | Format every file with the project's Prettier config                                                      |
 
----
+### Environment variables
 
-## Deployment
+```bash
+cp .env.example .env
+```
 
-### Build target
+The public student flow needs **nothing**. To enable analytics and `/admin`, fill in the six Supabase values (URL, publishable key and project ref — once for the server, once for the browser) exactly as described in [Environment Variables](#-environment-variables).
 
-`vite build` runs [Nitro](https://nitro.build) via the project's Vite + TanStack Start config. Nitro **auto-detects the deployment target from the platform's own environment variables** (`VERCEL`, `NETLIFY`, `CF_PAGES`, etc.), so the same `npm run build` command produces the right output for whichever host runs it. Locally with no such env vars, it falls back to a Cloudflare Workers bundle.
+### Running locally
 
-You can force a target by setting `NITRO_PRESET` (e.g. `NITRO_PRESET=vercel`, `NITRO_PRESET=netlify`) as a build-time env var.
+```bash
+bun run dev          # dev server, HMR, http://localhost:5173
+bun run lint         # eslint
+npx tsc --noEmit     # type check without emitting
+npx prettier --check .
+```
 
-### Vercel
+### Docker setup
 
-The project is deploy-ready — no `vercel.json` needed.
+The Nitro `node` preset produces a self-contained server bundle in `.output/`. Build the app, then package the output:
 
-1. Import the repo at [vercel.com/new](https://vercel.com/new).
-2. Framework preset: **Other**. Build command: `bun run build` (or `npm run build`). Output directory: leave default — Nitro's `vercel` preset writes the correct `.vercel/output/` structure automatically.
-3. Add the env vars below in **Project Settings → Environment Variables** (only needed if you want `/admin` to work; the public flow needs none):
-   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` — exposed to the browser.
-   - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` — server-side, same values.
-   - `SUPABASE_SERVICE_ROLE_KEY` — server-only, mark as **Sensitive**. Skip unless you need `supabaseAdmin`.
-4. Deploy.
+```dockerfile
+# ---------- build ----------
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+ENV NITRO_PRESET=node
+RUN npm run build
 
-To pin the runtime explicitly, add `NITRO_PRESET=vercel` (Node functions) or `NITRO_PRESET=vercel-edge` (Edge) to the environment variables.
+# ---------- run ----------
+FROM node:22-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+COPY --from=build /app/.output ./.output
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]
+```
 
-### Netlify
+```bash
+docker build -t bput-result-fetcher .
+docker run --rm -p 3000:3000 --env-file .env bput-result-fetcher
+# → http://localhost:3000
+```
 
-Also deploy-ready — no `netlify.toml` needed.
+> [!WARNING]
+> Never bake secrets into the image. `VITE_*` values are inlined into the client bundle at build time, so pass them as build arguments **only** if they are genuinely public (the Supabase URL and publishable key are). `SUPABASE_SERVICE_ROLE_KEY` must stay runtime-only and server-side.
 
-1. Import the repo at [app.netlify.com](https://app.netlify.com).
-2. Build command: `bun run build` (or `npm run build`). Publish directory: leave default — Nitro's `netlify` preset writes to `.netlify/` automatically.
-3. Add the same env vars listed above in **Site settings → Environment variables**. Mark `SUPABASE_SERVICE_ROLE_KEY` as sensitive.
-4. Deploy.
+### Production deployment
 
-To pin explicitly: `NITRO_PRESET=netlify` (Functions) or `NITRO_PRESET=netlify-edge`.
+```bash
+NITRO_PRESET=vercel bun run build      # or netlify / cloudflare-pages / node
+```
 
-### Cloudflare Workers
+See [Deployment](#-deployment) for platform-by-platform instructions.
 
-`bun run build` locally emits a Workers bundle. Deploy with `wrangler deploy`, and set env vars in **Workers & Pages → your project → Settings → Variables**.
-
-### Runtime notes
-
-- `SUPABASE_SERVICE_ROLE_KEY` must **never** be prefixed with `VITE_` — that would ship it to the browser.
-- Edge presets (`vercel-edge`, `netlify-edge`) run on Workers-like runtimes; the current code is already `workerd`-compatible, so either edge or Node target works.
-
----
-
-## Data & Privacy
-
-- Public flow sends only `rollNo`, `dob`, `session`, `semId` to BPUT; nothing is persisted server-side. The only client-side cache is an in-memory `Map` cleared on tab close.
-- Server logs a single static label per upstream call — `rollNo`, `dob`, and query strings are deliberately never logged.
-- Admin bulk-fetch results live **only** in the admin's browser IndexedDB (`bput-admin-bulk`, via Dexie). Nothing student-identifying is written to Supabase.
-- The only Supabase table is `public.user_roles` (RLS: users can read only their own row; role checks go through the `SECURITY DEFINER` function `public.has_role`).
-
----
-
-## Known Limitations
-
-- Public flow is fully anonymous — no accounts, no history beyond the current tab.
-- BPUT-specific only (endpoints, roll-number regex, and grade-point scale are hardcoded to BPUT).
-- English UI only.
-- Retry strategy is minimal: one retry with a fixed 400 ms backoff, no jitter.
-- Coverage is stress-tested against B.Tech; other programs rely on the same upstream shape but may surface edge cases.
-- Bulk-fetch admin runner is single-tab / single in-flight to stay polite toward BPUT.
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
 ---
 
+<a name="project-structure" id="project-structure"></a>
+
+## 📁 Project Structure
+
+```text
+result/
+├── .github/workflows/ci.yml        # CI: Node 22 → npm ci → lint → build, on pushes and PRs to main
+├── public/                         # Static assets served from the site root
+│   ├── favicon.ico                 # Also used as the apple-touch-icon
+│   ├── og-image.png / .svg         # 1200×630 Open Graph + Twitter card artwork
+│   ├── robots.txt                  # Allows all crawlers, disallows /admin, references the sitemap
+│   └── sitemap.xml                 # Lists the public routes (/ and /privacy)
+├── src/
+│   ├── components/
+│   │   ├── HomeAnalytics.tsx       # "BPUT Results Intelligence" — aggregate dashboard + scoped animations
+│   │   ├── SgpaTrendChart.tsx      # SGPA across published semesters
+│   │   ├── GradeDistributionChart.tsx
+│   │   ├── ReverseSgpaCalc.tsx     # Target-CGPA ("what do I need?") calculator
+│   │   ├── ResultStates.tsx        # Not-published / error / retry states
+│   │   ├── DevCacheHUD.tsx         # Dev-only live-vs-cache indicator
+│   │   ├── DevToolsCaughtOverlay.tsx
+│   │   └── ui/                     # shadcn/ui primitives (new-york style, Radix-based)
+│   ├── hooks/use-mobile.tsx
+│   ├── integrations/supabase/
+│   │   ├── client.ts               # Browser client (handles new sb_publishable_ opaque keys)
+│   │   ├── client.server.ts        # Server / service-role client
+│   │   ├── auth-attacher.ts        # Attaches the session to every server-function call
+│   │   ├── auth-middleware.ts      # requireSupabaseAuth middleware
+│   │   └── types.ts                # Generated database types
+│   ├── lib/
+│   │   ├── bput.functions.ts       # Server functions proxying results.bput.ac.in + error taxonomy
+│   │   ├── sgpa.ts                 # Grade-point table, response types, calculateSGPA()
+│   │   ├── formulas.ts             # Single source of truth for the KaTeX SGPA/CGPA formulas + legends
+│   │   ├── pdf.ts                  # jsPDF marksheet: layout, MathJax→PNG formulas, QR, disclaimers
+│   │   ├── result-cache.ts         # In-memory, per-tab cache + dev event log (never persisted)
+│   │   ├── analytics-client.ts     # Calls the two analytics RPCs; never sends identifiers
+│   │   ├── admin.functions.ts      # getMyRoles() — authenticated, RLS-respecting role read
+│   │   ├── devtools-guard.ts       # Locks down devtools in non-dev contexts
+│   │   ├── error-capture.ts / error-page.ts / error-reporting.ts
+│   │   ├── utils.ts                # cn() and friends
+│   │   └── bulk/                   # Admin bulk engine (entirely client-side)
+│   │       ├── db.ts               # Dexie schema: batches + jobs  (db: bput-admin-bulk)
+│   │       ├── runner.ts           # Single in-flight queue: pause / resume / cancel / retry
+│   │       ├── range.ts            # Registration-number range expansion + validation
+│   │       ├── sessions.ts         # Semester session derivation + back-paper candidates
+│   │       ├── analytics.ts        # Histograms, grade mix, branch stats, leaderboard, worst subjects
+│   │       └── export.ts           # CSV export + ZIP-of-PDFs export
+│   ├── routes/
+│   │   ├── __root.tsx              # App shell: providers, document head, JSON-LD, error + 404 boundaries
+│   │   ├── index.tsx               # Public lookup: search, semesters, CGPA, charts, PDF, analytics
+│   │   ├── privacy.tsx             # Privacy, disclaimer and 8-question FAQ (with FAQPage JSON-LD)
+│   │   ├── auth.tsx                # Sign-in (Google + email/password), preserves ?next=
+│   │   ├── auth.callback.tsx       # OAuth return handler
+│   │   ├── _authenticated/route.tsx        # Redirects signed-out users to /auth?next=…
+│   │   └── _authenticated/admin/           # Admin layout (role gate) + index (batches) + analytics
+│   │       ├── route.tsx
+│   │       ├── index.tsx
+│   │       └── analytics.tsx
+│   ├── router.tsx                  # Router + React Query context
+│   ├── routeTree.gen.ts            # Auto-generated — never edit by hand
+│   ├── server.ts                   # Custom SSR entry: normalises swallowed h3 errors into a real page
+│   ├── start.ts                    # Server function + request middleware (error boundary, Supabase auth)
+│   ├── styles.css                  # Tailwind v4 entry, design tokens, dark mode
+│   └── vite-env.d.ts
+├── supabase/
+│   ├── config.toml                 # Local stack configuration
+│   └── migrations/                 # Append-only, timestamped SQL
+│       ├── …_app_role_user_roles_has_role.sql
+│       ├── …_revoke_has_role_execute.sql
+│       ├── …_analytics_tables_and_rpc.sql
+│       └── …_analytics_grants.sql
+├── AGENTS.md                       # Guardrail: keep main in a working state (pushes sync to live)
+├── components.json                 # shadcn/ui configuration (new-york, slate, lucide)
+├── eslint.config.js                # ESLint 9 flat config
+├── .prettierrc                     # printWidth 100 · double quotes · semicolons · trailing commas
+├── bunfig.toml                     # 24h supply-chain guard (minimumReleaseAge) for installs
+├── tsconfig.json
+└── vite.config.ts                  # Thin wrapper over @lovable.dev/vite-tanstack-config
+```
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
 ---
 
-## SEO
+<a name="environment-variables" id="environment-variables"></a>
 
-Technical SEO is built in and ships as static files plus a per-route document head. No environment variables and no external service are required.
+## 🔐 Environment Variables
 
-**Static files (served from `public/`, available at the site root):**
-- `public/robots.txt` — allows all crawlers, disallows `/admin`, and references the sitemap.
-- `public/sitemap.xml` — lists the public routes (`/` and `/privacy`).
-- `public/og-image.png` — the 1200×630 social-share image used for Open Graph and Twitter cards.
+The public lookup flow reads **no** environment variables at all. The six Supabase values below are required for the analytics dashboard and for `/admin`; the service-role key is optional and unused by current code.
 
-**Per-route document head** (root config in `src/routes/__root.tsx`, per-route overrides via each route's `head` export):
-- `<title>`, meta `description`, and a canonical link on every route (home → `/`, `/privacy` → `/privacy`).
-- Open Graph: `og:title`, `og:description`, `og:type`, `og:url`, `og:image` (the PNG above), `og:site_name`.
-- Twitter: `twitter:card=summary_large_image` plus `twitter:title` / `twitter:description` / `twitter:image`.
-- `apple-touch-icon` → `public/favicon.ico`.
+| Variable                        | Scope            | Required            | Description                                                                                                             |
+| ------------------------------- | ---------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`             | Client (browser) | Analytics + `/admin` | Supabase project URL used by the browser client.                                                                        |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Client (browser) | Analytics + `/admin` | Publishable / anon key used by the browser client. Safe to expose.                                                      |
+| `VITE_SUPABASE_PROJECT_ID`      | Client (browser) | Analytics + `/admin` | Project ref, used to derive storage keys.                                                                               |
+| `SUPABASE_URL`                  | Server           | Analytics + `/admin` | Same URL, read inside server functions and the auth middleware. Also the SSR fallback for the browser client.            |
+| `SUPABASE_PUBLISHABLE_KEY`      | Server           | Analytics + `/admin` | Publishable key read by the auth middleware. Also the SSR fallback for the browser client.                              |
+| `SUPABASE_PROJECT_ID`           | Server           | Analytics + `/admin` | Project ref for server-side helpers.                                                                                     |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server           | Optional            | Builds a service-role client in `src/integrations/supabase/client.server.ts`. Nothing in this repo currently uses it. **Never** prefix it with `VITE_`. |
 
-**Structured data (JSON-LD):**
-- Root: `WebSite` + `WebApplication` (with `logo`) on every page.
-- `/privacy`: `FAQPage` with the eight FAQ entries — eligible for Google's FAQ rich result.
+<details>
+<summary><strong>⚠️ Things that bite people</strong></summary>
 
-**To extend:** add a new public route under `src/routes/`, give it a `head` export (title / description / canonical), and add its URL to `public/sitemap.xml`. Re-run the `claude-seo` audit (`scripts/parse_html.py`) against a local/dev build to confirm the tags before deploying.
+- **Server and client values must match** — same project, same key. Vite only exposes `VITE_`-prefixed variables to the browser bundle, so both sets exist on purpose.
+- **Never** name the service-role key `VITE_SUPABASE_SERVICE_ROLE_KEY`. That ships a privileged key to every visitor.
+- New-style `sb_publishable_…` keys are opaque, not JWTs. Always import the provided clients (`@/integrations/supabase/client` for the browser, `@/integrations/supabase/auth-middleware` on the server) rather than calling `createClient` by hand, or PostgREST will reject the request with `Expected 3 parts in JWT; got 1`.
+- Analytics uses `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` server-side even though the write happens in the browser, because the RPC grants are validated against both.
 
-## License
+</details>
 
-No `LICENSE` file exists yet — until one is added, the code is "all rights reserved" by default.
+<details>
+<summary><strong>🧩 Minimal local <code>.env</code> (hosted Supabase)</strong></summary>
+
+```env
+SUPABASE_PROJECT_ID="abcdefghijklm"
+SUPABASE_URL="https://abcdefghijklm.supabase.co"
+SUPABASE_PUBLISHABLE_KEY="sb_publishable_..."
+
+VITE_SUPABASE_PROJECT_ID="abcdefghijklm"
+VITE_SUPABASE_URL="https://abcdefghijklm.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY="sb_publishable_..."
+```
+
+```bash
+# apply the schema
+supabase link --project-ref abcdefghijklm
+supabase db push
+```
+
+</details>
+
+<details>
+<summary><strong>🐳 Minimal local <code>.env</code> (Supabase CLI + Docker)</strong></summary>
+
+```env
+SUPABASE_PROJECT_ID="local"
+SUPABASE_URL="http://127.0.0.1:54321"
+SUPABASE_PUBLISHABLE_KEY="<anon key printed by `supabase start`>"
+
+VITE_SUPABASE_PROJECT_ID="local"
+VITE_SUPABASE_URL="http://127.0.0.1:54321"
+VITE_SUPABASE_PUBLISHABLE_KEY="<same anon key>"
+```
+
+```bash
+supabase start        # boots Postgres, Auth, PostgREST and applies ./supabase/migrations
+supabase stop         # data persists; add --no-backup to wipe
+```
+
+</details>
+
+### Google OAuth
+
+The `/admin` "Continue with Google" button calls Supabase's Google provider directly — there is no third-party OAuth broker and **no** `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in this repository. All Google configuration lives in the Supabase dashboard.
+
+1. Google Cloud Console → **Credentials → OAuth client ID → Web application**. Add your origins (e.g. `http://localhost:5173`, your production domain).
+2. Add exactly one authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback` — Supabase's callback, not your app's.
+3. Supabase → **Authentication → Providers → Google**: paste the client ID and secret.
+4. Supabase → **Authentication → URL Configuration**: set the site URL and allowlist every `${origin}/auth/callback` you sign in from (localhost, production, and preview domains).
+
+<details>
+<summary><strong>Auth troubleshooting</strong></summary>
+
+| Symptom                                          | Cause / fix                                                                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `redirect_uri_mismatch` from Google              | The exact `https://<ref>.supabase.co/auth/v1/callback` URL is missing from the Google OAuth client.    |
+| Landed back on `/auth` after Google              | Your `${origin}/auth/callback` is missing from Supabase's redirect allowlist.                          |
+| `Unsupported provider: provider is not enabled`  | The Google provider is not enabled in Supabase → Authentication → Providers.                           |
+| Signed in, but `/admin` shows "Not authorized"   | Expected — insert a `user_roles` row for that user with `role = 'admin'`.                              |
+| `404` on an `/~oauth/*` path                     | You are on an old build that used an OAuth broker. Pull latest — the app talks to Supabase directly.   |
+
+</details>
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="documentation" id="documentation"></a>
+
+## 📖 Documentation
+
+| Topic                            | Where                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Route conventions                | [`src/routes/README.md`](src/routes/README.md) — TanStack file-based routing rules                     |
+| Server functions & error codes   | [`src/lib/bput.functions.ts`](src/lib/bput.functions.ts)                                               |
+| Grade points & SGPA math         | [`src/lib/sgpa.ts`](src/lib/sgpa.ts) · [`src/lib/formulas.ts`](src/lib/formulas.ts)                     |
+| PDF marksheet layout             | [`src/lib/pdf.ts`](src/lib/pdf.ts)                                                                     |
+| Analytics RPC schema             | [`supabase/migrations/`](supabase/migrations)                                                          |
+| Bulk engine                      | [`src/lib/bulk/`](src/lib/bulk)                                                                        |
+| Environment template             | [`.env.example`](.env.example)                                                                          |
+| Contributing guardrails          | [`AGENTS.md`](AGENTS.md) — `main` must always stay deployable                                           |
+| Privacy & FAQ (user-facing)      | [`/privacy`](https://result.unifies.codes/privacy)                                                     |
+
+$$ \text{SGPA} = \frac{\sum_{i=1}^{n} C_i \times G_i}{\sum_{i=1}^{n} C_i} \qquad\qquad \text{CGPA} = \frac{\sum_{n=1}^{k} \text{SGPA}_n \times C_n}{\sum_{n=1}^{k} C_n} $$
+
+Grade points follow BPUT's scheme: `O 10`, `E 9`, `A 8`, `B 7`, `C 6`, `D 5`, and `F` / `M` (malpractice) / `S` (absent) all map to `0`.
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="api-reference" id="api-reference"></a>
+
+## 🔌 API Reference
+
+There is no hand-written REST API to maintain. The surface is **typed server functions** (TanStack Start RPC, same-origin, POST/GET) plus **two Supabase RPCs** called from the browser. The upstream BPUT endpoints are undocumented and are never called directly from a client.
+
+### Error taxonomy
+
+Every upstream failure is re-thrown with a stable prefix so the UI can branch on category across the server-function boundary.
+
+| Code                  | Meaning                                             | Retried?      |
+| --------------------- | --------------------------------------------------- | ------------- |
+| `BPUT_NOT_PUBLISHED`  | BPUT has not published this result yet               | No            |
+| `BPUT_BAD_INPUT`      | Registration number / session / semester malformed   | No            |
+| `BPUT_RATE_LIMITED`   | Upstream returned `429` (respects `Retry-After`)     | Once, then surfaced |
+| `BPUT_TIMEOUT`        | Upstream exceeded the 7 s `AbortController` budget   | Once, after 400 ms |
+| `BPUT_UNREACHABLE`    | Network failure                                       | Once, after 400 ms |
+| `BPUT_UPSTREAM`       | `5xx` or a non-JSON body                             | `5xx` only    |
+
+### Server functions
+
+| Function              | Method | Input                             | Returns                                            |
+| --------------------- | ------ | --------------------------------- | -------------------------------------------------- |
+| `fetchStudentDetails` | POST   | `{ rollNo: string }`               | `StudentDetails` — name, batch, branch, college     |
+| `fetchSubjects`       | POST   | `{ rollNo, semId, session }`       | `SubjectsResponse` — `grades[]` + `sgpadetails`      |
+| `fetchResultList`     | POST   | `{ rollNo, dob, session }`         | `ResultListItem[]` — published semesters for a session |
+| `getMyRoles`          | GET    | — (requires a session)             | `string[]` of roles for the signed-in user           |
+
+```ts
+import { useServerFn } from "@tanstack/react-start";
+import { fetchStudentDetails, fetchSubjects } from "@/lib/bput.functions";
+
+const getDetails = useServerFn(fetchStudentDetails);
+
+// 1. master record
+const student = await getDetails({ data: { rollNo: "2301429052" } });
+
+// 2. one semester
+const subjects = await useServerFn(fetchSubjects)({
+  data: { rollNo: student.rollNo, semId: "3", session: "Odd-(2024-25)" },
+});
+```
+
+Example response (abridged):
+
+```json
+{
+  "grades": [
+    {
+      "semester": "3RD SEMESTER",
+      "semId": "3",
+      "subjectCODE": "BCS301",
+      "subjectTP": "T",
+      "subjectName": "DATA STRUCTURES",
+      "subjectCredits": 3,
+      "grade": "A",
+      "points": 8,
+      "creditPoints": 24,
+      "recheck": 0
+    }
+  ],
+  "sgpadetails": { "cretits": 22, "totalGradePoints": 178, "sgpa": "8.09" }
+}
+```
+
+> [!NOTE]
+> `sgpadetails.cretits` is BPUT's own spelling, preserved deliberately as ground truth. The client recomputes SGPA from `grades` and flags any disagreement larger than `0.01`.
+
+### Supabase RPCs
+
+Base URL: `https://<project-ref>.supabase.co/rest/v1/rpc/<function>`
+
+| RPC                                             | Auth              | Body                                 | Returns                              |
+| ----------------------------------------------- | ----------------- | ------------------------------------ | ------------------------------------ |
+| `POST /rest/v1/rpc/log_result_view`             | `anon`            | `{ _year, _semester, _branch }`      | `void` — silently drops invalid input |
+| `POST /rest/v1/rpc/get_results_analytics`       | `anon`            | —                                    | `jsonb` aggregate payload             |
+
+```bash
+curl -s "https://$SUPABASE_PROJECT_ID.supabase.co/rest/v1/rpc/get_results_analytics" \
+  -X POST \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}' | jq '{total, pulse24hDistinct, pulse24hTotal}'
+```
+
+```json
+{
+  "total": 48213,
+  "byYear": [{ "year": 2024, "count": 12884 }],
+  "byYearSem": [{ "year": 2024, "semester": 3, "count": 2110 }],
+  "byBranch": [
+    { "branch": "COMPUTER SCIENCE AND ENGINEERING", "count": 9042 },
+    { "branch": "Other", "count": 1180 }
+  ],
+  "pulse24hDistinct": 17,
+  "pulse24hTotal": 342,
+  "updatedAt": "2026-09-28T10:12:44.913Z"
+}
+```
+
+<details>
+<summary><strong>Why <code>Other</code> appears in the branch list</strong></summary>
+
+`get_results_analytics()` folds every branch bucket with fewer than **25** total records into a single `Other` bucket before returning. That k-anonymity floor means a small or newly-opened branch can never be singled out in aggregate charts.
+
+</details>
+
+### Upstream (proxied, undocumented)
+
+These are BPUT's own public endpoints. They are consumed exclusively server-side and are documented here only so contributors understand the integration seam. Their shape can change without notice.
+
+| Path                                        | Query                                |
+| ------------------------------------------- | ------------------------------------ |
+| `/student-detsils-results`                  | `rollNo`                             |
+| `/student-results-subjects-list`            | `semid`, `rollNo`, `session`          |
+| `/student-results-list`                     | `rollNo`, `dob`, `session`            |
+
+Base: `https://results.bput.ac.in` · timeout 7 000 ms · one retry with a fixed 400 ms backoff.
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="usage-examples" id="usage-examples"></a>
+
+## 🎯 Usage Examples
+
+### Look up a result in the browser
+
+```text
+1. Open https://result.unifies.codes
+2. Enter your registration number, e.g. 2301429052
+3. Press Enter
+```
+
+Sessions are derived from the batch year in your master record: semester _n_ maps to `year = batchStart + floor((n - 1) / 2)` and alternates `Odd` / `Even`, e.g. `Odd-(2024-25)`. Back-paper republications are probed in later sessions and shown as separate attempt blocks.
+
+### Compute SGPA from a grade table
+
+```ts
+import { calculateSGPA, GRADE_POINTS } from "@/lib/sgpa";
+
+const sgpa = calculateSGPA([
+  { subjectCredits: 3, grade: "A" }, // 8 points
+  { subjectCredits: 4, grade: "O" }, // 10 points
+  { subjectCredits: 2, grade: "B" }, // 7 points
+]);
+
+// (3×8 + 4×10 + 2×7) / 9 = 8.0
+console.log(sgpa); // 8
+console.log(GRADE_POINTS.F); // 0 — a backlog carries no credit points
+```
+
+### Compute CGPA across published semesters
+
+CGPA is credit-weighted across semesters, using each semester's own SGPA and credit total:
+
+```ts
+const semesters = [
+  { sgpa: 8.09, credits: 22 },
+  { sgpa: 7.64, credits: 24 },
+  { sgpa: 8.4, credits: 23 },
+];
+
+const credits = semesters.reduce((sum, s) => sum + s.credits, 0);
+const cgpa = semesters.reduce((sum, s) => sum + s.sgpa * s.credits, 0) / credits;
+
+console.log(cgpa.toFixed(2)); // "8.04"
+```
+
+### Plan a target CGPA
+
+The reverse calculator answers the practical question: given your current CGPA and credits, what SGPA do you need next semester?
+
+```text
+current CGPA = 8.04 over 69 credits
+next semester ≈ 24 credits
+target CGPA  = 8.50
+
+required SGPA = (8.50 × (69 + 24) - 8.04 × 69) / 24  ≈  9.82
+```
+
+### Generate a marksheet programmatically
+
+```ts
+import { createResultPDFBlob, getResultPdfFilename } from "@/lib/pdf";
+
+const { blob, filename } = await createResultPDFBlob({
+  student,                     // StudentDetails
+  semesters,                   // PdfSemester[] — primary attempt plus any republications
+  cgpa: 8.04,
+});
+
+const url = URL.createObjectURL(blob);
+console.log(getResultPdfFilename(student, semesters));
+// BPUT_Result_2301429052_Sem1-2-3-4-5.pdf
+```
+
+> [!NOTE]
+> PDF generation is entirely client-side. The marksheet is stamped "Unofficial copy", carries BPUT's own provisional-result notes, and embeds a QR code back to `results.bput.ac.in` so it can always be verified independently.
+
+### Drive the admin bulk runner
+
+```ts
+import { createBatch, runBatch, pause, resume, cancel, retryFailed } from "@/lib/bulk/runner";
+import { expandRange } from "@/lib/bulk/range";
+
+const { rollNos } = expandRange("2101010001", "2101010120");
+
+const batchId = await createBatch({
+  label: "CSE 2021 batch",
+  rollNos,
+  start: "2101010001",
+  end: "2101010120",
+  rateLimitMs: 300,   // clamped to 200–10 000
+  maxRetries: 2,      // clamped to 0–5
+});
+
+await runBatch(batchId);   // pause() / resume() / cancel() / retryFailed(batchId) any time
+```
+
+<p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
+
+---
+
+<a name="performance" id="performance"></a>
+
+## 📊 Performance
+
+This project optimizes for **perceived speed on a poor connection** — the realistic environment for a student checking results on a phone.
+
+### Engineering decisions that matter
+
+| Decision                                   | Effect                                                                                                   |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Eight semesters fetched in parallel        | A full lookup resolves in roughly the time of its slowest semester, not the sum of all eight               |
+| Analytics dashboard lazily mounted         | The hero input stays interactive first; `HomeAnalytics` is code-split via `React.lazy` + `ClientOnly`      |
+| KaTeX rendered client-only                 | No math runtime in the server render path; formulas hydrate after paint                                    |
+| Formula rasters cached at module scope      | Bulk PDF export rasterises each formula once, no matter how many marksheets it writes                      |
+| Progress persisted to IndexedDB            | A refresh mid-batch resumes instead of re-fetching; the queue is crash-tolerant                            |
+| In-memory-only result cache                | Repeat fetches inside a tab are instant, with zero storage-at-rest of registration numbers                  |
+| One retry with a fixed 400 ms backoff      | Survives a transient upstream blip without hammering a fragile server                                       |
+| Recharts animations gated by `IntersectionObserver` | Charts animate when first seen, so offscreen work never competes with input latency               |
+
+### Scoreboard
+
+Honest status: the numbers below have **not been measured on a release build yet**. Rather than publish invented figures, here is the exact procedure and an empty scoreboard to fill in.
+
+| Metric                       | Target       | Latest run | How to measure                                                                    |
+| ---------------------------- | ------------ | ---------- | --------------------------------------------------------------------------------- |
+| Lighthouse — Performance     | ≥ 95         | _pending_  | `npx lighthouse https://result.unifies.codes --preset=desktop --view`             |
+| Lighthouse — Accessibility   | ≥ 95         | _pending_  | `npx lighthouse https://result.unifies.codes --only-categories=accessibility`     |
+| Largest Contentful Paint     | < 1.8 s      | _pending_  | Lighthouse / Chrome DevTools performance panel                                    |
+| Cumulative Layout Shift      | < 0.1        | _pending_  | Chrome DevTools performance panel                                                 |
+| First server response (SSR)  | < 300 ms     | _pending_  | `curl -w '%{time_starttransfer}\n' -o /dev/null -s https://result.unifies.codes` |
+| JS transferred (home route)  | < 400 kB gz  | _pending_  | `npx vite build` then inspect the bundle report in `.output/`                     |
+| Bulk throughput (admin)      | ≥ 1 student/s | _pending_ | Run a 50-roll batch at `rateLimitMs = 300` and read the progress counter          |
+
+<details>
+<summary><strong>Reproduce the bundle report</strong></summary>
+
+```bash
+npm run build
+# Nitro writes the server bundle to .output/
+du -sh .output
+find .output/public -name '*.js' -exec du -h {} + | sort -h | tail -20
+```
+
+Alternatively, point Lighthouse at a local preview:
+
+```bash
+NITRO_PRESET=node npm run build
+node .output/server/index.mjs   # serves on $PORT (default 3000)
+npx lighthouse http://localhost:3000 --preset=desktop --view
+```
+
+</details>
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="testing--quality"></a>
+
+## 🧪 Testing & Quality
+
+> [!IMPORTANT]
+> **There is no automated test suite in this repository yet.** Nothing here is a `vitest` or Playwright command that does not work — the project currently ships static analysis plus a documented manual QA matrix, and a test harness is the top item on the [roadmap](#-roadmap). Pretending otherwise would be worse than saying so.
+
+### What runs today
+
+```bash
+bun run lint            # ESLint 9 (flat config) across the repo
+npx tsc --noEmit        # TypeScript 5.8 type check, no emit
+npx prettier --check .  # formatting check (write with: bun run format)
+bun run build           # full production build — the strongest current signal
+```
+
+### Continuous integration
+
+Every push to `main` and every pull request gets [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+
+```yaml
+- npm ci
+- npm run lint
+- npm run build      # type-check & build (Node 22)
+```
+
+A red build is a hard block. `main` is expected to be deployable at all times — a push to `main` syncs to the live deployment.
+
+### Coverage
+
+Not applicable yet — there is no test runner configured, so a coverage number would be fiction. When Vitest lands, the intended setup is:
+
+```bash
+# planned (not yet available)
+bun add -d vitest @vitest/coverage-v8
+npx vitest run --coverage
+```
+
+The first targets are the pure, high-value modules: `src/lib/sgpa.ts`, `src/lib/bulk/range.ts`, `src/lib/bulk/sessions.ts`, `src/lib/bulk/analytics.ts` and the error classifier in `src/lib/bput.functions.ts`.
+
+### Manual QA matrix
+
+Run this before any release; each row maps to a real user-visible state.
+
+| # | Scenario                            | Steps                                                             | Expected                                                                     |
+| - | ----------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1 | Public lookup, published result     | Enter a valid reg no on `/`                                       | Master record, then per-semester SGPA blocks render                            |
+| 2 | Result not yet published            | Enter a reg no for a future session                               | "Not published" state — never an empty or fabricated result                    |
+| 3 | Back-paper republication            | Use a reg no with a supplementary attempt                         | Primary result plus a labelled `Back paper republication #n` block             |
+| 4 | Invalid input                       | Submit 3 digits, or letters                                       | Inline validation blocks submit; the API rejects with `BPUT_BAD_INPUT`         |
+| 5 | Upstream down / slow                | Throttle to offline in DevTools, then retry                       | Classified error state with a working retry, no crash                          |
+| 6 | PDF export                          | Download with ≥ 2 published semesters                             | Multi-page marksheet, one page per semester, formula + QR + disclaimer         |
+| 7 | Analytics without Supabase          | Empty `.env`, load `/`                                            | "Analytics unavailable" section; the rest of the page works                     |
+| 8 | Auth redirect                       | Visit `/admin` signed out                                         | Redirect to `/auth?next=/admin`, then land back on `/admin` after sign-in       |
+| 9 | Role gate                           | Sign in as a non-admin user                                       | "Not authorized" screen with a sign-out path                                    |
+| 10 | Bulk pause / resume                 | Start a batch, pause, reload the tab, resume                      | Queue resumes from IndexedDB at the correct position                            |
+| 11 | Bulk retry failed                   | Force failures (throttle network), then retry                     | Only failed jobs are requeued; successes are untouched                          |
+| 12 | CSV + ZIP export                    | Export a completed batch                                          | Valid CSV and a ZIP containing one PDF per successful student                   |
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="deployment"></a>
+
+## 🚀 Deployment
+
+`vite build` emits a Nitro bundle whose shape depends on the target platform. Nitro detects the target from the platform's environment variables, or you can force it with `NITRO_PRESET`.
+
+```bash
+NITRO_PRESET=vercel           # or: netlify, cloudflare-pages, cloudflare, node, aws-lambda
+npm run build
+```
+
+### ▲ Vercel
+
+Deploy-ready — no `vercel.json` required.
+
+1. Import the repository at [vercel.com/new](https://vercel.com/new).
+2. Framework preset: **Other**. Build command: `npm run build` (or `bun run build`). Leave the output directory at its default — the `vercel` preset writes the correct `.vercel/output/` structure.
+3. Add environment variables under **Project Settings → Environment Variables** (analytics and `/admin` only):
+
+   | Key                             | Notes                          |
+   | ------------------------------- | ------------------------------ |
+   | `VITE_SUPABASE_URL`             | Exposed to the browser         |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | Exposed to the browser         |
+   | `VITE_SUPABASE_PROJECT_ID`      | Exposed to the browser         |
+   | `SUPABASE_URL`                  | Server-side, same value        |
+   | `SUPABASE_PUBLISHABLE_KEY`      | Server-side, same value        |
+   | `SUPABASE_PROJECT_ID`           | Server-side, same value        |
+   | `SUPABASE_SERVICE_ROLE_KEY`     | Server-only, mark **Sensitive** |
+
+4. Deploy. To pin the runtime, set `NITRO_PRESET=vercel` (Node functions) or `vercel-edge`.
+
+### ◈ Netlify
+
+Also deploy-ready with no `netlify.toml`.
+
+1. Import the repository at [app.netlify.com](https://app.netlify.com).
+2. Build command: `npm run build`. Leave the publish directory default — the `netlify` preset writes to `.netlify/`.
+3. Add the same environment variables under **Site settings → Environment variables**.
+4. To pin: `NITRO_PRESET=netlify` or `netlify-edge`.
+
+### ◆ Cloudflare Workers / Pages
+
+```bash
+NITRO_PRESET=cloudflare-pages npm run build
+npx wrangler pages deploy .output/public
+```
+
+Set the Supabase variables in **Workers & Pages → your project → Settings → Variables**. The current code is `workerd`-compatible, so the Workers runtime is a first-class target.
+
+### 🐳 Docker
+
+See the [Dockerfile in Quick Start](#docker-setup) — the `node` preset produces a single self-contained server at `.output/server/index.mjs`.
+
+```bash
+NITRO_PRESET=node npm run build
+docker build -t bput-result-fetcher .
+docker run -p 3000:3000 --env-file .env bput-result-fetcher
+```
+
+### ☁️ AWS
+
+Two sensible routes:
+
+- **AWS Lambda + API Gateway** — `NITRO_PRESET=aws-lambda npm run build`, then deploy the generated handler with the AWS CLI, SAM or CDK.
+- **App Runner / ECS Fargate** — build the Docker image above, push it to ECR, and point App Runner at it. Set the Supabase variables in the service configuration, not in the image.
+
+Either way, add CloudFront in front of it and keep `SUPABASE_SERVICE_ROLE_KEY` in Secrets Manager rather than plain environment variables.
+
+### 🌊 DigitalOcean
+
+- **App Platform** — create an app from the GitHub repo, choose Dockerfile as the build type, expose port 3000, and add the environment variables as encrypted app-level secrets (mark `SUPABASE_SERVICE_ROLE_KEY` as a secret type).
+- **Droplet** — run the same Docker image behind Caddy or Nginx for TLS:
+
+  ```bash
+  docker run -d --name bput --restart unless-stopped \
+    -p 127.0.0.1:3000:3000 --env-file /etc/bput/.env bput-result-fetcher
+  ```
+
+> [!CAUTION]
+> `SUPABASE_SERVICE_ROLE_KEY` bypasses row-level security. Never expose it to the browser, never prefix it with `VITE_`, and never commit a filled `.env` — only `.env.example` belongs in the repository.
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="contributing"></a>
+
+## 🤝 Contributing
+
+Contributions are genuinely welcome — especially anything that makes results faster, clearer or safer to read.
+
+> [!IMPORTANT]
+> Keep `main` in a working state. Pushes to `main` sync to the live deployment, so a broken build is a broken product for real students. Open a pull request instead of pushing straight to `main`.
+
+### Getting set up
+
+```bash
+git clone https://github.com/flawsom/result.git
+cd result
+bun install
+bun run dev
+```
+
+### Workflow
+
+1. **Fork** the repository (or branch off `main` if you have write access).
+2. **Branch** with a descriptive, prefixed name.
+3. **Commit** using Conventional Commits.
+4. **Verify locally** before pushing:
+
+   ```bash
+   bun run lint
+   npx tsc --noEmit
+   bun run format
+   bun run build
+   ```
+
+5. **Open a pull request** against `main` and fill in every section of the template.
+
+### Branch naming
+
+| Prefix      | Use for                                    | Example                          |
+| ----------- | ------------------------------------------ | -------------------------------- |
+| `feat/`     | New user-visible capability                 | `feat/target-cgpa-calculator`    |
+| `fix/`      | Bug fixes                                   | `fix/back-paper-session-window`  |
+| `docs/`     | Documentation only                          | `docs/update-quick-start`        |
+| `refactor/` | Internal restructuring, no behaviour change | `refactor/pdf-layout-helpers`    |
+| `chore/`    | Tooling, dependencies, CI                   | `chore/bump-vite`                |
+| `perf/`     | Measured performance work                   | `perf/cache-formula-rasters`     |
+
+### Commit conventions
+
+[Conventional Commits](https://www.conventionalcommits.org) — `type(scope): subject`, imperative mood, ≤ 72 characters, with a body that explains **why** when the change is not obvious.
+
+```text
+feat(analytics): fold small branch buckets into Other using k=25
+
+Aggregate charts could previously single out a branch with only a handful of
+records. Folding anything under 25 into a single bucket keeps the dashboard
+useful without exposing a small cohort.
+```
+
+### Pull request process
+
+1. One logical change per pull request — split unrelated work out.
+2. Run the full local verification block above; CI repeats lint and build.
+3. Describe **what changed, why, and how you verified it**, with screenshots for UI work.
+4. Link the issue it closes (`Closes #123`) where one exists.
+5. Expect review comments focused on: privacy guarantees, error handling, and whether the change keeps the public flow working with an empty `.env`.
+
+### Project conventions to respect
+
+- **Never log or persist student identifiers.** No registration numbers, names, date of birth, grades or IPs in logs, analytics, or the database. The only analytics payload allowed is `{ year, semester, branch }`.
+- **Migrations are append-only.** Add a new timestamped file under `supabase/migrations/`; never edit an applied one.
+- **One source of truth for math.** SGPA/CGPA logic lives in `src/lib/sgpa.ts` and `src/lib/formulas.ts` — the UI, the PDF and any tests must import from there.
+- **Keep the bulk runner single in-flight.** BPUT is fragile; concurrency is a correctness and courtesy problem, not a performance win.
+- **Fail loudly, never fabricate.** A missing result must render as "not published", never as stale or invented data.
+- **Match the house style** — Prettier (`printWidth: 100`, double quotes, trailing commas), TypeScript strict, Tailwind tokens instead of ad-hoc colors.
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="roadmap"></a>
+
+## 🗺 Roadmap
+
+### ✅ Shipped — v1.0
+
+- [x] Public lookup by registration number (no accounts, no DOB input, sessions derived from batch year)
+- [x] All eight semesters fetched in parallel with per-semester skeleton → result transitions
+- [x] Back-paper republication detection and preservation
+- [x] Local SGPA recomputation cross-checked against BPUT's own figures
+- [x] KaTeX-rendered SGPA/CGPA formulas (single source of truth shared with the PDF)
+- [x] Multi-semester PDF marksheet with QR verification link
+- [x] SGPA trend chart, grade distribution chart, reverse target-CGPA calculator
+- [x] Aggregate analytics dashboard with k = 25 branch anonymity
+- [x] Role-gated `/admin` bulk runner with pause / resume / cancel / retry, persisted to IndexedDB
+- [x] CSV and ZIP-of-PDFs batch export
+- [x] Client-side admin analytics (histograms, grade mix, branch comparison, leaderboard, toughest subjects)
+- [x] SEO: per-route head, Open Graph, Twitter cards, sitemap, robots, JSON-LD
+
+### 🚧 In progress
+
+- [ ] Add an automated test suite (Vitest for the pure modules, Playwright for the lookup → PDF flow)
+- [ ] Publish real Lighthouse and bundle-size numbers in the [performance scoreboard](#scoreboard)
+- [ ] Add a `LICENSE` file so the project has explicit terms
+
+### 🎯 Next
+
+- [ ] Resume an interrupted public lookup after a page refresh
+- [ ] Shareable read-only result link with a signed, expiring token
+- [ ] Offline-first result pages via a service worker
+- [ ] CSV/JSON export for the public flow
+- [ ] Accessibility audit to WCAG 2.2 AA with a published report
+- [ ] Rate-limit telemetry so pacing adapts to upstream health automatically
+
+### 🔭 Exploring
+
+- [ ] Multi-university support behind a provider interface (endpoints and grade scales are currently BPUT-specific)
+- [ ] Hindi and Odia UI localisation
+- [ ] OCR-assisted upload for students holding only a printed marksheet
+- [ ] Historical result archive opt-in, stored locally in the browser only
+
+Have a better idea? [Open an issue](https://github.com/flawsom/result/issues) — roadmap items that protect student privacy and reduce upstream load are prioritised.
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="faq"></a>
+
+## ❓ FAQ
+
+<details>
+<summary><strong>Is this an official BPUT website?</strong></summary>
+
+No. BPUT Result Fetcher is an independent, unofficial utility. It is not affiliated with, endorsed by, or operated by Biju Patnaik University of Technology or any government body. The authoritative source for every official record remains [`results.bput.ac.in`](https://results.bput.ac.in).
+
+</details>
+
+<details>
+<summary><strong>Do I need an account, a password, or my date of birth?</strong></summary>
+
+For the public flow, no. Registration number only — all eight semester sessions are derived from your batch year. No BPUT credentials are ever requested, stored, or proxied, and the app never impersonates you. Accounts exist solely for the separate `/admin` bulk tool, and sign-up there is disabled.
+
+</details>
+
+<details>
+<summary><strong>Do you store my registration number or my result?</strong></summary>
+
+No. Results are fetched live, server-side, and returned to you. Registration numbers are never persisted — the only client-side cache is an in-memory `Map` that is cleared when the tab closes. Server logs deliberately omit roll numbers, dates of birth and query strings. The single server-side data store is an anonymous aggregate counter set (year, semester, branch, timestamp).
+
+</details>
+
+<details>
+<summary><strong>Where do the numbers on the analytics dashboard come from?</strong></summary>
+
+From two `SECURITY DEFINER` Postgres functions: `log_result_view` writes one anonymous counter row after a successful lookup, and `get_results_analytics` returns the aggregated JSON the charts consume. No registration numbers, names, grades or IPs are involved. Any branch with fewer than 25 total records is folded into "Other" so small cohorts can't be identified.
+
+</details>
+
+<details>
+<summary><strong>How exactly are SGPA and CGPA calculated?</strong></summary>
+
+$$ \text{SGPA} = \frac{\sum_{i=1}^{n} C_i \times G_i}{\sum_{i=1}^{n} C_i} $$
+
+$$ \text{CGPA} = \frac{\sum_{n=1}^{k} \text{SGPA}_n \times C_n}{\sum_{n=1}^{k} C_n} $$
+
+Grade points: `O 10`, `E 9`, `A 8`, `B 7`, `C 6`, `D 5`, and `F` (fail), `M` (malpractice) and `S` (absent) all worth `0`. The app recomputes SGPA locally from your grade table and compares it against BPUT's own `sgpadetails.sgpa`; if the two disagree by more than `0.01`, a visible warning appears instead of a silent assumption.
+
+</details>
+
+<details>
+<summary><strong>What are "back paper republications"?</strong></summary>
+
+After supplementary exams, BPUT republishes a full semester under a later session label rather than patching the original. This tool probes the following sessions for each semester and, when it finds one, shows it as an additional attempt block — so an improved result after a back paper is visible instead of being lost behind the original publication.
+
+</details>
+
+<details>
+<summary><strong>My result isn't showing. What now?</strong></summary>
+
+Three possibilities, each with its own state in the UI: the result genuinely isn't published yet ("not published" — the tool never invents data), the upstream portal is slow or unreachable (a classified error with a retry), or the registration number doesn't match the expected 8–12 digit format. If it looks wrong and BPUT's own portal shows the result, please [open an issue](https://github.com/flawsom/result/issues) with the semester and session label — but never post a real registration number.
+
+</details>
+
+<details>
+<summary><strong>Can I trust the exported PDF?</strong></summary>
+
+Treat it as a convenience copy, not a certificate. Every page is stamped "Unofficial copy — regenerated from BPUT's public result portal", carries BPUT's own provisional-result notes, and embeds a QR code back to the official portal so anyone can verify it independently. Always confirm important decisions — revaluation, eligibility, placement documentation — against the official marksheet.
+
+</details>
+
+<details>
+<summary><strong>Why is the bulk tool gated behind an admin role?</strong></summary>
+
+Because querying thousands of registration numbers is a very different act from one student checking their own result. Bulk access requires a signed-in Supabase user with an `admin` role row, enforces a configurable delay per request, keeps a single request in flight at a time, and keeps every fetched result in the admin's own browser (IndexedDB) rather than on a shared server. Admins are responsible for having a lawful basis for the numbers they query.
+
+</details>
+
+<details>
+<summary><strong>Does it work on mobile?</strong></summary>
+
+Yes — the layout is responsive from 320 px up, the result tables scroll horizontally on narrow screens, and PDF generation runs entirely in the browser so it works on a phone without a server round-trip. Downloads on iOS Safari may open in a new tab rather than the Files app; the UI shows a fallback link when that happens.
+
+</details>
+
+<details>
+<summary><strong>Can I self-host it?</strong></summary>
+
+Absolutely. The public flow runs with an empty `.env`, and there is no vendor lock-in: `NITRO_PRESET=node npm run build` gives you a single portable server bundle that runs anywhere Node 20+ runs, or in the Docker image documented above. Supabase is only needed if you want the analytics dashboard and the admin surface.
+
+</details>
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="acknowledgements"></a>
+
+## 🙌 Acknowledgements
+
+Built on the work of a lot of people who gave their time away for free:
+
+- **[TanStack](https://tanstack.com)** — Start, Router, Query and Table set the standard for typed, full-stack React that stays out of your way.
+- **[Vite](https://vite.dev)** and **[Nitro](https://nitro.build)** — a build tool and server engine that make multi-platform deployment a build flag instead of a rewrite.
+- **[Tailwind CSS](https://tailwindcss.com)**, **[shadcn/ui](https://ui.shadcn.com)** and **[Radix UI](https://www.radix-ui.com)** — the tokens and accessible primitives this interface is composed from.
+- **[Supabase](https://supabase.com)** — auth, roles and a Postgres surface that let a small tool have honest aggregate analytics with real row-level security.
+- **[KaTeX](https://katex.org)** and **[MathJax](https://www.mathjax.org)** — typeset formulas on screen and rasterised into the exported PDF.
+- **[jsPDF](https://github.com/parallax/jsPDF)** + **[AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable)**, **[JSZip](https://stuk.github.io/jszip/)** and **[node-qrcode](https://github.com/soldair/node-qrcode)** — the marksheet and batch-export pipeline.
+- **[Recharts](https://recharts.org)**, **[Dexie.js](https://dexie.org)**, **[Lucide](https://lucide.dev)** and **[Sonner](https://sonner.emilkowal.ski)** — charts, the offline bulk queue, and the iconography and toasts.
+- **[shields.io](https://shields.io)** — the badges in this README.
+- **The BPUT student community** — for the semester-after-semester feedback that shaped what this tool actually needed to do (and for being patient while it learned to respect the upstream server).
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="license"></a>
+
+## 📜 License
+
+> [!WARNING]
+> **No `LICENSE` file exists in this repository yet.** In the absence of one, the default position is *all rights reserved* — the code is publicly readable, but no licence is granted for reuse, modification or redistribution.
+
+This is a deliberate, tracked gap rather than a licence choice, and it is the first item under [In progress](#-roadmap). Adding one takes a minute:
+
+```text
+1. Pick a licence (MIT is the usual fit for a tool like this).
+2. Add it as ./LICENSE.
+3. Update the License badge at the top of this README.
+4. Replace this section with the licence name and a link to the file.
+```
+
+**Independent project notice.** This software is not affiliated with, endorsed by, or sponsored by Biju Patnaik University of Technology. "BPUT" is used descriptively to identify the university whose public results this tool reads. All result data belongs to the university and its students; this project only presents what those students are entitled to see.
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="support"></a>
+
+## ❤️ Support
+
+### ⭐ Star the repository
+
+If this saved you a bad afternoon refreshing an overloaded portal, a star is the cheapest way to say thanks — and it is how other students find the tool.
+
+<p align="center">
+  <a href="https://github.com/flawsom/result/stargazers">
+    <img alt="Star BPUT Result Fetcher on GitHub" src="https://img.shields.io/badge/⭐%20Star%20this%20repo-It%20helps%20students%20find%20it-facc15?style=for-the-badge" />
+  </a>
+</p>
+
+### 💖 Sponsor the work
+
+Hosting, Supabase, and the hours spent keeping up with upstream changes are all out of pocket.
+
+<p>
+  <a href="https://github.com/sponsors/flawsom"><img alt="GitHub Sponsors" src="https://img.shields.io/badge/GitHub_Sponsors-Sponsor%20this%20project-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" /></a>
+  <a href="https://www.buymeacoffee.com/flawsom"><img alt="Buy Me a Coffee" src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" /></a>
+</p>
+
+### 💬 Contact
+
+| Channel                                                          | Best for                                                              |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [GitHub Issues](https://github.com/flawsom/result/issues)         | Bugs, incorrect results, feature requests, roadmap discussion          |
+| [GitHub Discussions](https://github.com/flawsom/result/discussions) | Questions that aren't bugs                                          |
+| [@vibes.him on Instagram](https://www.instagram.com/vibes.him)     | Bulk/admin access requests and quick questions                         |
+| [result.unifies.codes](https://result.unifies.codes)               | The live app — and its [privacy & FAQ page](https://result.unifies.codes/privacy) |
+
+> [!CAUTION]
+> Never post a registration number, name, date of birth, marksheet image or any other student-identifying detail in a public issue. Describe the problem with a session label and semester only — the maintainer will ask for a safe reproduction if one is needed.
+
+<details>
+<summary><strong>🛠 Maintainer checklist — before publishing this README</strong></summary>
+
+- [ ] Confirm the sponsor handle at `https://github.com/sponsors/flawsom` resolves
+- [ ] Confirm the Buy Me a Coffee handle at `https://www.buymeacoffee.com/flawsom` resolves (replace `flawsom` if you use a different handle)
+- [ ] Add a `LICENSE` file, then update the license badge near the top
+- [ ] Add screenshots to `docs/screenshots/` and build the gallery in [Screenshots](#-screenshots)
+- [ ] Record `docs/demo.gif` (or link a YouTube walkthrough) in [Demo](#-demo)
+- [ ] Fill in the [performance scoreboard](#scoreboard) with real measured numbers
+- [ ] Verify every badge resolves after the repository is public
+
+</details>
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<a name="privacy--data-handling"></a>
+
+## 🔏 Privacy & Data Handling
+
+The full, user-facing version of this section lives at [`/privacy`](https://result.unifies.codes/privacy).
+
+| Promise                       | How it is enforced in code                                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| No accounts for students      | The public flow has no auth dependency; `/` works with an empty `.env`                                                  |
+| No stored registration number | `src/lib/result-cache.ts` is an in-memory `Map` with no `localStorage`, cookies or server persistence                   |
+| No identifiers in logs        | `bput.functions.ts` logs a static label per upstream call; roll numbers, dates of birth and query strings are never written |
+| Anonymous analytics only      | `log_result_view(year, semester, branch)` accepts nothing else; branch is trimmed to 80 characters                      |
+| Small cohorts protected       | `get_results_analytics()` folds any branch under 25 total records into `Other`                                          |
+| Admin data stays client-side  | Bulk results live only in the admin's own IndexedDB (`bput-admin-bulk`, via Dexie) — never on a shared server           |
+| Honest failure states         | Every upstream outcome is classified (`BPUT_NOT_PUBLISHED`, `BPUT_TIMEOUT`, …) and rendered explicitly                  |
+
+<p align="right"><sub><a href="#toc">↑ back to top</a></sub></p>
+
+---
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Built%20with-React%2019%20·%20TanStack%20Start%20·%20Tailwind%204%20·%20Supabase-0f172a?style=for-the-badge" alt="Built with React 19, TanStack Start, Tailwind 4 and Supabase" />
+  <br/><br/>
+  <strong>BPUT Result Fetcher</strong> — SGPA in seconds.<br/>
+  <sub>Unofficial and independent. Not affiliated with BPUT. Always verify against <a href="https://results.bput.ac.in">results.bput.ac.in</a>.</sub>
+  <br/><br/>
+  <a href="https://github.com/flawsom/result/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/flawsom/result?style=social" /></a>
+  &nbsp;
+  <a href="https://github.com/flawsom/result/forks"><img alt="Forks" src="https://img.shields.io/github/forks/flawsom/result?style=social" /></a>
+  <br/><br/>
+  <a href="#toc">↑ Back to top</a>
+</p>
