@@ -1,3 +1,9 @@
+// NOTE: analytics v2 additions (analytics_events.outcome/latency_ms/attempt/
+// source/subjects, the analytics_live counter row, get_results_analytics_v2 and
+// log_result_events) are declared by hand here because the project has no
+// linked Supabase instance to run `supabase gen types` against. Regenerate this
+// file from the dashboard once the project is reachable — the shapes match the
+// migration in supabase/migrations/20260928120000_analytics_v2.sql exactly.
 export type Json =
   | string
   | number
@@ -16,25 +22,70 @@ export type Database = {
     Tables: {
       analytics_events: {
         Row: {
+          attempt: number | null
           branch: string
           id: number
+          latency_ms: number | null
+          outcome: string | null
           semester: number
           served_at: string
+          source: string | null
+          subjects: number | null
           year: number
         }
         Insert: {
+          attempt?: number | null
           branch: string
           id?: number
+          latency_ms?: number | null
+          outcome?: string | null
           semester: number
           served_at?: string
+          source?: string | null
+          subjects?: number | null
           year: number
         }
         Update: {
+          attempt?: number | null
           branch?: string
           id?: number
+          latency_ms?: number | null
+          outcome?: string | null
           semester?: number
           served_at?: string
+          source?: string | null
+          subjects?: number | null
           year?: number
+        }
+        Relationships: []
+      }
+      analytics_live: {
+        Row: {
+          events: number
+          id: number
+          last_latency_ms: number | null
+          last_outcome: string | null
+          last_semester: number | null
+          last_year: number | null
+          updated_at: string
+        }
+        Insert: {
+          events?: number
+          id?: number
+          last_latency_ms?: number | null
+          last_outcome?: string | null
+          last_semester?: number | null
+          last_year?: number | null
+          updated_at?: string
+        }
+        Update: {
+          events?: number
+          id?: number
+          last_latency_ms?: number | null
+          last_outcome?: string | null
+          last_semester?: number | null
+          last_year?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -86,6 +137,8 @@ export type Database = {
     }
     Functions: {
       get_results_analytics: { Args: never; Returns: Json }
+      get_results_analytics_v2: { Args: never; Returns: Json }
+      log_result_events: { Args: { _events: Json }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

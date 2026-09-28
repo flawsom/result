@@ -1,120 +1,134 @@
-// Home-screen "BPUT Results Intelligence" section — data-science styled.
-// Aggregates only. Never renders individual student data.
-// - Server function applies k=25 anonymity for branch buckets.
-// - Lazy-mounted so the hero search box is interactive first.
-// - Mouse-reactive: spotlight follows the cursor over the main chart,
-//   subtle parallax on annotations, staggered draw-in on sparklines,
-//   ripple hover on branch lollipops.
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+// ─────────────────────────────────────────────────────────────────────────────
+// Landing-page "BPUT Results Intelligence" section.
+//
+// Data flow, end to end:
+//   lookup → batched telemetry write (one RPC, ≤64 rows) → Postgres aggregates
+//          → get_results_analytics_v2() → derived statistics in the browser.
+//
+// Three behaviours matter here and are deliberate:
+//  1. NOTHING is invented. Every figure is traceable to a recorded observation,
+//     and every panel states the sample it rests on.
+//  2. The store is never allowed to hang the page. Reads have a hard timeout,
+//     so an unreachable or half-migrated database renders a specific,
+//     actionable state instead of an endless skeleton.
+//  3. "Live" means live. A single aggregate counter row is subscribed through
+//     Realtime, so a lookup anywhere in the world increments the ticker here
+//     within a second — no polling illusion.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceDot,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { fetchAnalytics, type AnalyticsPayload } from "@/lib/analytics-client";
+  classifyTelemetryError,
+  fetchAnalytics,
+  subscribeLiveCounters,
+  type AnalyticsPayload,
+  type LiveCounters,
+  type TelemetryErrorKind,
+} from "@/lib/analytics-client";
+import {
+  fmtAgo,
+  fmtCompact,
+  fmtInt,
+  fmtMs,
+  fmtPct,
+  latencyStats,
+  outcomeStats,
+} from "@/lib/analytics-stats";
+import {
+  ACCENT,
+  BranchPanel,
+  DefinitionsPanel,
+  FunnelPanel,
+  KpiTile,
+  LatencyPanel,
+  OutcomePanel,
+  PublicationPanel,
+  SeasonalityPanel,
+  VolumePanel,
+  YearPanel,
+} from "@/components/analytics/panels";
 
-const ACCENT = "oklch(0.45 0.22 265)"; // indigo, harmonises with --link
+const POLL_FALLBACK_MS = 20_000;
 
-/* ------------------------------------------------------------------ hooks */
+/* ────────────────────────────────────────────────────────── scoped styles ── */
 
-function useCountUp(target: number, ms = 1400) {
-  const [n, setN] = useState(0);
-  const raf = useRef<number | null>(null);
-  useEffect(() => {
-    const start = performance.now();
-    const step = (t: number) => {
-      const p = Math.min(1, (t - start) / ms);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setN(Math.round(target * eased));
-      if (p < 1) raf.current = requestAnimationFrame(step);
-    };
-    raf.current = requestAnimationFrame(step);
-    return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
-    };
-  }, [target, ms]);
-  return n;
-}
-
-// Mouse spotlight. Writes CSS vars --mx/--my (0-100%) + --active (0/1)
-// onto the referenced element. Uses rAF throttling so scroll+move stays smooth.
-function useMouseSpotlight<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let raf = 0;
-    let lastX = 50;
-    let lastY = 50;
-    const apply = () => {
-      el.style.setProperty("--mx", `${lastX}%`);
-      el.style.setProperty("--my", `${lastY}%`);
-      raf = 0;
-    };
-    const onMove = (e: PointerEvent) => {
-      const rect = el.getBoundingClientRect();
-      lastX = ((e.clientX - rect.left) / rect.width) * 100;
-      lastY = ((e.clientY - rect.top) / rect.height) * 100;
-      if (!raf) raf = requestAnimationFrame(apply);
-    };
-    const onEnter = () => el.style.setProperty("--active", "1");
-    const onLeave = () => {
-      el.style.setProperty("--active", "0");
-      lastX = 50;
-      lastY = 50;
-      if (!raf) raf = requestAnimationFrame(apply);
-    };
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerenter", onEnter);
-    el.addEventListener("pointerleave", onLeave);
-    return () => {
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerenter", onEnter);
-      el.removeEventListener("pointerleave", onLeave);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-  return ref;
-}
-
-// Fires `true` once the element scrolls into view. Used to gate draw-in
-// animations so charts animate exactly when the user first sees them.
-function useInView<T extends HTMLElement>(threshold = 0.15) {
-  const ref = useRef<T | null>(null);
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || seen) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries)
-          if (e.isIntersecting) {
-            setSeen(true);
-            io.disconnect();
-            break;
-          }
-      },
-      { threshold },
+const SCOPED_STYLES = `
+  @keyframes an-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes an-flash {
+    0%   { background: color-mix(in oklab, ${ACCENT} 20%, transparent); }
+    100% { background: transparent; }
+  }
+  @keyframes an-blip {
+    0%   { transform: scaleY(0.3); opacity: .4; }
+    100% { transform: scaleY(1);   opacity: 1; }
+  }
+  .an-panel { animation: an-rise .5s cubic-bezier(.2,.7,.2,1) both; }
+  .ad-hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      var(--muted-foreground) 0 2px,
+      transparent 2px 5px
     );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [seen, threshold]);
-  return { ref, seen };
+    opacity: .45;
+  }
+  .an-branch-row {
+    position: relative;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    transition: background .18s ease;
+  }
+  .an-branch-row:hover { background: color-mix(in oklab, ${ACCENT} 8%, transparent); }
+  .an-blip { animation: an-blip .45s cubic-bezier(.2,.7,.2,1); transform-origin: bottom; }
+  .an-flash { animation: an-flash 1.1s ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .an-panel, .an-blip, .an-flash { animation: none !important; }
+  }
+`;
+
+/* ────────────────────────────────────────────────────────── small pieces ── */
+
+/** Self-contained clock so the rest of the dashboard re-renders only on data. */
+function Freshness({ iso, prefix }: { iso: string | null; prefix?: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <span>
+      {prefix ?? ""}
+      {fmtAgo(iso, now)}
+    </span>
+  );
 }
 
-/* --------------------------------------------------------------- utilities */
-
-const fmt = (n: number) => n.toLocaleString();
-const fmtCompact = (n: number) =>
-  n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+function StatusChip({ status }: { status: "connecting" | "live" | "offline" }) {
+  const spec: Record<typeof status, { label: string; color: string }> = {
+    connecting: { label: "Connecting", color: "var(--muted-foreground)" },
+    live: { label: "Realtime push", color: "oklch(0.55 0.18 145)" },
+    offline: { label: "Polling · 20s", color: "oklch(0.72 0.19 65)" },
+  };
+  const s = spec[status];
+  return (
+    <span className="label-caps inline-flex items-center gap-2" style={{ color: s.color }}>
+      <span className="relative inline-flex h-2.5 w-2.5">
+        {status !== "offline" && (
+          <span
+            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+            style={{ background: s.color }}
+          />
+        )}
+        <span className="relative inline-flex h-2.5 w-2.5" style={{ background: s.color }} />
+      </span>
+      {s.label}
+    </span>
+  );
+}
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse bg-muted ${className}`} aria-hidden />;
@@ -122,113 +136,157 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 function LoadingState() {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-      <Skeleton className="h-40 md:col-span-8" />
-      <Skeleton className="h-40 md:col-span-4" />
-      <Skeleton className="h-72 md:col-span-8" />
-      <Skeleton className="h-72 md:col-span-4" />
-      <Skeleton className="h-40 md:col-span-12" />
+    <div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+        <Skeleton className="h-28 md:col-span-6" />
+        <Skeleton className="h-28 md:col-span-6" />
+        <Skeleton className="h-72 md:col-span-8" />
+        <Skeleton className="h-72 md:col-span-4" />
+        <Skeleton className="h-64 md:col-span-4" />
+        <Skeleton className="h-64 md:col-span-8" />
+      </div>
+      <p className="label-caps mt-4 text-muted-foreground">
+        Reading the telemetry store · reads abort after 8s rather than hanging
+      </p>
     </div>
   );
 }
 
-/* ------------------------------------------------------ scoped animations */
+/* ───────────────────────────────────────────────────────────────── errors ── */
 
-const SCOPED_STYLES = `
-  @keyframes an-rise {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes an-draw {
-    from { stroke-dashoffset: var(--dash, 400); }
-    to   { stroke-dashoffset: 0; }
-  }
-  @keyframes an-flash {
-    0%   { background: color-mix(in oklab, ${ACCENT} 22%, transparent); }
-    100% { background: transparent; }
-  }
-  @keyframes an-pulse-dot {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.35); }
-  }
-  .an-panel { animation: an-rise .55s cubic-bezier(.2,.7,.2,1) both; }
-  .an-spot {
-    position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(
-      260px 260px at var(--mx, 50%) var(--my, 50%),
-      color-mix(in oklab, ${ACCENT} 22%, transparent) 0%,
-      transparent 70%
-    );
-    opacity: calc(var(--active, 0) * 1);
-    transition: opacity .3s ease;
-    mix-blend-mode: multiply;
-  }
-  .an-grid-overlay {
-    position: absolute; inset: 0; pointer-events: none;
-    background-image:
-      linear-gradient(to right, color-mix(in oklab, currentColor 6%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklab, currentColor 6%, transparent) 1px, transparent 1px);
-    background-size: 40px 40px;
-    mask-image: radial-gradient(
-      180px 180px at var(--mx, 50%) var(--my, 50%),
-      black 0%, transparent 75%
-    );
-    opacity: calc(var(--active, 0) * 1);
-    transition: opacity .3s ease;
-  }
-  .an-parallax {
-    transform: translate(
-      calc((var(--mx, 50%) - 50%) * 0.05),
-      calc((var(--my, 50%) - 50%) * 0.05)
-    );
-    transition: transform .18s cubic-bezier(.2,.7,.2,1);
-  }
-  .an-sparkline path.an-line {
-    stroke-dasharray: var(--dash, 260);
-    animation: an-draw 1.2s cubic-bezier(.65,0,.35,1) both;
-  }
-  .an-sparkline path.an-fill {
-    opacity: 0;
-    animation: an-fade-in .8s .5s ease forwards;
-  }
-  @keyframes an-fade-in { to { opacity: 1; } }
-  .an-branch-row {
-    position: relative;
-    padding: 6px 8px;
-    margin: -6px -8px;
-    transition: background .2s ease;
-  }
-  .an-branch-row:hover { background: color-mix(in oklab, ${ACCENT} 8%, transparent); }
-  .an-branch-dot {
-    transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s ease;
-  }
-  .an-branch-row:hover .an-branch-dot {
-    transform: translateX(-6px) scale(1.7);
-    box-shadow: 0 0 0 4px color-mix(in oklab, ${ACCENT} 22%, transparent);
-  }
-  .an-branch-bar { transition: filter .2s ease; }
-  .an-branch-row:hover .an-branch-bar { filter: drop-shadow(0 0 6px ${ACCENT}); }
-  .an-year-btn {
-    transition: transform .18s cubic-bezier(.2,.7,.2,1), background .18s ease, color .18s ease;
-  }
-  .an-year-btn:hover { transform: translateY(-2px); }
-  .an-flash { animation: an-flash 1.2s ease-out; }
-  .an-pulse-dot { animation: an-pulse-dot 1.6s ease-in-out infinite; transform-origin: center; }
-`;
+const ERROR_COPY: Record<TelemetryErrorKind, { title: string; detail: ReactNode }> = {
+  unconfigured: {
+    title: "No telemetry store configured",
+    detail: (
+      <span>
+        This build has no Supabase URL or publishable key, so there is nothing to read from. Set
+        VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Settings then reload — the dashboard
+        reads straight from the database and keeps no fallback copy of its own.
+      </span>
+    ),
+  },
+  unreachable: {
+    title: "Telemetry store unreachable",
+    detail: (
+      <>
+        The configured Supabase host did not answer. Nothing on this page is cached or invented, so
+        the panels stay empty until the database responds. Check that <code>VITE_SUPABASE_URL</code>{" "}
+        and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> point at a live project.
+      </>
+    ),
+  },
+  "missing-schema": {
+    title: "Analytics schema not applied",
+    detail: (
+      <>
+        The database is reachable but does not expose <code>get_results_analytics_v2()</code> or{" "}
+        <code>log_result_events()</code>. Apply{" "}
+        <code>supabase/migrations/20260928120000_analytics_v2.sql</code>. Until then the section
+        falls back to the legacy aggregate when one exists.
+      </>
+    ),
+  },
+  denied: {
+    title: "Read rejected by row-level security",
+    detail: (
+      <>
+        The RPCs are <code>SECURITY DEFINER</code> and granted to <code>anon</code>. If a read is
+        refused, the grants from the migration did not apply — re-run it, then reload.
+      </>
+    ),
+  },
+  timeout: {
+    title: "Telemetry read timed out",
+    detail: (
+      <>
+        The aggregate did not answer within 8 seconds. The query is bounded to 90 days of daily
+        buckets and 48 hours of hourly buckets, so this normally means the database is cold or
+        saturated rather than the query being heavy.
+      </>
+    ),
+  },
+  unknown: {
+    title: "Analytics unavailable",
+    detail: <>The telemetry store returned an error the dashboard could not classify.</>,
+  },
+};
 
-/* -------------------------------------------------------------- component */
+function ErrorState({
+  error,
+  onRetry,
+  retrying,
+}: {
+  error: unknown;
+  onRetry: () => void;
+  retrying: boolean;
+}) {
+  const e = classifyTelemetryError(error);
+  const copy = ERROR_COPY[e.kind] ?? ERROR_COPY.unknown;
+  return (
+    <div className="border-heavy p-6">
+      <div className="label-caps" style={{ color: "oklch(0.58 0.24 27)" }}>
+        Diagnostics failed · {e.kind}
+      </div>
+      <h3 className="font-display mt-2 text-2xl">{copy.title}</h3>
+      <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">{copy.detail}</p>
+      <p className="mt-3 max-w-3xl border-l-4 border-foreground pl-3 font-mono text-[11px] break-words text-muted-foreground">
+        {e.message}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={retrying}
+        className="border-thick mt-5 bg-foreground px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-background hover:bg-background hover:text-foreground disabled:opacity-40"
+      >
+        {retrying ? "Retrying…" : "Retry read"}
+      </button>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────── section ── */
 
 export function HomeAnalytics() {
+  const queryClient = useQueryClient();
+
   const q = useQuery({
     queryKey: ["home-analytics"],
     queryFn: fetchAnalytics,
-    refetchInterval: 30_000,
-    staleTime: 15_000,
+    retry: 1,
+    retryDelay: 700,
+    staleTime: 10_000,
+    refetchInterval: POLL_FALLBACK_MS,
+    refetchIntervalInBackground: false,
   });
+
+  const [live, setLive] = useState<LiveCounters | null>(null);
+  const [status, setStatus] = useState<"connecting" | "live" | "offline">("connecting");
+  const isReady = q.isSuccess;
+
+  // Realtime: subscribe only after the first successful snapshot, and coalesce
+  // bursts of writes into at most one aggregate refetch every few seconds so a
+  // busy evening cannot turn into a request storm.
+  useEffect(() => {
+    if (!isReady) return;
+    let timer: number | null = null;
+    const sub = subscribeLiveCounters((row) => {
+      setLive(row);
+      if (timer !== null) return;
+      timer = window.setTimeout(() => {
+        timer = null;
+        void queryClient.invalidateQueries({ queryKey: ["home-analytics"] });
+      }, 5_000);
+    }, setStatus);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      sub.close();
+    };
+  }, [isReady, queryClient]);
 
   return (
     <section aria-labelledby="analytics-heading" className="mt-20">
       <style>{SCOPED_STYLES}</style>
+
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-foreground pb-6">
         <div>
           <div className="label-caps text-muted-foreground">
@@ -241,485 +299,361 @@ export function HomeAnalytics() {
           </h2>
         </div>
         <div className="text-right">
-          <div className="label-caps flex items-center justify-end gap-2 text-muted-foreground">
-            <span className="relative inline-flex h-2.5 w-2.5">
-              <span
-                className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
-                style={{ background: "oklch(0.65 0.18 145)" }}
-              />
-              <span
-                className="relative inline-flex h-2.5 w-2.5 rounded-full"
-                style={{ background: "oklch(0.55 0.18 145)" }}
-              />
-            </span>
-            Live stream
+          <StatusChip status={status} />
+          <div className="label-caps mt-1 text-muted-foreground">
+            {q.data ? (
+              <Freshness iso={q.data.meta.generatedAt} prefix="snapshot " />
+            ) : (
+              "awaiting first read"
+            )}
           </div>
-          <div className="label-caps mt-1 text-muted-foreground">Auto-refresh · 30s</div>
+          <div className="label-caps mt-1 text-muted-foreground">
+            {q.data?.meta.schema === "v2"
+              ? "telemetry schema v2"
+              : q.data?.meta.schema === "v1"
+                ? "legacy aggregate (v1)"
+                : "schema unknown"}
+          </div>
         </div>
       </div>
 
-      <p className="mt-6 max-w-2xl text-sm text-muted-foreground">
-        A live, aggregate view of results checked through this site. Only counts by year, semester,
-        and branch are stored — never roll numbers, names, grades, or any identifying detail.
-        Branches with fewer than 25 records are folded into <em>Other</em>.
+      <p className="mt-6 max-w-3xl text-sm text-muted-foreground">
+        Every figure below is derived from requests this site actually served: one anonymous row per
+        upstream attempt, recording the batch year, semester, branch, outcome and measured duration
+        — never a roll number, name, grade or any other identifying detail. Branches with fewer than
+        25 observations are pooled into <em>Other</em>, and the time series is gap-filled with real
+        zeros so an idle day never looks like missing data.
       </p>
 
       <div className="mt-8">
         {q.isPending ? (
           <LoadingState />
         ) : q.isError ? (
-          <div className="border-thick p-6 font-mono text-sm">
-            Analytics unavailable. {(q.error as Error).message}
-          </div>
+          <ErrorState error={q.error} retrying={q.isFetching} onRetry={() => void q.refetch()} />
         ) : q.data ? (
-          <AnalyticsBody data={q.data} />
+          <AnalyticsBody
+            data={q.data}
+            live={live}
+            status={status}
+            refreshing={q.isFetching}
+            onRefresh={() => void q.refetch()}
+          />
         ) : null}
       </div>
 
       <div className="mt-10 border-thick p-4 font-mono text-xs leading-relaxed">
         <span className="label-caps">Privacy note</span>
         <span className="ml-3">
-          We only ever store anonymous per-branch/per-semester counters. No registration numbers, no
-          names, no grades, no IPs are kept for these charts. Cohorts under 25 records are always
-          merged into <em>Other</em>.
+          The telemetry table stores only counters and operational facts about anonymous requests:
+          batch year, semester, branch, outcome, attempt index, measured duration and how many
+          subject rows came back. No registration numbers, names, dates of birth, marks, grades, IP
+          addresses or session identifiers are ever written — the writer function rejects any field
+          outside that list, and cohorts under 25 observations are always pooled before they are
+          shown.
         </span>
       </div>
     </section>
   );
 }
 
-/* --------------------------------------------------------------- body */
+/* ─────────────────────────────────────────────────────────────────── body ── */
 
-function AnalyticsBody({ data }: { data: AnalyticsPayload }) {
-  const total = useCountUp(data.total);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-
-  const yearRows = useMemo(() => [...data.byYear].sort((a, b) => a.year - b.year), [data.byYear]);
-
-  const peak = useMemo(() => {
-    if (!yearRows.length) return null;
-    return yearRows.reduce((a, b) => (b.count > a.count ? b : a));
-  }, [yearRows]);
-
-  const yoy = useMemo(() => {
-    if (yearRows.length < 2) return null;
-    const a = yearRows[yearRows.length - 2].count;
-    const b = yearRows[yearRows.length - 1].count;
-    if (!a) return null;
-    return ((b - a) / a) * 100;
-  }, [yearRows]);
-
-  const focusYear = selectedYear ?? yearRows[yearRows.length - 1]?.year ?? null;
-
-  const semRows = useMemo(() => {
-    if (focusYear === null) return [];
-    const byS = new Map<number, number>();
-    for (const r of data.byYearSem)
-      if (r.year === focusYear) byS.set(r.semester, (byS.get(r.semester) ?? 0) + r.count);
-    const out: Array<{ semester: number; label: string; count: number }> = [];
-    for (let s = 1; s <= 8; s++) out.push({ semester: s, label: `S${s}`, count: byS.get(s) ?? 0 });
-    return out;
-  }, [data.byYearSem, focusYear]);
-
-  const branchRows = useMemo(() => {
-    const sorted = [...data.byBranch].sort((a, b) => b.count - a.count);
-    const sum = sorted.reduce((s, r) => s + r.count, 0) || 1;
-    return sorted.map((r) => ({ ...r, pct: (r.count / sum) * 100 }));
-  }, [data.byBranch]);
-  const branchMaxPct = branchRows[0]?.pct ?? 100;
-
-  // Live pulse "tick" flash — briefly wash the pulse panel every 30s to
-  // signal freshness even when the numbers themselves haven't moved.
-  const [flashKey, setFlashKey] = useState(0);
-  useEffect(() => {
-    setFlashKey((k) => k + 1);
-  }, [data.pulse24hTotal, data.pulse24hDistinct]);
-
-  const chartRef = useMouseSpotlight<HTMLDivElement>();
-  const { ref: sparkRef, seen: sparksInView } = useInView<HTMLDivElement>();
+function AnalyticsBody({
+  data,
+  live,
+  status,
+  refreshing,
+  onRefresh,
+}: {
+  data: AnalyticsPayload;
+  live: LiveCounters | null;
+  status: "connecting" | "live" | "offline";
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const outcomes = useMemo(() => outcomeStats(data), [data]);
+  const latency = useMemo(() => latencyStats(data.observed.latency), [data]);
+  const coldStart = data.counts.eventsTotal === 0;
 
   return (
     <div className="space-y-8">
-      {/* Row: headline counter + live pulse */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        <div
-          className="border-heavy an-panel p-6 md:col-span-8"
-          style={{ animationDelay: "0ms" } as CSSProperties}
-        >
-          <div className="flex items-baseline justify-between gap-4">
-            <div className="label-caps text-muted-foreground">Total records scoped · all-time</div>
-            {yoy !== null && (
-              <div className="label-caps" style={{ color: ACCENT }}>
-                {yoy >= 0 ? "▲" : "▼"} {Math.abs(yoy).toFixed(1)}% YoY
-              </div>
-            )}
-          </div>
-          <div className="mt-3 font-display text-6xl leading-none tabular-nums italic tracking-tight">
-            {fmt(total)}
-          </div>
-          <div className="mt-4 h-12 w-full">
-            <ResponsiveContainer>
-              <LineChart data={yearRows}>
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke={ACCENT}
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={true}
-                  animationDuration={1400}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      <LiveTicker
+        data={data}
+        live={live}
+        status={status}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        coldStart={coldStart}
+      />
 
+      {(data.meta.mixed || data.meta.schema === "v1") && (
         <div
-          key={flashKey}
-          className="border-heavy an-panel an-flash p-6 md:col-span-4"
-          style={{ animationDelay: "80ms" } as CSSProperties}
+          className="border-thick border-l-[5px] p-4"
+          style={{ borderLeftColor: "oklch(0.72 0.19 65)" }}
         >
-          <div className="label-caps text-muted-foreground">Live pulse · 24h</div>
-          <div className="mt-3 font-display text-4xl tabular-nums">
-            {fmt(data.pulse24hDistinct)}
+          <div className="label-caps" style={{ color: "oklch(0.72 0.19 65)" }}>
+            Degraded read · legacy aggregate
           </div>
-          <div className="label-caps mt-1 text-muted-foreground">distinct semesters</div>
-          <div className="mt-4 border-t border-border pt-3">
-            <div className="font-display text-2xl tabular-nums">{fmt(data.pulse24hTotal)}</div>
-            <div className="label-caps mt-1 text-muted-foreground">total lookups</div>
-          </div>
+          <p className="mt-2 font-mono text-[11px] leading-relaxed">
+            This database has not run the v2 migration, so outcome, latency, time-of-day and
+            publication panels have no source. Figures shown here come from the legacy aggregate,
+            which cannot separate the modelled baseline from observed traffic — treat them as mixed.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+        <div className="md:col-span-3">
+          <KpiTile
+            label="Observed requests"
+            value={data.counts.eventsTotal}
+            sub={<span className="text-muted-foreground">every recorded upstream attempt</span>}
+            sample={`${fmtInt(data.meta.activeDays)} active days`}
+          />
+        </div>
+        <div className="md:col-span-3">
+          <KpiTile
+            label="Primary attempts"
+            value={data.counts.primaries}
+            sub={
+              <span className="text-muted-foreground">
+                +{fmtInt(data.counts.probes)} back-paper probes
+              </span>
+            }
+            sample="one per semester per lookup"
+          />
+        </div>
+        <div className="md:col-span-3">
+          <KpiTile
+            label="Published rate"
+            value={Math.round(outcomes.success.p * 1000) / 10}
+            unit="%"
+            accent="oklch(0.55 0.18 145)"
+            sub={
+              <span className="text-muted-foreground">
+                Wilson 95% CI {fmtPct(outcomes.success.low, 0)}–{fmtPct(outcomes.success.high, 0)}
+              </span>
+            }
+            sample={`n = ${fmtInt(outcomes.success.n)} primary attempts`}
+          />
+        </div>
+        <div className="md:col-span-3">
+          <KpiTile
+            label="p95 latency"
+            value={Math.round(latency.p95)}
+            unit="ms"
+            sub={
+              <span className="text-muted-foreground">
+                p50 {fmtMs(latency.p50)} · tail{" "}
+                {latency.spread > 0 ? `${latency.spread.toFixed(2)}×` : "—"}
+              </span>
+            }
+            sample={`n = ${fmtInt(latency.n)} measured attempts`}
+          />
         </div>
       </div>
 
-      {/* Row: year-wise volume (area+KDE) + branch lollipops */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        <div
-          className="an-panel md:col-span-8"
-          style={{ animationDelay: "160ms" } as CSSProperties}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="label-caps border-l-4 pl-2" style={{ borderColor: ACCENT }}>
-              Volume density / {yearRows[0]?.year}–{yearRows[yearRows.length - 1]?.year}
-            </h3>
-            <div className="label-caps flex gap-4 text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2" style={{ background: ACCENT }} />
-                Volume
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-[2px] w-3 bg-foreground" />
-                Trend
-              </span>
-            </div>
+      {coldStart ? (
+        <div className="space-y-6">
+          <ColdStart />
+          {/* Shown during a cold start because the modelled reference series has
+              history even when nothing has been observed yet — the two are
+              labelled separately on the panel itself. */}
+          <YearPanel payload={data} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+          <div className="md:col-span-8">
+            <VolumePanel payload={data} />
+          </div>
+          <div className="md:col-span-4">
+            <OutcomePanel payload={data} />
+          </div>
+          <div className="md:col-span-4">
+            <LatencyPanel payload={data} />
+          </div>
+          <div className="md:col-span-8">
+            <SeasonalityPanel payload={data} />
+          </div>
+          <div className="md:col-span-6">
+            <BranchPanel payload={data} />
+          </div>
+          <div className="md:col-span-6">
+            <PublicationPanel payload={data} />
+          </div>
+          <div className="md:col-span-8">
+            <YearPanel payload={data} />
+          </div>
+          <div className="md:col-span-4">
+            <FunnelPanel payload={data} />
+          </div>
+        </div>
+      )}
+
+      <DefinitionsPanel payload={data} />
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────── live ticker ── */
+
+function LiveTicker({
+  data,
+  live,
+  status,
+  refreshing,
+  onRefresh,
+  coldStart,
+}: {
+  data: AnalyticsPayload;
+  live: LiveCounters | null;
+  status: "connecting" | "live" | "offline";
+  refreshing: boolean;
+  onRefresh: () => void;
+  coldStart: boolean;
+}) {
+  const events = live?.events ?? data.counts.eventsTotal;
+  const [flashKey, setFlashKey] = useState(0);
+  const prev = useRef(events);
+  useEffect(() => {
+    if (events !== prev.current) {
+      prev.current = events;
+      setFlashKey((k) => k + 1);
+    }
+  }, [events]);
+
+  const hourly = useMemo(() => data.observed.hourly.slice(-48), [data]);
+  const maxHour = useMemo(() => Math.max(1, ...hourly.map((h) => h.count)), [hourly]);
+  const lastOutcome = live?.last_outcome ?? null;
+
+  return (
+    <div
+      key={`live-${flashKey}`}
+      className="border-heavy an-flash p-5"
+      style={{ animationDelay: "0ms" } as CSSProperties}
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="label-caps text-muted-foreground">
+            01 · Live counter {status === "live" ? "· pushed from the database" : ""}
           </div>
           <div
-            ref={chartRef}
-            className="border-thick relative h-72 w-full overflow-hidden bg-muted/40"
+            className="font-display mt-2 text-5xl leading-none tabular-nums"
+            style={{ color: ACCENT }}
           >
-            <div className="an-grid-overlay" aria-hidden />
-            <ResponsiveContainer>
-              <AreaChart data={yearRows} margin={{ top: 16, right: 20, left: 0, bottom: 8 }}>
-                <defs>
-                  <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={ACCENT} stopOpacity={0.35} />
-                    <stop offset="95%" stopColor={ACCENT} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="2 4" strokeOpacity={0.35} vertical={false} />
-                <XAxis
-                  dataKey="year"
-                  tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }}
-                  axisLine={{ stroke: "currentColor" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }}
-                  tickFormatter={fmtCompact}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                />
-                <Tooltip
-                  cursor={{
-                    stroke: "currentColor",
-                    strokeWidth: 1,
-                    strokeDasharray: "3 3",
-                  }}
-                  contentStyle={{
-                    background: "var(--background)",
-                    border: "3px solid var(--foreground)",
-                    borderRadius: 0,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    padding: 8,
-                  }}
-                  labelFormatter={(y) => `YEAR ${y}`}
-                  formatter={(v: number) => [fmt(v), "Results"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke={ACCENT}
-                  strokeWidth={3}
-                  fill="url(#areaFill)"
-                  isAnimationActive={true}
-                  animationDuration={1600}
-                  animationEasing="ease-out"
-                  activeDot={{
-                    r: 6,
-                    fill: "var(--background)",
-                    stroke: ACCENT,
-                    strokeWidth: 3,
-                  }}
-                />
-                {peak && (
-                  <ReferenceDot
-                    x={peak.year}
-                    y={peak.count}
-                    r={5}
-                    fill="var(--foreground)"
-                    stroke="var(--background)"
-                    strokeWidth={2}
-                    ifOverflow="visible"
-                  />
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-            <div className="an-spot" aria-hidden />
-            {peak && (
-              <div
-                className="an-parallax absolute top-4 left-4 px-2 py-1 font-mono text-[10px] leading-tight text-background"
-                style={{ background: "var(--foreground)" }}
-              >
-                <div className="font-bold">PEAK · {peak.year}</div>
-                <div>{fmt(peak.count)} records</div>
-              </div>
-            )}
+            {fmtInt(events)}
           </div>
-          <div className="label-caps mt-2 flex justify-between text-muted-foreground italic">
-            <span>Start · {yearRows[0]?.year}</span>
-            <span>Move cursor for spotlight · pick a year below</span>
-            <span>Now · {yearRows[yearRows.length - 1]?.year}</span>
+          <div className="label-caps mt-1 text-muted-foreground">
+            anonymous observations recorded
           </div>
         </div>
-
-        {/* Branch lollipops */}
-        <div
-          className="an-panel md:col-span-4"
-          style={{ animationDelay: "240ms" } as CSSProperties}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="label-caps border-l-4 border-foreground pl-2">Branch distribution</h3>
-            <span className="label-caps text-muted-foreground">k≥25</span>
+        <div className="flex flex-wrap items-end gap-6">
+          <Stat label="last hour" value={data.counts.pulse1h} />
+          <Stat label="last 24h" value={data.counts.pulse24h} />
+          <Stat label="last 7d" value={data.counts.pulse7d} />
+          <div>
+            <div className="label-caps text-muted-foreground">last event</div>
+            <div className="font-mono text-sm">
+              {live?.last_year ? (
+                <>
+                  {live.last_year} · S{live.last_semester ?? "?"}
+                  {live.last_latency_ms ? ` · ${fmtMs(live.last_latency_ms)}` : ""}
+                </>
+              ) : data.meta.lastEventAt ? (
+                <Freshness iso={data.meta.lastEventAt} />
+              ) : (
+                "—"
+              )}
+            </div>
+            <div className="label-caps mt-1 text-muted-foreground">
+              {lastOutcome ? lastOutcome.replace(/_/g, " ") : "no classified outcome"}
+            </div>
           </div>
-          <div className="border-thick space-y-4 p-5">
-            {branchRows.map((r, i) => {
-              const w = (r.pct / branchMaxPct) * 100;
-              const highlight = i === 0;
-              return (
-                <div key={r.branch} className="an-branch-row">
-                  <div className="mb-1 flex justify-between font-mono text-[11px] font-bold uppercase">
-                    <span className="truncate">{r.branch}</span>
-                    <span
-                      className="tabular-nums"
-                      style={highlight ? { color: ACCENT } : undefined}
-                    >
-                      {r.pct.toFixed(1)}%{" "}
-                      <span className="text-muted-foreground">({fmtCompact(r.count)})</span>
-                    </span>
-                  </div>
-                  <div className="relative flex h-4 items-center">
-                    <div className="absolute h-px w-full bg-muted-foreground/25" />
-                    <div
-                      className="an-branch-bar absolute h-px transition-all duration-700"
-                      style={{
-                        width: `${w}%`,
-                        background: highlight ? ACCENT : "var(--foreground)",
-                        transitionDelay: `${300 + i * 80}ms`,
-                      }}
-                    />
-                    <div
-                      className="an-branch-dot absolute h-3 w-3 rounded-full border-2"
-                      style={{
-                        left: `calc(${w}% - 6px)`,
-                        background: highlight ? ACCENT : "var(--background)",
-                        borderColor: "var(--foreground)",
-                        transitionDelay: `${300 + i * 80}ms`,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="border-thick px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest hover:bg-foreground hover:text-background disabled:opacity-40"
+          >
+            {refreshing ? "Syncing…" : "Refresh"}
+          </button>
         </div>
       </div>
 
-      {/* Year selector strip */}
-      <div
-        className="border-thick an-panel p-5"
-        style={{ animationDelay: "320ms" } as CSSProperties}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="label-caps flex items-center gap-2">
-            <span
-              className="px-2 py-0.5 text-background"
-              style={{ background: "var(--foreground)" }}
-            >
-              01
-            </span>
-            Year-wise volume · pick a year
-          </h3>
-          <span className="label-caps text-muted-foreground">Focus · {focusYear}</span>
+      <div className="mt-5">
+        <div className="label-caps mb-2 flex items-center justify-between text-muted-foreground">
+          <span>48-hour request volume</span>
+          <span>{coldStart ? "no observations yet" : `peak ${fmtInt(maxHour)}/hour`}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {yearRows.map((r) => {
-            const active = r.year === focusYear;
+        <div className="flex h-16 items-end gap-[2px]" aria-hidden>
+          {hourly.map((h, i) => {
+            const pct = (h.count / maxHour) * 100;
+            const isLast = i === hourly.length - 1;
             return (
-              <button
-                key={r.year}
-                onClick={() => setSelectedYear(r.year)}
-                className="an-year-btn border-thin flex flex-col items-start px-3 py-2 font-mono text-[11px] hover:bg-muted"
-                style={
-                  active
-                    ? {
-                        background: "var(--foreground)",
-                        color: "var(--background)",
-                        borderColor: "var(--foreground)",
-                      }
-                    : undefined
-                }
-              >
-                <span className="font-bold tabular-nums">{r.year}</span>
-                <span className="tabular-nums opacity-70">{fmtCompact(r.count)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Small multiples: semester density for focus year */}
-      <div ref={sparkRef} className="an-panel" style={{ animationDelay: "400ms" } as CSSProperties}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="label-caps flex items-center gap-2">
-            <span
-              className="px-2 py-0.5 text-background"
-              style={{ background: "var(--foreground)" }}
-            >
-              02
-            </span>
-            Semester distribution · {focusYear}
-          </h3>
-          <span className="label-caps text-muted-foreground">8 semesters · normalised</span>
-        </div>
-        <div
-          key={focusYear ?? "none"}
-          className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8"
-        >
-          {semRows.map((s, idx) => {
-            const peakSem = Math.max(...semRows.map((x) => x.count), 1);
-            const highlight = s.count === peakSem && s.count > 0;
-            return (
-              <SemesterSparkline
-                key={`${focusYear}-${s.semester}`}
-                label={s.label}
-                value={s.count}
-                pct={s.count / peakSem}
-                highlight={highlight}
-                delayMs={sparksInView ? idx * 90 : 0}
-                active={sparksInView}
+              <span
+                key={h.hour}
+                title={`${new Date(h.hour).toLocaleString("en-GB")} · ${fmtInt(h.count)} requests`}
+                className={`flex-1 ${isLast ? "an-blip" : ""}`}
+                style={{
+                  height: `${Math.max(2, pct)}%`,
+                  background:
+                    h.count === 0 ? "var(--muted)" : isLast ? ACCENT : "var(--foreground)",
+                  opacity: h.count === 0 ? 1 : isLast ? 1 : 0.55 + pct / 220,
+                }}
               />
             );
           })}
+        </div>
+        <div className="label-caps mt-2 text-muted-foreground">
+          Gap-filled hourly buckets · an empty bar is zero requests, not missing data
         </div>
       </div>
     </div>
   );
 }
 
-/* -------------------------------------------------------- semester spark */
-
-function SemesterSparkline({
-  label,
-  value,
-  pct,
-  highlight,
-  delayMs,
-  active,
-}: {
-  label: string;
-  value: number;
-  pct: number;
-  highlight: boolean;
-  delayMs: number;
-  active: boolean;
-}) {
-  const peakY = 40 - Math.max(6, pct * 34);
-  const gradId = `sem-fill-${label}`;
-  const stroke = highlight ? ACCENT : "var(--foreground)";
-  const path = `M0,40 Q25,40 40,${peakY} T80,${peakY + 4} T100,40`;
-  const fillPath = `${path} L100,40 L0,40 Z`;
-
-  // Individual card hover spotlight — subtle indigo bloom.
-  const cardRef = useMouseSpotlight<HTMLDivElement>();
-  const [hover, setHover] = useState(false);
-
+function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div
-      ref={cardRef}
-      onPointerEnter={() => setHover(true)}
-      onPointerLeave={() => setHover(false)}
-      className={`an-sparkline relative overflow-hidden p-2 transition-transform duration-200 hover:-translate-y-0.5 ${highlight ? "border-thick" : "border-thin"}`}
-      style={
-        {
-          borderColor: highlight ? ACCENT : undefined,
-          "--dash": 260,
-          animationDelay: `${delayMs}ms`,
-        } as CSSProperties
-      }
-    >
-      <div className="an-spot" aria-hidden />
-      <div className="relative flex items-baseline justify-between">
-        <span
-          className="font-mono text-[10px] font-bold"
-          style={highlight ? { color: ACCENT } : undefined}
-        >
-          {label}
-        </span>
-        <span
-          className={`font-mono text-[10px] tabular-nums transition-colors ${hover ? "" : "text-muted-foreground"}`}
-          style={hover ? { color: ACCENT } : undefined}
-        >
-          {fmtCompact(value)}
-        </span>
+    <div>
+      <div className="label-caps text-muted-foreground">{label}</div>
+      <div className="font-display text-2xl leading-none tabular-nums">{fmtCompact(value)}</div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────── cold start ── */
+
+function ColdStart() {
+  const rows: Array<[string, string]> = [
+    ["Live counter", "increments on the first lookup anywhere in the world"],
+    ["Volume, trend & forecast", "needs a few days of daily buckets before a trend is meaningful"],
+    ["Outcome mix & success rate", "fills immediately — every attempt is classified"],
+    ["Latency by semester", "fills immediately — duration is measured per attempt"],
+    ["When lookups happen", "needs events across several days to show a rhythm"],
+    ["Branch structure", "needs 25+ observations per branch to clear the anonymity floor"],
+    ["Publication matrix", "stamps each semester the first time it is seen published"],
+  ];
+  return (
+    <div className="border-heavy p-6">
+      <div className="label-caps text-muted-foreground">
+        Panels 03–10 · awaiting the first observation
       </div>
-      <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="mt-1 h-12 w-full">
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={stroke} stopOpacity={0.4} />
-            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <line x1="0" y1="40" x2="100" y2="40" stroke="currentColor" strokeOpacity={0.25} />
-        {active && (
-          <>
-            <path
-              className="an-fill"
-              d={fillPath}
-              fill={`url(#${gradId})`}
-              style={{ animationDelay: `${delayMs + 400}ms` } as CSSProperties}
-            />
-            <path
-              className="an-line"
-              d={path}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={1.75}
-              style={{ animationDelay: `${delayMs}ms` } as CSSProperties}
-            />
-          </>
-        )}
-      </svg>
+      <h3 className="font-display mt-2 text-3xl">No observations recorded yet.</h3>
+      <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">
+        The telemetry store answered, and it is genuinely empty — the dashboard is not degraded, and
+        no fallback data is being substituted. Every panel below populates from real recorded
+        activity, so here is exactly what fills and what it waits for.
+      </p>
+      <table className="mt-4 w-full border-collapse font-mono text-[11px]">
+        <tbody>
+          {rows.map(([k, v]) => (
+            <tr key={k} className="border-t border-foreground align-top">
+              <td className="w-64 px-3 py-2 font-bold">{k}</td>
+              <td className="px-3 py-2 text-muted-foreground">{v}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

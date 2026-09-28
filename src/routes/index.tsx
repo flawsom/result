@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useState } from "react";
 
-import { fetchStudentDetails, fetchSubjects } from "@/lib/bput.functions";
+import { ERR, fetchStudentDetails, fetchSubjects } from "@/lib/bput.functions";
 import { calculateSGPA, type StudentDetails, type SubjectsResponse } from "@/lib/sgpa";
 import { downloadResultPDF } from "@/lib/pdf";
 import { readCache, writeCache, recordEvent } from "@/lib/result-cache";
@@ -12,7 +12,7 @@ import { SgpaTrendChart } from "@/components/SgpaTrendChart";
 import { GradeDistributionChart } from "@/components/GradeDistributionChart";
 import { ReverseSgpaCalc } from "@/components/ReverseSgpaCalc";
 import { ErrorStateForMessage, NotPublishedState } from "@/components/ResultStates";
-import { logResultViews } from "@/lib/analytics-client";
+import { logResultEvents, type Outcome, type TelemetryEvent } from "@/lib/analytics-client";
 
 const HomeAnalyticsLazy = lazy(() =>
   import("@/components/HomeAnalytics").then((m) => ({ default: m.HomeAnalytics })),
@@ -73,6 +73,22 @@ type SemState =
   | { status: "error"; session: string; error: string };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Map a BPUT error message onto the telemetry outcome taxonomy. The prefixes
+ * come from bput.functions and are stable; anything unrecognised is recorded
+ * as "unreachable" rather than guessed at.
+ */
+function classifyOutcome(message: string): Outcome {
+  if (message.startsWith(ERR.TIMEOUT)) return "timeout";
+  if (message.startsWith(ERR.RATE_LIMITED)) return "rate_limited";
+  if (message.startsWith(ERR.UNREACHABLE)) return "unreachable";
+  if (message.startsWith(ERR.NOT_PUBLISHED)) return "not_published";
+  if (/non-json/i.test(message)) return "malformed";
+  if (message.startsWith(ERR.UPSTREAM)) return "upstream_error";
+  if (message.startsWith(ERR.BAD_INPUT)) return "unclassified";
+  return "unreachable";
+}
 
 function getSemesterSessions(batchStartYear: number): SemPlan[] {
   const out: SemPlan[] = [];
@@ -142,23 +158,61 @@ function Index() {
   // Try a semester's primary session then its back-paper republications.
   // Fires the primary first; only probes back-paper candidates in parallel
   // if the primary published. Returns EVERY non-empty attempt so the UI
-  // (and PDF) can show both the primary and any republications.
+  // (and PDF) can show both the primary and any republications — plus one
+  // anonymous telemetry row per attempt (outcome, latency, attempt index).
   const fetchSemesterWithBackPapers = async (
     studentRoll: string,
     p: SemPlan,
     batchYear: number | null,
-  ): Promise<
-    | { kind: "done"; attempts: SemAttempt[] }
-    | { kind: "empty"; session: string }
-    | { kind: "error"; session: string; error: string }
-  > => {
+    branch: string | null,
+  ): Promise<{
+    result:
+      | { kind: "done"; attempts: SemAttempt[] }
+      | { kind: "empty"; session: string }
+      | { kind: "error"; session: string; error: string };
+    telemetry: TelemetryEvent[];
+  }> => {
+    const telemetry: TelemetryEvent[] = [];
+    const semester = Number(p.semId) || 0;
+    const canRecord = batchYear !== null && !!branch && semester >= 1 && semester <= 12;
+
+    const record = (
+      attempt: number,
+      outcome: Outcome,
+      latencyMs: number,
+      source: "live" | "cache",
+      subjects: number,
+    ) => {
+      if (!canRecord) return;
+      telemetry.push({
+        year: batchYear as number,
+        semester,
+        branch: branch as string,
+        outcome,
+        latencyMs,
+        attempt,
+        source,
+        subjects,
+      });
+    };
+
     const tryOne = async (
       session: string,
+      attempt: number,
     ): Promise<SubjectsResponse | { __err: string } | null> => {
+      const startedAt = performance.now();
       try {
         const cached = readCache(studentRoll, p.semId, session);
         if (cached) {
           recordEvent(studentRoll, p.semId, session, "CACHE");
+          const rows = Array.isArray(cached.grades) ? cached.grades.length : 0;
+          record(
+            attempt,
+            rows > 0 ? "published" : "not_published",
+            Math.round(performance.now() - startedAt),
+            "cache",
+            rows,
+          );
           return cached;
         }
         const data = await getSubjects({
@@ -167,16 +221,28 @@ function Index() {
         const hasGrades = Array.isArray(data?.grades) && data.grades.length > 0;
         if (hasGrades) writeCache(studentRoll, p.semId, session, data);
         recordEvent(studentRoll, p.semId, session, "LIVE");
+        record(
+          attempt,
+          hasGrades ? "published" : "not_published",
+          Math.round(performance.now() - startedAt),
+          "live",
+          hasGrades ? data.grades.length : 0,
+        );
         return data;
       } catch (e) {
         const msg = (e as Error).message ?? "";
-        if (msg.startsWith("BPUT_NOT_PUBLISHED")) return null;
+        const latency = Math.round(performance.now() - startedAt);
+        if (msg.startsWith(ERR.NOT_PUBLISHED)) {
+          record(attempt, "not_published", latency, "live", 0);
+          return null;
+        }
+        record(attempt, classifyOutcome(msg), latency, "live", 0);
         return { __err: msg };
       }
     };
 
     // Step 1: primary.
-    const primaryRes = await tryOne(p.session);
+    const primaryRes = await tryOne(p.session, 1);
     let primaryError: string | null = null;
     let primary: SemAttempt | null = null;
     if (primaryRes && "__err" in primaryRes) {
@@ -191,7 +257,7 @@ function Index() {
     if (primary && batchYear !== null) {
       const backSessions = getBackPaperSessions(batchYear, p.semId);
       if (backSessions.length > 0) {
-        const probes = await Promise.all(backSessions.map((s) => tryOne(s)));
+        const probes = await Promise.all(backSessions.map((s, i) => tryOne(s, i + 2)));
         probes.forEach((res, i) => {
           if (res && !("__err" in res) && Array.isArray(res.grades) && res.grades.length > 0) {
             collected.push({ session: backSessions[i], data: res });
@@ -200,14 +266,19 @@ function Index() {
       }
     }
 
-    if (collected.length > 0) return { kind: "done", attempts: collected };
-    if (primaryError) return { kind: "error", session: p.session, error: primaryError };
-    return { kind: "empty", session: p.session };
+    let result: Awaited<ReturnType<typeof fetchSemesterWithBackPapers>>["result"];
+    if (collected.length > 0) result = { kind: "done", attempts: collected };
+    else if (primaryError) result = { kind: "error", session: p.session, error: primaryError };
+    else result = { kind: "empty", session: p.session };
+    return { result, telemetry };
   };
 
   const applyResult = (
     p: SemPlan,
-    result: Awaited<ReturnType<typeof fetchSemesterWithBackPapers>>,
+    result:
+      | { kind: "done"; attempts: SemAttempt[] }
+      | { kind: "empty"; session: string }
+      | { kind: "error"; session: string; error: string },
   ) => {
     setSemStates((prev) => {
       const next: Record<string, SemState> = { ...prev };
@@ -248,37 +319,36 @@ function Index() {
     // All 8 semesters in parallel — this is a single user's own lookup,
     // no cross-user rate limiting to respect. Back-paper probes inside
     // each semester also run in parallel (see fetchSemesterWithBackPapers).
-    const results = await Promise.all(
+    const outcomes = await Promise.all(
       plans.map(async (p) => {
-        const result = await fetchSemesterWithBackPapers(studentRoll, p, batchYear);
-        applyResult(p, result);
-        return { p, result };
+        const outcome = await fetchSemesterWithBackPapers(studentRoll, p, batchYear, branch);
+        applyResult(p, outcome.result);
+        return outcome;
       }),
     );
     setFetchingAll(false);
 
-    // Privacy-safe analytics: one anonymous event per successfully served
-    // semester. Only year/semester/branch — never the roll number.
-    if (batchYear !== null && branch) {
-      const events = results
-        .filter(({ result }) => result.kind === "done")
-        .map(({ p }) => ({
-          year: batchYear,
-          semester: Number(p.semId) || 0,
-          branch,
-        }))
-        .filter((e) => e.semester >= 1 && e.semester <= 12);
-      if (events.length > 0) logResultViews(events);
-    }
+    // Privacy-safe telemetry: one anonymous row per upstream attempt
+    // (year, semester, branch + outcome / measured latency / attempt index /
+    // live vs cache), written as ONE batched request. The roll number is
+    // never part of the payload — not even hashed.
+    const telemetry = outcomes.flatMap((o) => o.telemetry);
+    if (telemetry.length > 0) logResultEvents(telemetry);
   };
 
-  const retryOneSemester = async (p: SemPlan, studentRoll: string, batchYear: number | null) => {
+  const retryOneSemester = async (
+    p: SemPlan,
+    studentRoll: string,
+    batchYear: number | null,
+    branch: string | null,
+  ) => {
     setSemStates((prev) => ({
       ...prev,
       [p.semId]: { status: "loading", session: p.session },
     }));
-    const result = await fetchSemesterWithBackPapers(studentRoll, p, batchYear);
-    applyResult(p, result);
+    const outcome = await fetchSemesterWithBackPapers(studentRoll, p, batchYear, branch);
+    applyResult(p, outcome.result);
+    if (outcome.telemetry.length > 0) logResultEvents(outcome.telemetry);
   };
 
   const lookup = useMutation({
@@ -526,7 +596,14 @@ function Index() {
                   plan={p}
                   state={semStates[p.semId]}
                   student={student}
-                  onRetry={() => retryOneSemester(p, student.rollNo, parseBatchYear(student.batch))}
+                  onRetry={() =>
+                    retryOneSemester(
+                      p,
+                      student.rollNo,
+                      parseBatchYear(student.batch),
+                      student.branchName ?? null,
+                    )
+                  }
                 />
               ))}
             </div>
