@@ -98,6 +98,15 @@ export function CensusControl() {
         ) : null}
       </div>
 
+      <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">Autonomous crawl:</span> this panel drives a
+        range by hand. <code>.github/workflows/census.yml</code> runs the identical walk with no tab
+        open and resumes from the same saved offset — set the repository variables{" "}
+        <code>CENSUS_RANGE_START</code> and <code>CENSUS_RANGE_END</code>, add the{" "}
+        <code>SUPABASE_SERVICE_ROLE_KEY</code> secret, and it ticks on its own. The landing page
+        follows it live either way.
+      </div>
+
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="census-start">Range start</Label>
@@ -228,8 +237,9 @@ export function CensusControl() {
           </div>
           {state.lastError ? <p className="text-xs text-destructive">{state.lastError}</p> : null}
           <p className="text-xs text-muted-foreground">
-            Keep this tab open while it runs. Progress is written to the database after every batch,
-            so pressing Start again resumes from the saved offset instead of re-walking the range.
+            A run from this page needs the tab to stay open — closing it stops the crawl, and
+            pressing Start again resumes from the saved offset rather than re-walking the range. For
+            a crawl that survives the tab, use the scheduled workflow described above.
           </p>
         </div>
       ) : null}

@@ -7,22 +7,18 @@
 // admin session or the service role, which is why they throw instead of
 // swallowing errors the way the fire-and-forget telemetry writer does: a crawl
 // that quietly failed to persist is a crawl that wasted hours of upstream load.
-import { TelemetryError, classifyTelemetryError, withTimeout } from "@/lib/analytics-client";
+import {
+  TelemetryError,
+  classifyTelemetryError,
+  withTimeout,
+  type LiveSubscription,
+} from "@/lib/analytics-client";
 import { supabase } from "@/integrations/supabase/client";
+import type { CensusObservation } from "@/lib/census-core";
 
-/** One anonymous student-semester observation. No identity field exists. */
-export interface CensusObservation {
-  batchYear: number;
-  semester: number;
-  branch: string;
-  college: string;
-  outcome: "published" | "not_published" | "failed" | "unreachable";
-  subjects: number;
-  credits: number;
-  points: number;
-  /** Grade histogram, e.g. { O: 2, A: 3 }. Only the nine known grades. */
-  grades: Partial<Record<string, number>>;
-}
+// The observation shape is the reducer's, not this module's: the same type is
+// written by the in-page runner and by the scheduled headless tick.
+export type { CensusObservation };
 
 export interface CensusProgress {
   ranges: number;
@@ -31,7 +27,27 @@ export interface CensusProgress {
   notFound: number;
   observations: number;
   updatedAt: string | null;
+  /** When the newest batch landed, as distinct from when the run last spoke. */
+  lastBatchAt?: string | null;
   active: boolean;
+}
+
+/**
+ * The single broadcast row the database maintains as the crawl ingests.
+ *
+ * Counts only. Deliberately not "the newest observation": a single row is not
+ * k-anonymous, and this row is readable by anyone. The published cells stay
+ * pooled at 25 so no figure here can describe one student.
+ */
+export interface CensusLiveCounters {
+  id: number;
+  observations: number;
+  visited: number;
+  not_found: number;
+  ranges: number;
+  active: boolean;
+  last_batch_at: string | null;
+  updated_at: string;
 }
 
 export interface CensusPayload {
@@ -166,4 +182,41 @@ export async function saveCursor(input: {
   if (res.error) {
     throw classifyTelemetryError({ message: res.error.message, code: res.error.code });
   }
+}
+
+/* ─────────────────────────────────────────────────────────────── live ─── */
+
+/**
+ * Push updates straight from the crawl. The database maintains one aggregate
+ * counter row and broadcasts every change to it, so a batch landing in the
+ * portal reaches every open dashboard in about a second — no polling delay and
+ * no cached figure. Readers get that one row and never the observation stream.
+ */
+export function subscribeCensusLive(
+  onRow: (row: CensusLiveCounters) => void,
+  onStatus?: (status: "connecting" | "live" | "offline") => void,
+): LiveSubscription {
+  let closed = false;
+  onStatus?.("connecting");
+
+  const channel = supabase
+    .channel("census-live-counters")
+    .on("postgres_changes", { event: "*", schema: "public", table: "census_live" }, (payload) => {
+      const row = (payload.new ?? null) as CensusLiveCounters | null;
+      if (row && typeof row.observations === "number") onRow(row);
+    })
+    .subscribe((status) => {
+      if (closed) return;
+      if (status === "SUBSCRIBED") onStatus?.("live");
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        onStatus?.("offline");
+      }
+    });
+
+  return {
+    close: () => {
+      closed = true;
+      void supabase.removeChannel(channel);
+    },
+  };
 }

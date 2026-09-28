@@ -10,12 +10,28 @@
 // frame here would be decoration; a census is either running or it is not, and
 // the progress line says which.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchCensus, type CensusPayload, type CensusProgress } from "@/lib/census-client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchCensus,
+  subscribeCensusLive,
+  type CensusLiveCounters,
+  type CensusPayload,
+  type CensusProgress,
+} from "@/lib/census-client";
 import { fmtAgo, fmtInt, fmtPct, wilson } from "@/lib/analytics-stats";
 
 const ACCENT = "oklch(0.45 0.22 265)";
 const OK = "oklch(0.55 0.18 145)";
+const WARN = "oklch(0.72 0.19 65)";
+
+type LinkState = "connecting" | "live" | "offline";
+
+/** A burst of inserts from one crawl flush collapses into a single re-read. */
+const COALESCE_MS = 1_500;
+/** Push working: a slow reconciliation read is all that is needed. */
+const POLL_LIVE_MS = 60_000;
+/** Push unavailable: poll often enough that the panels never lag the crawl. */
+const POLL_OFFLINE_MS = 15_000;
 
 /** Ticks once a second so "persisted" never reads as frozen. */
 function Age({ iso }: { iso: string }) {
@@ -72,15 +88,55 @@ function Block({ title, meta, children }: { title: string; meta?: string; childr
   );
 }
 
-function ProgressLine({ progress }: { progress: CensusProgress }) {
+/** Which channel is actually feeding this section — stated, not implied. */
+function LinkChip({ link }: { link: LinkState }) {
+  const text =
+    link === "live" ? "Live push" : link === "connecting" ? "Connecting" : "Polling · 15s";
+  const color = link === "live" ? OK : link === "connecting" ? "var(--muted-foreground)" : WARN;
+  return (
+    <span className="label-caps inline-flex items-center gap-2" style={{ color }}>
+      <span className="relative inline-flex h-2 w-2">
+        {link === "live" ? (
+          <span
+            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+            style={{ background: OK }}
+          />
+        ) : null}
+        <span className="relative inline-flex h-2 w-2" style={{ background: color }} />
+      </span>
+      {text}
+    </span>
+  );
+}
+
+function ProgressLine({
+  progress,
+  live,
+  link,
+}: {
+  progress: CensusProgress;
+  live: CensusLiveCounters | null;
+  link: LinkState;
+}) {
+  // The broadcast row is fresher than the last aggregate read: the database
+  // writes it in the same transaction that stored the batch, so it cannot lag
+  // behind the crawl the way a polled snapshot can.
+  const observations = live?.observations ?? progress.observations;
+  const visited = live?.visited ?? progress.visited;
+  const notFound = live?.not_found ?? progress.notFound;
+  const ranges = live?.ranges ?? progress.ranges;
+  const lastBatchAt = live?.last_batch_at ?? progress.lastBatchAt ?? null;
+  const active = progress.active || (live?.active ?? false);
+  const perProbe = visited > 0 ? observations / visited : 0;
+
   return (
     <div className="border-thick flex flex-wrap items-center gap-x-6 gap-y-2 p-3 font-mono text-[11px]">
       <span
         className="label-caps inline-flex items-center gap-2"
-        style={{ color: progress.active ? OK : "var(--muted-foreground)" }}
+        style={{ color: active ? OK : "var(--muted-foreground)" }}
       >
         <span className="relative inline-flex h-2.5 w-2.5">
-          {progress.active ? (
+          {active ? (
             <span
               className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
               style={{ background: OK }}
@@ -88,25 +144,33 @@ function ProgressLine({ progress }: { progress: CensusProgress }) {
           ) : null}
           <span
             className="relative inline-flex h-2.5 w-2.5"
-            style={{ background: progress.active ? OK : "var(--muted-foreground)" }}
+            style={{ background: active ? OK : "var(--muted-foreground)" }}
           />
         </span>
-        {progress.active ? "Census running" : "Census idle"}
+        {active ? "Census running" : "Census idle"}
+      </span>
+      <LinkChip link={link} />
+      <span>
+        <span className="text-muted-foreground">numbers probed</span> {fmtInt(visited)}
       </span>
       <span>
-        <span className="text-muted-foreground">numbers probed</span> {fmtInt(progress.visited)}
+        <span className="text-muted-foreground">unused</span> {fmtInt(notFound)}
       </span>
       <span>
-        <span className="text-muted-foreground">unused</span> {fmtInt(progress.notFound)}
+        <span className="text-muted-foreground">stored</span> {fmtInt(observations)}
       </span>
       <span>
-        <span className="text-muted-foreground">stored</span> {fmtInt(progress.observations)}
+        <span className="text-muted-foreground">obs / probed</span> {perProbe.toFixed(1)}
       </span>
       <span>
-        <span className="text-muted-foreground">ranges</span> {fmtInt(progress.ranges)} ·{" "}
+        <span className="text-muted-foreground">ranges</span> {fmtInt(ranges)} ·{" "}
         {fmtInt(progress.doneRanges)} complete
       </span>
-      {progress.updatedAt ? (
+      {lastBatchAt ? (
+        <span className="text-muted-foreground">
+          last batch <Age iso={lastBatchAt} />
+        </span>
+      ) : progress.updatedAt ? (
         <span className="text-muted-foreground">
           persisted <Age iso={progress.updatedAt} />
         </span>
@@ -116,14 +180,39 @@ function ProgressLine({ progress }: { progress: CensusProgress }) {
 }
 
 export function BputCensus() {
+  const queryClient = useQueryClient();
+  const [live, setLive] = useState<CensusLiveCounters | null>(null);
+  const [link, setLink] = useState<LinkState>("connecting");
+
   const q = useQuery({
     queryKey: ["bput-census"],
     queryFn: fetchCensus,
     retry: 1,
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 10_000,
+    // Push is the channel; polling is only the safety net. The interval is
+    // deliberately loose while the channel is healthy and tight when it is not.
+    refetchInterval: link === "live" ? POLL_LIVE_MS : POLL_OFFLINE_MS,
     refetchIntervalInBackground: false,
   });
+
+  // Subscribe before the first read completes: the point of the counter is to
+  // move the moment a crawl flush commits, including while the initial
+  // aggregate is still in flight.
+  useEffect(() => {
+    let timer: number | null = null;
+    const subscription = subscribeCensusLive((row) => {
+      setLive(row);
+      if (timer !== null) return;
+      timer = window.setTimeout(() => {
+        timer = null;
+        void queryClient.invalidateQueries({ queryKey: ["bput-census"] });
+      }, COALESCE_MS);
+    }, setLink);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      subscription.close();
+    };
+  }, [queryClient]);
 
   const data: CensusPayload | undefined = q.data;
   const observations = data?.meta.observations ?? 0;
@@ -164,7 +253,9 @@ export function BputCensus() {
           <div className="label-caps text-muted-foreground">
             {observations > 0 ? "anonymous observations" : "collecting"}
           </div>
-          <div className="font-display mt-1 text-3xl tabular-nums">{fmtInt(observations)}</div>
+          <div className="font-display mt-1 text-3xl tabular-nums">
+            {fmtInt(live?.observations ?? observations)}
+          </div>
         </div>
       </div>
 
@@ -177,7 +268,7 @@ export function BputCensus() {
       </p>
 
       <div className="mt-6 space-y-6">
-        <ProgressLine progress={data.progress} />
+        <ProgressLine progress={data.progress} live={live} link={link} />
 
         {observations === 0 ? (
           <div className="border-thick p-6">

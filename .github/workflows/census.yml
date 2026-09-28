@@ -1,0 +1,91 @@
+name: BPUT census
+
+# The crawl runs here instead of in somebody's browser tab. Every run is one
+# bounded slice of a declared registration-number range, and it resumes from the
+# offset the previous run persisted in the database. A missed run therefore costs
+# progress, never correctness, and no run depends on a tab staying open.
+#
+# Required repository configuration (Settings → Secrets and variables → Actions):
+#   Variables: CENSUS_RANGE_START, CENSUS_RANGE_END    — the range to walk
+#   Secrets:   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — writes need the service role
+#
+# Until a range is set, each scheduled run exits in seconds after the config
+# check below, which is still billed as one minute of runner time. If you would
+# rather not pay that while you are still choosing a range, delete the
+# `schedule:` block and drive it from the Actions → Run workflow button until you
+# are ready.
+#
+# Cadence and the minutes budget: private-repo Actions minutes are metered at
+# ~2,000/month on the free plan, and this schedule spends roughly 1,700 of them
+# (24 runs/day × ~2.4 min). Raising the cadence will exceed the allowance. To go
+# faster, use the manual dispatch below with a long `seconds` budget, run the job
+# on a self-hosted runner, or make the repository public for unmetered minutes.
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      range_start:
+        description: First registration number in the range (overrides the variable)
+        required: false
+      range_end:
+        description: Last registration number in the range (overrides the variable)
+        required: false
+      seconds:
+        description: Wall-clock budget for this run, in seconds
+        required: false
+        default: "600"
+      rate_ms:
+        description: Delay before each upstream request, in milliseconds
+        required: false
+        default: "1000"
+
+# One tick at a time. Two overlapping ticks would interleave flushes against the
+# same cursor, which is recoverable but pointless.
+concurrency:
+  group: bput-census
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      # Nothing below is needed to decide whether a crawl is configured, so this
+      # runs first and an unconfigured hour costs seconds rather than a checkout.
+      - name: Check census configuration
+        id: config
+        env:
+          CENSUS_RANGE_START: ${{ inputs.range_start || vars.CENSUS_RANGE_START }}
+        run: |
+          if [ -n "$CENSUS_RANGE_START" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Census range not set::Add repository variables CENSUS_RANGE_START and CENSUS_RANGE_END to begin the crawl."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.configured == 'true'
+
+      # No dependency install: the tick imports only its own TypeScript, so Bun
+      # runs it directly and the job stays short.
+      - uses: oven-sh/setup-bun@v2
+        if: steps.config.outputs.configured == 'true'
+        with:
+          bun-version: latest
+
+      - name: Run one census slice
+        if: steps.config.outputs.configured == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CENSUS_RANGE_START: ${{ inputs.range_start || vars.CENSUS_RANGE_START }}
+          CENSUS_RANGE_END: ${{ inputs.range_end || vars.CENSUS_RANGE_END }}
+          CENSUS_SECONDS: ${{ inputs.seconds || '120' }}
+          CENSUS_RATE_MS: ${{ inputs.rate_ms || '1000' }}
+        run: bun scripts/census-tick.mjs
