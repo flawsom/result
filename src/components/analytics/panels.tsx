@@ -977,6 +977,7 @@ export function YearPanel({ payload }: { payload: AnalyticsPayload }) {
 
 export function FunnelPanel({ payload }: { payload: AnalyticsPayload }) {
   const rows = payload.observed.funnel;
+  const totalAttempts = rows.reduce((n, r) => n + r.attempts, 0);
   const max = Math.max(1, ...rows.map((r) => r.attempts));
   const successCi = useMemo(() => outcomeStats(payload).success, [payload]);
 
@@ -984,45 +985,52 @@ export function FunnelPanel({ payload }: { payload: AnalyticsPayload }) {
     <PanelCard
       index="10"
       title="Semester coverage"
-      meta="primary attempts only"
+      meta={totalAttempts > 0 ? "primary attempts only" : "awaiting primaries"}
       style={{ animationDelay: "420ms" }}
     >
-      {rows.length === 0 ? (
+      {totalAttempts === 0 ? (
         <EmptyPanel
-          headline="No semester-level attempts yet"
-          detail="Each lookup contributes one primary attempt per semester, plus its back-paper probes (excluded from this panel)."
+          headline="No primary attempt recorded yet"
+          detail="Coverage counts the first session tried for each semester, so it needs lookups served after the v2 migration. Rows already in the table were written before outcome and attempt index existed, and carry no semester coverage to draw — an empty panel here means no eligible attempts, not a broken read."
         />
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {rows.map((r) => {
-            const ci = wilson(r.published, r.attempts);
-            const rate = ci.p;
-            return (
-              <div key={r.semester} className="border-thick p-3">
-                <div className="flex items-baseline justify-between">
-                  <span className="label-caps font-bold">Semester {r.semester}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                    n {fmtInt(r.attempts)}
+        <>
+          <div className="border-thick">
+            {rows.map((r) => {
+              const ci = wilson(r.published, r.attempts);
+              return (
+                <div
+                  key={r.semester}
+                  className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-2 border-b border-foreground px-3 py-2 last:border-b-0"
+                >
+                  <span className="label-caps font-bold tabular-nums">S{r.semester}</span>
+                  <span
+                    className="relative block h-2 min-w-0 bg-muted"
+                    title={`${fmtInt(r.attempts)} primary attempts for semester ${r.semester}`}
+                  >
+                    <span
+                      className="absolute inset-y-0 left-0"
+                      style={{ width: `${(r.attempts / max) * 100}%`, background: ACCENT }}
+                    />
+                  </span>
+                  <span className="text-right font-mono text-[10px] whitespace-nowrap tabular-nums">
+                    {r.attempts === 0 ? "—" : `${fmtPct(ci.p, 0)} · ${fmtInt(r.attempts)}`}
                   </span>
                 </div>
-                <div className="font-display mt-1 text-2xl tabular-nums" style={{ color: OK }}>
-                  {fmtPct(rate, 0)}
-                </div>
-                <div className="mt-2 h-2 w-full bg-muted">
-                  <div
-                    className="h-2"
-                    style={{ width: `${(r.attempts / max) * 100}%`, background: ACCENT }}
-                  />
-                </div>
-                <div className="mt-2 font-mono text-[10px] leading-tight text-muted-foreground">
-                  {fmtInt(r.published)} published · {fmtInt(r.failed)} other · this semester {"±"}
-                  {(((ci.high - ci.low) / 2) * 100).toFixed(1)}pt · all semesters {"±"}
-                  {(((successCi.high - successCi.low) / 2) * 100).toFixed(1)}pt
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-4" style={{ background: ACCENT }} /> primary
+              attempts
+            </span>
+            <span>
+              published overall {fmtPct(successCi.p, 0)} · Wilson 95% {fmtPct(successCi.low, 0)}–
+              {fmtPct(successCi.high, 0)}
+            </span>
+          </div>
+        </>
       )}
     </PanelCard>
   );

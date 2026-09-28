@@ -442,13 +442,7 @@ function AnalyticsBody({
       </div>
 
       {coldStart ? (
-        <div className="space-y-6">
-          <ColdStart />
-          {/* Shown during a cold start because the modelled reference series has
-              history even when nothing has been observed yet — the two are
-              labelled separately on the panel itself. */}
-          <YearPanel payload={data} />
-        </div>
+        <ColdStart />
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <div className="md:col-span-8">
