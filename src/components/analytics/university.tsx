@@ -39,7 +39,10 @@ import type {
   IntakeRow,
   IntakeSeries,
 } from "@/lib/intake-stats";
-import { fmtCompact, fmtInt, fmtPct, fmtSignedPct } from "@/lib/analytics-stats";
+import { fmtCompact, fmtDayShort, fmtInt, fmtPct, fmtSignedPct } from "@/lib/analytics-stats";
+
+/** A `yyyy-mm-dd` date from the database, printed the way the rest of the page is. */
+const fmtDayStr = (iso: string): string => fmtDayShort(iso);
 import {
   ACCENT,
   EmptyPanel,
@@ -47,6 +50,7 @@ import {
   LinkChip,
   MeterRow,
   PanelCard,
+  StatBox,
   type AcquisitionLink,
 } from "@/components/analytics/panels";
 
@@ -214,7 +218,7 @@ export function IntakePanel({ series }: { series: IntakeSeries }) {
         </ResponsiveContainer>
       </div>
 
-      <div className="label-caps mt-2 flex flex-wrap justify-between gap-2 text-muted-foreground">
+      <div className="label-micro mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-4" style={{ background: ACCENT }} /> students per
           batch year
@@ -308,7 +312,7 @@ function IntakeTh({
   return (
     <th
       className={
-        align === "left" ? "label-caps px-3 py-2 text-left" : "label-caps px-3 py-2 text-right"
+        align === "left" ? "label-micro px-3 py-2 text-left" : "label-micro px-3 py-2 text-right"
       }
       style={{ color: "var(--background)" }}
     >
@@ -350,19 +354,22 @@ export function BlockDistributionPanel({ dist }: { dist: BlockDistribution }) {
       meta={`n = ${fmtInt(dist.n)} measured colleges · ${fmtInt(dist.tiny)} under 11`}
       style={{ animationDelay: "60ms" }}
     >
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MiniStat
+      {/* Two across, never four: this panel is half the page, so a four-up row
+          would leave each tile ~78px of usable width — narrower than the
+          figures it has to hold. */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatBox
           label="Median college"
           value={fmtInt(dist.median)}
           note={`p25 ${fmtInt(dist.p25)} · p75 ${fmtInt(dist.p75)}`}
         />
-        <MiniStat
+        <StatBox
           label="Mean college"
           value={dist.mean.toFixed(1)}
           note={`max ${fmtInt(dist.max)}`}
         />
-        <MiniStat label="Gini" value={dist.gini.toFixed(3)} note="0 even → 1 all in one" />
-        <MiniStat
+        <StatBox label="Gini" value={dist.gini.toFixed(3)} note="0 even → 1 all in one" />
+        <StatBox
           label="Top decile share"
           value={fmtPct(dist.topDecileShare, 0)}
           note="of the grid's numbers"
@@ -373,7 +380,7 @@ export function BlockDistributionPanel({ dist }: { dist: BlockDistribution }) {
       <div className="mt-4 space-y-2">
         {dist.bins.map((bin) => (
           <div key={bin.label} className="an-branch-row">
-            <div className="mb-1 flex items-baseline justify-between gap-2 font-mono text-[11px]">
+            <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 font-mono text-[11px]">
               <span className="font-bold uppercase tabular-nums">{bin.label}</span>
               <span className="tabular-nums">
                 {fmtInt(bin.blocks)} colleges{" "}
@@ -449,31 +456,6 @@ export function BlockDistributionPanel({ dist }: { dist: BlockDistribution }) {
   );
 }
 
-function MiniStat({
-  label,
-  value,
-  note,
-  accent,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  accent?: string;
-}) {
-  return (
-    <div className="border-thick p-3">
-      <div className="label-caps text-muted-foreground">{label}</div>
-      <div
-        className="font-display mt-1 text-2xl tabular-nums"
-        style={accent ? { color: accent } : undefined}
-      >
-        {value}
-      </div>
-      <div className="font-mono text-[10px] text-muted-foreground">{note}</div>
-    </div>
-  );
-}
-
 /* ──────────────────────────────────────────── 03 · is the crawl reading it ─ */
 
 /**
@@ -492,7 +474,10 @@ export function CensusAcquisitionPanel({
   acquisition: CensusAcquisition;
   link: AcquisitionLink;
 }) {
-  const budgetShare = a.requestBudget > 0 ? a.readsSpent / a.requestBudget : 0;
+  // Share of the live budget spent. The budget is spent + outstanding, so this
+  // rises as the crawl works and falls back when a new publication adds work —
+  // which is the truthful shape of "how far through are we".
+  const budgetShare = a.budget > 0 ? a.readsSpent / a.budget : 0;
 
   return (
     <PanelCard
@@ -508,7 +493,9 @@ export function CensusAcquisitionPanel({
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {/* Two across at every width: this panel is half the page, so the four
+              figures read as a 2×2 block rather than four ~78px columns. */}
+          <div className="grid grid-cols-2 gap-3">
             <KpiTile
               label="Numbers probed"
               value={a.visited}
@@ -541,15 +528,44 @@ export function CensusAcquisitionPanel({
             />
             <KpiTile
               label="Reads left, estimated"
-              value={Math.round(a.readsLeft / 1000)}
-              unit="k reads"
+              value={a.readsLeft}
+              format={fmtCompact}
+              unit="reads"
               sub={
                 <span className="text-muted-foreground">
-                  of {fmtCompact(a.requestBudget)} budgeted
+                  of {fmtCompact(a.budget)} budgeted so far
                 </span>
               }
-              sample="9 reads per student + a probe tail"
+              sample={
+                a.ledger
+                  ? "spent + outstanding · derived from the live ledger"
+                  : "baseline measurement · ledger not applied yet"
+              }
             />
+          </div>
+
+          {/*
+            What the one number above is made of. The census does not finish: a
+            batch year that answered for six semesters will answer for seven, and
+            that seventh term has to be read. Splitting the total says so, and says
+            why keeping the record current is cheap — a maintenance pass reads the
+            record and the one new term, never the terms already captured.
+          */}
+          <div className="mt-3 grid gap-3 min-[420px]:grid-cols-2">
+            <div className="border-thin min-w-0 p-3">
+              <div className="label-micro text-muted-foreground">First pass left</div>
+              <div className="font-mono text-[11px] leading-snug tabular-nums">
+                {fmtCompact(a.firstPassReadsLeft)} reads · {fmtInt(a.serialsLeft)} serials never
+                read
+              </div>
+            </div>
+            <div className="border-thin min-w-0 p-3">
+              <div className="label-micro text-muted-foreground">Keeping it current</div>
+              <div className="font-mono text-[11px] leading-snug tabular-nums">
+                {fmtCompact(a.maintenanceReads)} reads · {fmtInt(a.passesPending)} semester pass(
+                {a.passesPending === 1 ? "" : "es"}) pending
+              </div>
+            </div>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -571,9 +587,9 @@ export function CensusAcquisitionPanel({
             <MeterRow
               label="Read budget"
               value={a.readsSpent}
-              max={a.requestBudget}
-              right={`${fmtPct(budgetShare, 2)} · ${fmtCompact(a.readsSpent)}/${fmtCompact(a.requestBudget)}`}
-              title={`${fmtInt(a.readsSpent)} reads spent against an estimated ${fmtInt(a.requestBudget)}`}
+              max={a.budget}
+              right={`${fmtPct(budgetShare, 2)} · ${fmtCompact(a.readsSpent)}/${fmtCompact(a.budget)}`}
+              title={`${fmtInt(a.readsSpent)} reads spent against a ${fmtInt(a.budget)} budget: spent plus outstanding, recomputed as the work is measured`}
               accent={WARN}
             />
           </div>
@@ -586,6 +602,29 @@ export function CensusAcquisitionPanel({
             count of the last recorded crawl slice exactly. An observation is one student-semester
             and never a person: the registration number is dropped before anything is written, and
             published cells are pooled at 25.
+          </p>
+
+          {/*
+            The part a reader is right to ask about: this is not a one-off. A block
+            that has been read is not finished with — BPUT publishes on a rolling
+            window, so 2023 will answer for semester 7 after it has answered for six
+            — and the number above has to move when that happens rather than
+            counting down to zero and staying there.
+          */}
+          <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+            The census does not end, so this figure is not a countdown. Every slice publishes the
+            current measurement and re-asks the portal which sessions each batch year answers for
+            {a.watchCheckedAt ? ` (last checked ${fmtDayStr(a.watchCheckedAt)})` : ""}; a session a
+            block has not captured becomes work by itself, and the budget is spent plus outstanding,
+            so it rises on the day the portal publishes something new. Only the new term is read —
+            two requests per student, the record and that one semester — and a semester the portal
+            has already published is never read twice, because the pass that read it is recorded
+            before it is repeated. A semester the portal serves but nobody has passed yet is
+            re-checked monthly rather than assumed, because results are published in batches. The
+            same daily job re-sweeps the grid itself, so a batch year the portal has just begun
+            numbering and a college that has opened a batch become work here without an edit. What
+            none of it can see is a session the portal has not started serving at all, or a college
+            whose very first student never registered; nothing here invents either.
           </p>
         </>
       )}

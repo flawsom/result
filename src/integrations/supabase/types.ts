@@ -238,6 +238,47 @@ export type Database = {
         Returns: number
       }
       census_progress: { Args: never; Returns: Json }
+      // Declared by hand for the same reason as the v2 block above: the
+      // maintenance ledger is created by
+      // supabase/migrations/20260929193000_census_maintenance.sql, and there is
+      // no linked instance to regenerate against.
+      census_plan: { Args: never; Returns: Json }
+      census_note_blocks: { Args: { _rows: Json }; Returns: number }
+      census_note_watch: { Args: { _rows: Json }; Returns: number }
+      census_note_walk: {
+        Args: {
+          _captured: number[]
+          _code: number
+          _completed: boolean
+          _frontier: number
+          _offset: number
+          _year: number
+        }
+        Returns: boolean
+      }
+      // True when the pass is ours to read; false when it is already captured or
+      // still in flight.
+      census_claim_pass: {
+        Args: { _code: number; _semester: number; _year: number }
+        Returns: boolean
+      }
+      census_report_pass: {
+        Args: {
+          _code: number
+          _semester: number
+          _status: string
+          _subjects: number
+          _year: number
+        }
+        Returns: boolean
+      }
+      // Replaces this block's rows for one semester in a single transaction: the
+      // reason a re-read corrects the census instead of double-counting it.
+      census_apply_pass: {
+        Args: { _code: number; _rows: Json; _semester: number; _year: number }
+        Returns: number
+      }
+      census_next_work: { Args: { _limit: number }; Returns: Json }
       get_bput_census: { Args: never; Returns: Json }
       log_census_events: { Args: { _rows: Json }; Returns: number }
       has_role: {

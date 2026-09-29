@@ -20,10 +20,18 @@
 // Deliberately framework-free (like lib/bulk/runner.ts) so it stays usable
 // outside React.
 import { fetchStudentDetails, fetchSubjects } from "@/lib/bput.functions";
-import { censusCursorState, logCensusEvents, saveCursor } from "@/lib/census-client";
+import {
+  censusCursorState,
+  logCensusEvents,
+  noteCensusBlocks,
+  noteCensusWalk,
+  noteCensusWatch,
+  saveCursor,
+} from "@/lib/census-client";
 import {
   DEFAULT_RATE_MS,
   RateGovernor,
+  capturedSessions,
   loadStudent,
   observeStudent,
   parseCensusRange,
@@ -33,7 +41,13 @@ import {
   type CensusObservation,
   type CensusRuntime,
 } from "@/lib/census-core";
-import { SKIP_AFTER_MISSES, censusBlocks, type CensusBlock } from "@/lib/census-blocks";
+import {
+  SKIP_AFTER_MISSES,
+  censusBlocks,
+  measuredBlocks,
+  type CensusBlock,
+} from "@/lib/census-blocks";
+import { SESSION_WATCH } from "@/lib/census-session-watch";
 
 export { estimateRequests, parseCensusRange, rollAt } from "@/lib/census-core";
 export { SKIP_AFTER_MISSES, censusBlocks } from "@/lib/census-blocks";
@@ -339,6 +353,29 @@ export async function runCensusGrid(input: RunCensusGridInput = {}): Promise<voi
     return;
   }
 
+  /*
+   * Publish the measurement and the portal's session window before walking.
+   *
+   * A page-driven run and the scheduled tick both write the same ledger, which is
+   * the only reason a block finished in a browser tab is not read again by the
+   * next slice on GitHub: the ledger is how one runner tells the other what it
+   * already has, and without it re-reading would mean duplicating observations.
+   */
+  try {
+    await noteCensusBlocks(
+      measuredBlocks().map((b) => ({ year: b.year, code: b.code, max: b.serial })),
+    );
+    await noteCensusWatch(
+      Object.entries(SESSION_WATCH).map(([year, semesters]) => ({
+        year: Number(year),
+        semesters: [...semesters],
+      })),
+    );
+  } catch (e) {
+    state.lastError = `Ledger not written: ${(e as Error)?.message ?? "unknown"}`;
+    emit();
+  }
+
   const concurrency = Math.min(MAX_CONCURRENCY, Math.max(1, input.concurrency ?? 4));
   const maxRps = Math.max(1, input.maxRps ?? 8);
   // Ramp up from a quarter of the ceiling; halve on any 429. Same governor the
@@ -389,6 +426,8 @@ export async function runCensusGrid(input: RunCensusGridInput = {}): Promise<voi
       let winNotFound = 0;
       let winFacts = 0;
       let misses = 0;
+      let frontier = 0;
+      const captured = new Set<number>();
 
       const flush = async (status: "running" | "paused" | "done") => {
         if (pending.length > 0) {
@@ -411,6 +450,16 @@ export async function runCensusGrid(input: RunCensusGridInput = {}): Promise<voi
           winNotFound = 0;
           winFacts = 0;
         }
+        // The ledger is what the other runners read, so it is written at every
+        // flush rather than only when the block finishes.
+        await noteCensusWalk({
+          year: block.year,
+          code: block.code,
+          offset: index,
+          frontier,
+          captured: [...captured].sort((a, b) => a - b),
+          completed: status === "done",
+        });
         emit();
       };
 
@@ -440,9 +489,15 @@ export async function runCensusGrid(input: RunCensusGridInput = {}): Promise<voi
           } else {
             misses = 0;
             state.students += 1;
+            // Index 0 is serial 001, so this is the serial that answered — the
+            // frontier a later maintenance pass re-reads and never passes.
+            if (index + 1 > frontier) frontier = index + 1;
             const observations = await observeStudent(fetchers, student, rollNo, runtime);
+            for (const semester of capturedSessions(observations)) captured.add(semester);
             if (observations.length > 0) {
-              pending.push(...observations);
+              // Stamped with the block, so the scheduled crawl can find and replace
+              // these rows if it later re-reads a semester.
+              pending.push(...observations.map((o) => ({ ...o, collegeCode: block.code })));
               state.observations += observations.length;
               winFacts += observations.length;
             }

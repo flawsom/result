@@ -25,6 +25,23 @@
 //   bun scripts/census-intake.mjs --years 12,13 --seconds 150
 //   bun scripts/census-intake.mjs --audit 8
 //
+// `--discover` answers the other half of staying true: what does the portal have
+// that the grid does not? A batch year that opens and a college that starts a
+// batch are not in any list anybody edits, so the grid cannot depend on a human
+// noticing. Discovery
+//
+//   1. scans code space at serial 001 for every batch year above the newest one in
+//      the grid, up to this calendar year — the year the portal has just started
+//      numbering, which is where a whole cohort appears at once;
+//   2. re-sweeps two declared years a day, in rotation, so a college that opens a
+//      batch in a year it never had one is found within a week;
+//   3. measures every block it found, and appends it to `census-discovered.ts`,
+//      which the grid imports — so the walk, the measurement and the dashboard all
+//      grow without an edit.
+//
+//   bun scripts/census-intake.mjs --discover
+//   bun scripts/census-intake.mjs --discover --code-max 119 --seconds 120
+//
 // Measurements accumulate in `docs/census-intake.json`. A block measured once is
 // not re-probed unless `--force` is passed, so the sweep can be split across as
 // many short commands as it needs. Nothing here writes to BPUT or to Supabase:
@@ -40,6 +57,7 @@ import {
   MEASURED_HOLE_RATE,
   SERIAL_MAX,
 } from "../src/lib/census-blocks.ts";
+import { CENSUS_DISCOVERED } from "../src/lib/census-discovered.ts";
 
 /* ───────────────────────────────────────────────────────────── args ─── */
 
@@ -72,7 +90,20 @@ const REFRESH = flag("refresh", false) === true;
 // Rewrite the measurement constants in the module the dashboard imports. A
 // measurement nobody re-runs is a dashboard that slowly stops being true.
 const WRITE_CONSTANTS = flag("write-constants", false) === true;
+// Ask the portal what the grid is missing and append it to the overlay the grid
+// imports. Additive only: a code that stops answering is left alone, because one
+// probe cannot tell a closed college from a portal hiccup.
+const DISCOVER = flag("discover", false) === true;
+/** Declared years re-swept per discovery run, in rotation. 0 disables rotation. */
+const SWEEP_YEARS = Number(flag("sweep-years", 2));
+// Codes are only ever found in 000–599 (full sweeps for batches 2023 and 2025);
+// the bounds are flags so a targeted check fits inside a short budget.
+const CODE_MIN = Number(flag("code-min", 0));
+const CODE_MAX = Number(flag("code-max", 599));
+/** Blocks measured at once once discovery has found them. */
+const MEASURE_CONCURRENCY = Number(flag("measure-concurrency", 4));
 const TS_FILE = "src/lib/census-blocks.ts";
+const DISCOVERED_FILE = "src/lib/census-discovered.ts";
 // Machine-readable outcome of this run, for the scheduled job that records it.
 const REPORT = flag("report", null);
 const YEAR_ARG = flag("years", null);
@@ -138,7 +169,9 @@ async function probe(roll) {
       const branch = String(record?.branchName ?? record?.courseName ?? "");
       if (!branch) return { state: "unreadable", reason: "empty record" };
       governor.onSuccess();
-      return { state: "hit" };
+      // The record rides along so discovery can check the answer is the number it
+      // asked for; every other caller only looks at `state`.
+      return { state: "hit", record };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.startsWith("BPUT_NOT_PUBLISHED")) {
@@ -391,6 +424,226 @@ if (AUDIT > 0 || AUDIT_BLOCKS.length > 0) {
   save();
 }
 
+/* ─────────────────────────────────────────────── discovery ─── */
+
+/**
+ * Batch years the portal could plausibly be numbering that the grid does not
+ * carry: everything above its newest year, up to this calendar year.
+ *
+ * BPUT begins a batch year's numbering during its admission season, so this
+ * window is empty on most days and cheap to re-check every day — and it is the
+ * reason a whole new cohort cannot arrive unnoticed.
+ */
+function frontierYears(now = new Date()) {
+  const out = [];
+  for (let year = Math.max(...CENSUS_YEARS) + 1; year <= now.getUTCFullYear() % 100; year += 1) {
+    out.push(year);
+  }
+  return out;
+}
+
+/**
+ * Declared years to re-sweep, taken in rotation by day rather than from a stored
+ * cursor: nothing to get out of step, and a year a truncated run skipped comes
+ * round again a week later, which is the same guarantee with less bookkeeping.
+ */
+function sweepRotation(now = new Date()) {
+  const perRun = Math.max(0, Math.min(SWEEP_YEARS, CENSUS_YEARS.length));
+  if (perRun === 0) return [];
+  const day = Math.floor(now.getTime() / 86_400_000);
+  return Array.from({ length: perRun }, (_, i) => CENSUS_YEARS[(day + i) % CENSUS_YEARS.length]);
+}
+
+/**
+ * Which of these codes the portal answers for in this batch year.
+ *
+ * One probe each, `YY01CCC001` — the first student a college admits, because
+ * serials run densely from 001, so a code that answers is a college with a batch
+ * that year. The inverse is not proven: a college whose very first student never
+ * registered stays invisible here. That inequality is why a hit is measured
+ * properly before it is written, and why an unreadable probe is reported as one
+ * rather than counted as an absence — a miss may only ever cost a college, never
+ * invent one.
+ *
+ * A hit is also checked against the number that was asked for. The portal echoes
+ * `rollNo`, so an answer about somebody else cannot add a block; a mismatch is
+ * reported rather than dropped, because it would mean the portal is misrouting.
+ */
+async function scanCodes(year, codes, until) {
+  const found = [];
+  const mismatched = [];
+  let unreadable = 0;
+  let scanned = 0;
+  let index = 0;
+  const prefix = String(year).padStart(2, "0");
+
+  const worker = async () => {
+    while (index < codes.length && Date.now() < until) {
+      const code = codes[index++];
+      const roll = `${prefix}01${String(code).padStart(3, "0")}001`;
+      const result = await probe(roll);
+      scanned += 1;
+      if (result.state === "hit") {
+        if (String(result.record?.rollNo ?? "") === roll) found.push(code);
+        else mismatched.push(code);
+      } else if (result.state === "unreadable") {
+        unreadable += 1;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  found.sort((a, b) => a - b);
+  return { found, mismatched, unreadable, scanned, complete: scanned === codes.length };
+}
+
+/**
+ * Persist one block's reading into the evidence file, the way the sweep does, and
+ * count it as a change only when it disagrees with what was already recorded.
+ */
+function recordReading(year, code, measured) {
+  const id = key(year, code);
+  const previous = store.blocks[id]?.serial;
+  store.blocks[id] =
+    measured.serial === null
+      ? { serial: null, unreadable: measured.unreadable, at: new Date().toISOString() }
+      : {
+          serial: measured.serial,
+          unreadable: measured.unreadable,
+          probes: measured.answered,
+          at: new Date().toISOString(),
+        };
+  if (previous !== store.blocks[id].serial) readings += 1;
+}
+
+/**
+ * Append the discovered blocks to `census-discovered.ts`.
+ *
+ * The overlay is rewritten between two anchors, the way the constants are, so its
+ * prose stays hand-written and only the generated map moves. `// prettier-ignore`
+ * above that map is deliberate: a batch year with eighty college codes on one line
+ * is not something a formatter should reflow, and the daily job checks formatting
+ * before it commits.
+ */
+function writeDiscovered(map) {
+  const years = Object.keys(map)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const rows = years.map((year) => `  ${year}: [${map[year].join(", ")}],`).join("\n");
+  const before = readFileSync(DISCOVERED_FILE, "utf8");
+  let after = before.replace(
+    /export const CENSUS_DISCOVERED: Record<number, readonly number\[\]> = \{[\s\S]*?\};/,
+    `export const CENSUS_DISCOVERED: Record<number, readonly number[]> = {\n${rows}\n};`,
+  );
+  after = after.replace(
+    /export const CENSUS_DISCOVERED_AT = "[^"]*";/,
+    `export const CENSUS_DISCOVERED_AT = "${new Date().toISOString().slice(0, 10)}";`,
+  );
+  if (after === before) return false;
+  writeFileSync(DISCOVERED_FILE, after);
+  const blocks = years.reduce((n, year) => n + (map[year]?.length ?? 0), 0);
+  console.log(`[intake] appended ${blocks} block(s) to ${DISCOVERED_FILE}`);
+  return true;
+}
+
+/**
+ * Ask the portal what the grid is missing, and append what it finds.
+ *
+ * Two things can be missing and both of them are invisible to every other part of
+ * the census: a batch year the portal has just started numbering, and a college
+ * that opened a batch in a year it never had one. The first is scanned every run
+ * (the window above), the second by re-sweeping the declared years in rotation.
+ *
+ * Nothing is written unless every block it found has been measured, because a
+ * half-measured grid is one the constants writer refuses and the dashboard would
+ * draw a block with no reading. A run cut short therefore writes nothing and is
+ * retried tomorrow, which costs the scan twice and never publishes a guess.
+ */
+async function discover() {
+  const until = Date.now() + SECONDS * 1_000;
+  const added = {};
+  const report = [];
+
+  for (const year of [...frontierYears(), ...sweepRotation()]) {
+    const declared = CENSUS_COLLEGES[year] ?? [];
+    const codes = [];
+    for (let code = CODE_MIN; code <= CODE_MAX; code += 1) {
+      if (!declared.includes(code)) codes.push(code);
+    }
+    const label = `20${String(year).padStart(2, "0")}`;
+    if (codes.length === 0) continue;
+    if (Date.now() >= until) {
+      report.push({ year: 2000 + year, scanned: 0, found: 0, complete: false });
+      continue;
+    }
+
+    const scan = await scanCodes(year, codes, until);
+    if (scan.mismatched.length > 0) {
+      console.warn(
+        `[intake] discover ${label}: ${scan.mismatched.length} answer(s) named a different registration number — ignored`,
+      );
+    }
+    if (scan.found.length === 0) {
+      report.push({ year: 2000 + year, scanned: scan.scanned, found: 0, complete: scan.complete });
+      console.log(
+        `[intake] discover ${label}: ${scan.scanned} code(s) probed, nothing the grid does not already carry` +
+          (scan.complete ? "" : " (budget ran out mid-scan)"),
+      );
+      continue;
+    }
+
+    // Measure before writing: the constants writer refuses a grid with a reading
+    // missing, so a block added unmeasured would freeze the measurement instead of
+    // publishing it.
+    const measured = new Map();
+    let next = 0;
+    const worker = async () => {
+      while (next < scan.found.length && Date.now() < until) {
+        const code = scan.found[next++];
+        const block = await highestLive(
+          `${String(year).padStart(2, "0")}01${String(code).padStart(3, "0")}`,
+        );
+        measured.set(code, block);
+      }
+    };
+    await Promise.all(Array.from({ length: MEASURE_CONCURRENCY }, worker));
+
+    const unmeasured = scan.found.filter((code) => !measured.has(code));
+    report.push({
+      year: 2000 + year,
+      scanned: scan.scanned,
+      found: scan.found.length,
+      measured: measured.size,
+      complete: unmeasured.length === 0,
+    });
+    if (unmeasured.length > 0) {
+      console.warn(
+        `[intake] discover ${label}: found ${scan.found.length} new block(s) but the budget ran out before all of them were measured — nothing written, retried next run`,
+      );
+      continue;
+    }
+
+    for (const code of scan.found) recordReading(year, code, measured.get(code));
+    added[year] = scan.found;
+    console.log(
+      `[intake] discover ${label}: ${scan.found.length} new block(s) — ` +
+        `${scan.found
+          .slice(0, 12)
+          .map((code) => String(code).padStart(3, "0"))
+          .join(", ")}${scan.found.length > 12 ? `, +${scan.found.length - 12} more` : ""}`,
+    );
+  }
+
+  if (Object.keys(added).length === 0) {
+    console.log("[intake] discover: nothing to add — the grid covers what the portal serves");
+    return { added, report, written: false };
+  }
+
+  // New readings, so the date the measurement was taken moves with them.
+  save(true);
+  const written = writeDiscovered({ ...CENSUS_DISCOVERED, ...added });
+  return { added, report, written };
+}
+
 /* ─────────────────────────── rewrite the grid's own constants ─── */
 
 /** `160609` → `160_609`, matching the underscores the module already uses. */
@@ -408,13 +661,21 @@ const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "_");
  * middle reading of the sorted block, `max` is the largest reading, and the
  * student count removes the measured hole rate for the year's era.
  */
-function renderConstants() {
+function renderConstants(extra = {}) {
   const years = [];
   const flat = [];
   let missing = 0;
-  for (const year of CENSUS_YEARS) {
+  // Blocks discovery added in this very process are not in the imported grid yet
+  // — the overlay file was written a moment ago — so they are handed in.
+  const grid = [...new Set([...CENSUS_YEARS, ...Object.keys(extra).map(Number)])].sort(
+    (a, b) => a - b,
+  );
+  for (const year of grid) {
     const values = [];
-    for (const code of CENSUS_COLLEGES[year] ?? []) {
+    const codes = [...new Set([...(CENSUS_COLLEGES[year] ?? []), ...(extra[year] ?? [])])].sort(
+      (a, b) => a - b,
+    );
+    for (const code of codes) {
       const serial = store.blocks[key(year, code)]?.serial;
       if (typeof serial !== "number") {
         missing += 1;
@@ -455,8 +716,8 @@ function swap(src, start, end, body) {
   return `${src.slice(0, from + start.length)}${body}${src.slice(to)}`;
 }
 
-function writeConstants() {
-  const { years, flat, serials, students, missing } = renderConstants();
+function writeConstants(extra = {}) {
+  const { years, flat, serials, students, missing } = renderConstants(extra);
   if (missing > 0) {
     // Half a measurement would rewrite the block array out of alignment with the
     // grid, which is the one way this could publish a wrong number.
@@ -520,7 +781,8 @@ function writeConstants() {
   );
 }
 
-if (WRITE_CONSTANTS) writeConstants();
+const discovery = DISCOVER ? await discover() : null;
+if (WRITE_CONSTANTS) writeConstants(discovery?.written ? discovery.added : {});
 
 /* ───────────────────────────────────────────────────────────── report ─── */
 
@@ -599,6 +861,13 @@ if (REFRESH) {
       `${readings} block(s) re-measured to a different number`,
   );
 }
+if (discovery) {
+  const found = Object.values(discovery.added).reduce((n, codes) => n + codes.length, 0);
+  console.log(
+    `[intake] discovery: ${discovery.report.reduce((n, r) => n + r.scanned, 0)} code(s) probed, ` +
+      `${found} block(s) added${discovery.written ? ` to ${DISCOVERED_FILE}` : ""}`,
+  );
+}
 if (typeof REPORT === "string") {
   writeFileSync(
     REPORT,
@@ -612,6 +881,11 @@ if (typeof REPORT === "string") {
         failed,
         blocks: totalBlocks,
         serials: total,
+        discover: DISCOVER,
+        discovery: discovery ? { written: discovery.written, years: discovery.report } : null,
+        discovered: discovery
+          ? Object.values(discovery.added).reduce((n, codes) => n + codes.length, 0)
+          : 0,
       },
       null,
       2,

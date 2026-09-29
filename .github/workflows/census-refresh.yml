@@ -13,7 +13,12 @@ name: BPUT measurement refresh
 #   3. ask the portal which of the eight derived semester sessions every batch year
 #      answers for. A session declared after a block was read is invisible to the
 #      crawl, and this is the only thing that notices it;
-#   4. commit the result and a heartbeat.
+#   4. ask the portal what the grid itself is missing — a batch year that has just
+#      opened and a college that started a batch — and append it to
+#      `census-discovered.ts`, which the grid imports. Nothing about the population
+#      is edited by hand, so a whole new cohort becomes walkable, measurable and
+#      visible without anybody noticing it arrived;
+#   5. commit the result and a heartbeat.
 #
 # The commit is not bookkeeping. GitHub disables a scheduled workflow after sixty
 # days without repository activity, and that is exactly what had happened to the
@@ -87,6 +92,16 @@ jobs:
           bun scripts/census-intake.mjs --refresh --seconds 3600 --rps 6 --concurrency 6 \
             --report /tmp/intake.json
 
+      # Before the constants are re-derived, not after: a year discovery has just
+      # added has readings of its own by then, and the rewrite below is what puts
+      # it in `MEASURED_INTAKE` — the number the dashboard divides by.
+      - name: Discover what the grid does not carry
+        id: discovery
+        continue-on-error: true
+        run: |
+          bun scripts/census-intake.mjs --discover --sweep-years 2 --seconds 1800 \
+            --rps 6 --concurrency 6 --report /tmp/discovery.json
+
       - name: Re-derive the constants the dashboard imports
         continue-on-error: true
         run: bun scripts/census-intake.mjs --seconds 1 --write-constants
@@ -94,6 +109,18 @@ jobs:
       - name: Watch which sessions the portal declares
         continue-on-error: true
         run: bun scripts/census-sessions.mjs
+
+      # Publish the measurement and that window into the ledger, so the dashboard
+      # knows what is left — including a semester the portal has only now started
+      # serving — without waiting for the next crawl slice to announce it.
+      - name: Publish the universe to the ledger
+        id: ledger
+        if: steps.config.outputs.configured == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: bun scripts/census-ledger.mjs --verify
 
       # A regenerated constant that does not typecheck or format would be worse
       # than a stale one, and this is the last place it can be caught: a push made
@@ -127,14 +154,15 @@ jobs:
           git config user.name "BPUT census"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/census-intake.json docs/census-sessions.json docs/census-automation.json \
-                  src/lib/census-blocks.ts src/lib/census-session-watch.ts
+                  src/lib/census-blocks.ts src/lib/census-discovered.ts \
+                  src/lib/census-session-watch.ts
           if git diff --cached --quiet; then
             echo "::notice title=Census refresh::Nothing moved. The published measurement still matches the portal."
             exit 0
           fi
           git commit \
             -m "chore(census): daily measurement refresh" \
-            -m "Re-checked $(jq -r '.blocksChecked // 0' /tmp/intake.json 2>/dev/null || echo 0) readings against the portal, $(jq -r '.changed // 0' /tmp/intake.json 2>/dev/null || echo 0) moved. Session watch and heartbeat recorded."
+            -m "Re-checked $(jq -r '.blocksChecked // 0' /tmp/intake.json 2>/dev/null || echo 0) readings against the portal, $(jq -r '.changed // 0' /tmp/intake.json 2>/dev/null || echo 0) moved, $(jq -r '.discovered // 0' /tmp/discovery.json 2>/dev/null || echo 0) block(s) added to the grid. Session watch and heartbeat recorded."
           git push
 
       - name: Report
@@ -148,7 +176,9 @@ jobs:
             echo "| readings re-checked | $(jq -r '.blocksChecked // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown) |"
             echo "| blocks re-measured | $(jq -r '.changed // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown) |"
             echo "| readings that could not be read | $(jq -r '.failed // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown) |"
+            echo "| blocks discovery added to the grid | $(jq -r '.discovered // "unknown"' /tmp/discovery.json 2>/dev/null || echo unknown) |"
             echo "| crawl slice | ${{ steps.crawl.outcome }} |"
+            echo "| ledger publish | ${{ steps.ledger.outcome }} |"
             echo
             echo "Published today: \`$(jq -c '.published' docs/census-automation.json 2>/dev/null || echo unknown)\`"
             echo
@@ -156,5 +186,17 @@ jobs:
             echo
             echo '```'
             jq -r '.years | to_entries | sort_by(.key | tonumber) | .[] | "\(.key)  S\(.value.served | join(", S"))"' docs/census-sessions.json 2>/dev/null || echo "unavailable"
+            echo '```'
+            echo
+            echo "What discovery asked the portal, and what it found:"
+            echo
+            echo '```'
+            jq -r '.discovery.years[]? | "\(.year)  \(.scanned) probe(s) · \(.found) new block(s)\(if .complete then "" else " · budget ran out" end)"' /tmp/discovery.json 2>/dev/null || echo "unavailable"
+            echo '```'
+            echo
+            echo "What the ledger says is left, and what a new publication costs:"
+            echo
+            echo '```'
+            bun scripts/census-ledger.mjs 2>/dev/null | head -24 || echo "unavailable"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -26,11 +26,13 @@ import {
   MEASURED_INTAKE,
   MEASURED_SERIALS,
   MEASURED_STUDENTS,
+  REQUESTS_PER_STUDENT,
+  SKIP_AFTER_MISSES,
   estimatedRequests,
   measuredBlocks,
   measuredStudents,
 } from "@/lib/census-blocks";
-import type { CensusLiveCounters, CensusPayload } from "@/lib/census-client";
+import type { CensusLiveCounters, CensusPayload, CensusPlan } from "@/lib/census-client";
 import {
   cagr,
   gini,
@@ -110,7 +112,11 @@ export interface IntakeSeries {
  * walked serial by serial, and both are stated on the panel that draws them.
  */
 export function intakeSeries(): IntakeSeries {
-  const rows: IntakeRow[] = CENSUS_YEARS.map((short) => {
+  // A batch year discovery has just added has no measurement until the same day's
+  // `--write-constants` run writes one, and a row of zeroes would be a worse lie
+  // than an absent row: it is drawn once its blocks have been measured.
+  const measured = CENSUS_YEARS.filter((short) => MEASURED_INTAKE[2000 + short]);
+  const rows: IntakeRow[] = measured.map((short) => {
     const year = 2000 + short;
     const intake = MEASURED_INTAKE[year];
     const holeRate = year <= 2014 ? MEASURED_HOLE_RATE.before2015 : MEASURED_HOLE_RATE.from2015;
@@ -290,15 +296,76 @@ export interface CensusAcquisition {
   /** Ranges completed ÷ the 1,103 the grid declares. */
   rangeCoverage: number;
   remainingNumbers: number;
-  /** Reads a completed grid costs, from the measurement. Estimate. */
-  requestBudget: number;
-  /** Reads spent so far: one probe per number plus one row per observation. Estimate. */
+  /** Reads paid so far: one probe per number plus one row per observation. Counted. */
   readsSpent: number;
+  /**
+   * Reads the first pass still has to spend, from the live ledger: the serials no
+   * block has read yet, at nine reads a student and one a hole, plus the miss tail
+   * every unfinished block pays.
+   */
+  firstPassReadsLeft: number;
+  /**
+   * Reads keeping the record current costs. A semester the portal has only now
+   * started serving is read at two requests per student — the record and the term
+   * — and never touches the semesters already captured.
+   */
+  maintenanceReads: number;
+  /** Serials no block has read yet. */
+  serialsLeft: number;
+  /** Blocks whose first pass is finished. */
+  blocksDone: number;
+  /** Block-and-semester units the portal now serves that were not captured. */
+  passesPending: number;
+  /** When the portal's session window was last checked, from the ledger. */
+  watchCheckedAt: string | null;
+  /** True when the figures above came from the ledger rather than the baseline. */
+  ledger: boolean;
+  /** Reads left in total: the first pass plus the maintenance it will need. */
   readsLeft: number;
+  /**
+   * The denominator, derived rather than frozen: everything already spent plus
+   * everything still outstanding. It grows when the portal publishes something
+   * new, which is the difference between a budget and a countdown.
+   */
+  budget: number;
+  /** The measurement-only basis, shown beside `budget` when the two disagree. */
+  measuredBasis: number;
   active: boolean;
   lastBatchAt: string | null;
   /** False until the database has reported anything at all. */
   reported: boolean;
+}
+
+/** Reads one student's semester update costs: the record, and that one term. */
+export const REQUESTS_PER_SEMESTER_READ = 2;
+
+function holeRateFor(year: number): number {
+  return year <= 2014 ? MEASURED_HOLE_RATE.before2015 : MEASURED_HOLE_RATE.from2015;
+}
+
+/**
+ * Reads a serial costs on a first pass: nine for a student, one for a hole.
+ *
+ * A student's first pass reads the record and all eight semesters; a serial that
+ * answers for nobody costs the record probe and nothing else. Both are derived
+ * from the measured hole rate for the batch year rather than assumed.
+ */
+function firstPassReads(year: number, serials: number): number {
+  const hole = holeRateFor(year);
+  return serials * ((1 - hole) * REQUESTS_PER_STUDENT + hole);
+}
+
+/**
+ * Reads re-reading one semester costs across a block's students: two each.
+ *
+ * This is the number that makes maintenance affordable, and it is the reason a
+ * completed block is worth revisiting at all: keeping 8,974 students of one batch
+ * year current costs about 18,000 reads, where re-running that year would cost
+ * 80,000 and duplicate every row it touched.
+ */
+function semesterReads(year: number, serials: number): number {
+  const hole = holeRateFor(year);
+  return serials * ((1 - hole) * REQUESTS_PER_SEMESTER_READ + hole);
 }
 
 /**
@@ -314,10 +381,21 @@ export interface CensusAcquisition {
  * the last recorded GitHub Actions slice reported (1,184 requests: 136 probes
  * and 1,048 semester rows), which is why it is presented as arithmetic rather
  * than as a model.
+ *
+ * What is left comes from the ledger when the database has one. That matters more
+ * than it sounds: the census is not a job with an end date. BPUT publishes on a
+ * rolling window, so a batch year that answered for six semesters will answer for
+ * seven, and the block that reads it will need reading again for that one term.
+ * A figure of "1.4M of 1.5M" computed from a frozen total cannot express that —
+ * it can only count down to zero and then be wrong forever. So the left side is
+ * derived from the serials no block has read yet plus the semesters the portal
+ * now serves that no block has captured, and the denominator is spent plus
+ * outstanding, which is why it can go up on the day BPUT publishes something.
  */
 export function censusAcquisition(
   census: CensusPayload | undefined,
   live: CensusLiveCounters | null,
+  plan?: CensusPlan | null,
 ): CensusAcquisition {
   const progress = census?.progress;
   const observations = live?.observations ?? progress?.observations ?? 0;
@@ -326,9 +404,37 @@ export function censusAcquisition(
   const ranges = live?.ranges ?? progress?.ranges ?? 0;
   const doneRanges = progress?.doneRanges ?? 0;
   const found = Math.max(0, visited - notFound);
-  const requestBudget = estimatedRequests();
   const readsSpent = visited + observations;
   const potential = found * 8;
+  const measuredBasis = estimatedRequests();
+
+  /*
+   * With the ledger, "how much is left" is a measurement of the work rather than
+   * a frozen total minus a live spend: the first pass is charged at nine reads a
+   * student and one a hole over the serials no block has read, and maintenance at
+   * two reads a student over the serials each outstanding semester covers. The
+   * miss tail is charged per unfinished block because a walk always pays it.
+   *
+   * Without the ledger — a deployment a migration behind — the panel falls back to
+   * the measurement basis and says so, rather than silently showing a number that
+   * cannot notice a new publication.
+   */
+  let firstPassReadsLeft = 0;
+  let maintenanceReads = 0;
+  let blocksRemaining = 0;
+  if (plan) {
+    for (const row of plan.years) {
+      blocksRemaining += Math.max(row.blocks - row.firstPassDone, 0);
+      firstPassReadsLeft += firstPassReads(row.year, Math.max(row.serialsLeft, 0));
+      maintenanceReads += semesterReads(row.year, Math.max(row.passSerialsPending, 0));
+    }
+    firstPassReadsLeft += blocksRemaining * SKIP_AFTER_MISSES;
+  }
+
+  const ledger = Boolean(plan);
+  const readsLeft = ledger
+    ? firstPassReadsLeft + maintenanceReads
+    : Math.max(0, measuredBasis - readsSpent);
 
   return {
     observations,
@@ -342,9 +448,17 @@ export function censusAcquisition(
     probeCoverage: MEASURED_SERIALS > 0 ? visited / MEASURED_SERIALS : 0,
     rangeCoverage: MEASURED_BLOCKS > 0 ? doneRanges / MEASURED_BLOCKS : 0,
     remainingNumbers: Math.max(0, MEASURED_SERIALS - visited),
-    requestBudget,
     readsSpent,
-    readsLeft: Math.max(0, requestBudget - readsSpent),
+    firstPassReadsLeft: ledger ? firstPassReadsLeft : readsLeft,
+    maintenanceReads: ledger ? maintenanceReads : 0,
+    serialsLeft: plan?.serialsRemaining ?? 0,
+    blocksDone: plan?.blocksDone ?? 0,
+    passesPending: plan?.passesPending ?? 0,
+    watchCheckedAt: plan?.watchCheckedAt ?? null,
+    ledger,
+    readsLeft: Math.max(0, Math.round(readsLeft)),
+    budget: Math.max(0, Math.round(readsSpent + readsLeft)),
+    measuredBasis,
     active: progress?.active ?? live?.active ?? false,
     lastBatchAt: live?.last_batch_at ?? progress?.lastBatchAt ?? null,
     reported: observations > 0 || visited > 0,

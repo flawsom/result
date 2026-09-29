@@ -31,6 +31,7 @@ import {
 import {
   fmtAgo,
   fmtCompact,
+  fmtDayShort,
   fmtInt,
   fmtMs,
   fmtPct,
@@ -54,9 +55,11 @@ import {
 } from "@/components/analytics/panels";
 import {
   fetchCensus,
+  fetchCensusPlan,
   subscribeCensusLive,
   type CensusLiveCounters,
   type CensusPayload,
+  type CensusPlan,
 } from "@/lib/census-client";
 import { MEASURED_BLOCKS } from "@/lib/census-blocks";
 import { blockDistribution, censusAcquisition, intakeSeries } from "@/lib/intake-stats";
@@ -154,15 +157,15 @@ function Skeleton({ className = "" }: { className?: string }) {
 function LoadingState() {
   return (
     <div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        <Skeleton className="h-28 md:col-span-6" />
-        <Skeleton className="h-28 md:col-span-6" />
-        <Skeleton className="h-72 md:col-span-8" />
-        <Skeleton className="h-72 md:col-span-4" />
-        <Skeleton className="h-64 md:col-span-4" />
-        <Skeleton className="h-64 md:col-span-8" />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <Skeleton className="h-28 lg:col-span-6" />
+        <Skeleton className="h-28 lg:col-span-6" />
+        <Skeleton className="h-72 lg:col-span-8" />
+        <Skeleton className="h-72 lg:col-span-4" />
+        <Skeleton className="h-64 lg:col-span-4" />
+        <Skeleton className="h-64 lg:col-span-8" />
       </div>
-      <p className="label-caps mt-4 text-muted-foreground">
+      <p className="label-micro mt-4 text-muted-foreground">
         Reading the telemetry store · reads abort after 8s rather than hanging
       </p>
     </div>
@@ -323,6 +326,18 @@ export function HomeAnalytics() {
     refetchIntervalInBackground: false,
   });
 
+  // The ledger: what is left to read, and which semesters have appeared since a
+  // block was walked. Small, cheap, and the reason the census panel can say what
+  // the crawl still owes instead of counting down a fixed budget.
+  const plan = useQuery({
+    queryKey: ["census-plan"],
+    queryFn: fetchCensusPlan,
+    retry: 0,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
+
   useEffect(() => {
     let timer: number | null = null;
     const sub = subscribeCensusLive((row) => {
@@ -331,6 +346,9 @@ export function HomeAnalytics() {
       timer = window.setTimeout(() => {
         timer = null;
         void queryClient.invalidateQueries({ queryKey: ["bput-census"] });
+        // A batch landing usually means the ledger moved too: a pass closed, or a
+        // block finished. Re-read it with the same coalescing.
+        void queryClient.invalidateQueries({ queryKey: ["census-plan"] });
       }, COALESCE_MS);
     }, setCensusLink);
     return () => {
@@ -356,14 +374,14 @@ export function HomeAnalytics() {
         </div>
         <div className="text-right">
           <StatusChip status={status} />
-          <div className="label-caps mt-1 text-muted-foreground">
+          <div className="label-micro mt-1 text-muted-foreground">
             {q.data ? (
               <Freshness iso={q.data.meta.generatedAt} prefix="snapshot " />
             ) : (
               "awaiting first read"
             )}
           </div>
-          <div className="label-caps mt-1 text-muted-foreground">
+          <div className="label-micro mt-1 text-muted-foreground">
             {q.data ? "census measured · telemetry v2 · nothing modelled" : "store unverified"}
           </div>
         </div>
@@ -381,7 +399,12 @@ export function HomeAnalytics() {
       </p>
 
       <div className="mt-8">
-        <UniversityBlock census={census.data} censusLive={censusLive} censusLink={censusLink} />
+        <UniversityBlock
+          census={census.data}
+          censusLive={censusLive}
+          censusLink={censusLink}
+          plan={plan.data ?? null}
+        />
       </div>
 
       <div className="mt-8">
@@ -429,16 +452,22 @@ function UniversityBlock({
   census,
   censusLive,
   censusLink,
+  plan,
 }: {
   census: CensusPayload | undefined;
   censusLive: CensusLiveCounters | null;
   censusLink: AcquisitionLink;
+  plan: CensusPlan | null;
 }) {
   // The measurement is fixed — one probe per block on 2026-09-29 — so it derives
-  // once per mount. Only the acquisition figures move, with the live census row.
+  // once per mount. Only the acquisition figures move, with the live census row and
+  // the ledger: what is left to read is a property of the work, not of the sample.
   const intake = useMemo(() => intakeSeries(), []);
   const distribution = useMemo(() => blockDistribution(), []);
-  const acquisition = useMemo(() => censusAcquisition(census, censusLive), [census, censusLive]);
+  const acquisition = useMemo(
+    () => censusAcquisition(census, censusLive, plan),
+    [census, censusLive, plan],
+  );
 
   return (
     <div className="space-y-8">
@@ -447,14 +476,20 @@ function UniversityBlock({
         note={`${fmtInt(MEASURED_BLOCKS)} colleges probed block by block`}
       />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        <div className="md:col-span-12">
+      {/*
+        Two columns start at `lg`, not `md`. Between 768px and 1023px the page
+        container is under 1000px wide, so a half-width panel lands around 350px
+        and every tile inside it has to fight its own border. Below `lg` the
+        panels stack full-width and the figures get the room they need.
+      */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-12">
           <IntakePanel series={intake} />
         </div>
-        <div className="md:col-span-6">
+        <div className="min-w-0 lg:col-span-6">
           <BlockDistributionPanel dist={distribution} />
         </div>
-        <div className="md:col-span-6">
+        <div className="min-w-0 lg:col-span-6">
           <CensusAcquisitionPanel acquisition={acquisition} link={censusLink} />
         </div>
       </div>
@@ -492,8 +527,13 @@ function AnalyticsBody({
         coldStart={coldStart}
       />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        <div className="md:col-span-3">
+      {/*
+        Four-up only from `xl`. Below that, four tiles across a 720–976px
+        container leave each one around 160–230px, which is where the captions
+        start outnumbering the figures; two-up reads better at those widths.
+      */}
+      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 xl:grid-cols-4">
+        <div className="min-w-0">
           <KpiTile
             label="Observed requests"
             value={data.counts.eventsTotal}
@@ -501,7 +541,7 @@ function AnalyticsBody({
             sample={`${fmtInt(data.meta.activeDays)} active days`}
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="min-w-0">
           <KpiTile
             label="Primary attempts"
             value={data.counts.primaries}
@@ -513,7 +553,7 @@ function AnalyticsBody({
             sample="one per semester per lookup"
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="min-w-0">
           <KpiTile
             label="Published rate"
             value={Math.round(outcomes.success.p * 1000) / 10}
@@ -527,7 +567,7 @@ function AnalyticsBody({
             sample={`n = ${fmtInt(outcomes.success.n)} primary attempts`}
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="min-w-0">
           <KpiTile
             label="p95 latency"
             value={Math.round(latency.p95)}
@@ -546,29 +586,29 @@ function AnalyticsBody({
       {coldStart ? (
         <ColdStart />
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          <div className="md:col-span-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="min-w-0 lg:col-span-8">
             <VolumePanel payload={data} />
           </div>
-          <div className="md:col-span-4">
+          <div className="min-w-0 lg:col-span-4">
             <OutcomePanel payload={data} />
           </div>
-          <div className="md:col-span-4">
+          <div className="min-w-0 lg:col-span-4">
             <LatencyPanel payload={data} />
           </div>
-          <div className="md:col-span-8">
+          <div className="min-w-0 lg:col-span-8">
             <SeasonalityPanel payload={data} />
           </div>
-          <div className="md:col-span-6">
+          <div className="min-w-0 lg:col-span-6">
             <BranchPanel payload={data} />
           </div>
-          <div className="md:col-span-6">
+          <div className="min-w-0 lg:col-span-6">
             <PublicationPanel payload={data} />
           </div>
-          <div className="md:col-span-8">
+          <div className="min-w-0 lg:col-span-8">
             <YearPanel payload={data} />
           </div>
-          <div className="md:col-span-4">
+          <div className="min-w-0 lg:col-span-4">
             <FunnelPanel payload={data} />
           </div>
         </div>
@@ -609,6 +649,13 @@ function LiveTicker({
   const hourly = useMemo(() => data.observed.hourly.slice(-48), [data]);
   const maxHour = useMemo(() => Math.max(1, ...hourly.map((h) => h.count)), [hourly]);
   const lastOutcome = live?.last_outcome ?? null;
+  // "Quiet" is a fact about the data, not a hunch: two days with nothing
+  // recorded is long enough that a reader starts wondering whether the counter
+  // still works.
+  const quietSince =
+    data.meta.lastEventAt && Date.now() - new Date(data.meta.lastEventAt).getTime() > 48 * 3_600_000
+      ? data.meta.lastEventAt
+      : null;
 
   return (
     <div
@@ -616,9 +663,16 @@ function LiveTicker({
       className="border-heavy an-flash p-5"
       style={{ animationDelay: "0ms" } as CSSProperties}
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="label-caps text-muted-foreground">
+      {/*
+        Stacked until `lg`, then two blocks side by side. The headline caption is
+        a long line at `label-caps` tracking, and letting it set the width of the
+        left block left the counters fighting it for the remaining pixels —
+        wrapping in a capped column is what stops the row from reading as one
+        crowded line of text.
+      */}
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 max-w-sm">
+          <div className="label-micro text-muted-foreground">
             Live counter · this deployment {status === "live" ? "· pushed from the database" : ""}
           </div>
           <div
@@ -627,16 +681,29 @@ function LiveTicker({
           >
             {fmtInt(events)}
           </div>
-          <div className="label-caps mt-1 text-muted-foreground">
+          <div className="label-micro mt-1 text-muted-foreground">
             lookups on this site · anonymous, no identity attached
           </div>
+          {/*
+            A counter that has not moved reads as a broken counter. It is usually
+            an idle one, and the difference is worth saying out loud, because
+            nothing else on the page can tell the two apart: a stalled writer and
+            a quiet week both leave the same zeros underneath. Verified by hand on
+            2026-09-29 -- a real attempt landed and reached an open page in 601 ms.
+          */}
+          {quietSince ? (
+            <p className="mt-3 max-w-sm font-mono text-[11px] leading-relaxed text-muted-foreground">
+              Nothing recorded since {fmtDayShort(quietSince)}. Idle, not stalled — this counts
+              attempts on this site, and each one reaches an open page within a second of landing.
+            </p>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-end gap-6">
+        <div className="flex min-w-0 flex-wrap items-end gap-x-6 gap-y-3 lg:justify-end">
           <Stat label="last hour" value={data.counts.pulse1h} />
           <Stat label="last 24h" value={data.counts.pulse24h} />
           <Stat label="last 7d" value={data.counts.pulse7d} />
-          <div>
-            <div className="label-caps text-muted-foreground">last event</div>
+          <div className="min-w-0">
+            <div className="label-micro text-muted-foreground">last event</div>
             <div className="font-mono text-sm">
               {live?.last_year ? (
                 <>
@@ -649,7 +716,7 @@ function LiveTicker({
                 "—"
               )}
             </div>
-            <div className="label-caps mt-1 text-muted-foreground">
+            <div className="label-micro mt-1 text-muted-foreground">
               {lastOutcome ? lastOutcome.replace(/_/g, " ") : "no classified outcome"}
             </div>
           </div>
@@ -657,7 +724,7 @@ function LiveTicker({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="border-thick px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest hover:bg-foreground hover:text-background disabled:opacity-40"
+            className="border-thick px-4 py-2 font-mono text-xs font-bold tracking-widest uppercase hover:bg-foreground hover:text-background disabled:opacity-40"
           >
             {refreshing ? "Syncing…" : "Refresh"}
           </button>
@@ -665,7 +732,7 @@ function LiveTicker({
       </div>
 
       <div className="mt-5">
-        <div className="label-caps mb-2 flex items-center justify-between text-muted-foreground">
+        <div className="label-micro mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-muted-foreground">
           <span>48-hour request volume</span>
           <span>{coldStart ? "no observations yet" : `peak ${fmtInt(maxHour)}/hour`}</span>
         </div>
@@ -688,7 +755,7 @@ function LiveTicker({
             );
           })}
         </div>
-        <div className="label-caps mt-2 text-muted-foreground">
+        <div className="label-micro mt-2 text-muted-foreground">
           Gap-filled hourly buckets · an empty bar is zero requests, not missing data
         </div>
       </div>
@@ -698,8 +765,8 @@ function LiveTicker({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div>
-      <div className="label-caps text-muted-foreground">{label}</div>
+    <div className="min-w-0">
+      <div className="label-micro text-muted-foreground">{label}</div>
       <div className="font-display text-2xl leading-none tabular-nums">{fmtCompact(value)}</div>
     </div>
   );
@@ -719,7 +786,7 @@ function ColdStart() {
   ];
   return (
     <div className="border-heavy p-6">
-      <div className="label-caps text-muted-foreground">
+      <div className="label-micro text-muted-foreground">
         Panels 04–11 · awaiting the first observation
       </div>
       <h3 className="font-display mt-2 text-3xl">No observations recorded yet.</h3>
@@ -732,8 +799,8 @@ function ColdStart() {
         <tbody>
           {rows.map(([k, v]) => (
             <tr key={k} className="border-t border-foreground align-top">
-              <td className="w-64 px-3 py-2 font-bold">{k}</td>
-              <td className="px-3 py-2 text-muted-foreground">{v}</td>
+              <td className="w-40 px-2 py-2 font-bold sm:w-64 sm:px-3">{k}</td>
+              <td className="px-2 py-2 text-muted-foreground sm:px-3">{v}</td>
             </tr>
           ))}
         </tbody>

@@ -12,6 +12,15 @@ export interface CensusObservation {
   semester: number;
   branch: string;
   college: string;
+  /**
+   * College code of the block this row was read from, stamped by the walk.
+   *
+   * It names a college, never a student — the same grain the census already
+   * publishes at (`college`) — and it exists so a maintenance pass can find the
+   * rows it is correcting and replace them, instead of appending a second copy of
+   * a semester that has already been counted.
+   */
+  collegeCode?: number;
   outcome: "published" | "not_published" | "failed" | "unreachable";
   subjects: number;
   credits: number;
@@ -295,6 +304,28 @@ export interface StudentSnapshot {
 }
 
 /**
+ * Which semesters a walk genuinely captured: only the ones the portal published.
+ *
+ * This is narrower than "every semester the walk asked about", and the difference
+ * is the whole reason the census is maintainable. A first pass asks for all eight
+ * of a batch year's semesters; the ones BPUT has not declared yet answer
+ * `not_published`, and that answer expires — the semester gets published weeks or
+ * months later, usually for the whole cohort at once. Counting a provisional
+ * `not_published` as captured would mark the work finished exactly where it is
+ * about to become wrong, and nothing afterwards would notice.
+ *
+ * `unreachable` is excluded for the same reason from the other side: it is not an
+ * answer at all, it is a read nobody managed to make.
+ */
+export function capturedSessions(observations: CensusObservation[]): number[] {
+  const out = new Set<number>();
+  for (const o of observations) {
+    if (o.outcome === "published") out.add(o.semester);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/**
  * Reduce one student to observations, then forget the student. Returns an empty
  * list when the record carries no usable batch/branch, which is a genuine skip
  * rather than a zero.
@@ -335,4 +366,52 @@ export async function observeStudent(
     });
   }
   return out;
+}
+
+/**
+ * One semester of one student — the maintenance read.
+ *
+ * A first pass reads a record's whole history, because it does not know what the
+ * portal will answer for. A maintenance pass knows exactly what is missing: one
+ * semester the portal has only now started serving, for a block that was read
+ * before it existed. So it reads that semester and nothing else — two requests
+ * per student, the record and the term, instead of nine. That is the difference
+ * between keeping the census current and re-running it: 2023 gaining semester 7
+ * costs about 18,000 reads for that whole batch year, not another 1.4 million,
+ * and it never touches the six semesters already captured.
+ *
+ * Returns null when the record carries no usable batch or branch, which is the
+ * same genuine skip `observeStudent` makes.
+ */
+export async function observeSemesterForStudent(
+  fetchers: CensusFetchers,
+  student: StudentSnapshot,
+  rollNo: string,
+  semester: number,
+  runtime: CensusRuntime,
+): Promise<CensusObservation | null> {
+  const batchYear = parseBatchYear(student.batch ?? "");
+  if (batchYear === null) return null;
+
+  const branch = normalizeCell(student.branchName ?? student.branchId);
+  if (!branch) return null;
+  const college = normalizeCell(student.collegeName);
+
+  const plan = getSemesterAttempts(batchYear).find((p) => Number(p.semId) === semester);
+  if (!plan) return null;
+
+  const sessions = runtime.probeBackPapers ? [plan.primary, ...plan.backAttempts] : [plan.primary];
+  const fact = await readSemester(fetchers, { rollNo, semester, sessions }, runtime);
+
+  return {
+    batchYear,
+    semester,
+    branch,
+    college,
+    outcome: fact.outcome,
+    subjects: fact.subjects,
+    credits: fact.credits,
+    points: fact.points,
+    grades: fact.grades,
+  };
 }

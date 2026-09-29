@@ -28,7 +28,8 @@
 //     (02…20) misses at a college that definitely has students, and every record
 //     we have ever seen reports `courseName: "B.Tech"`.
 //   • Codes 600–999 are empty (full sweeps for batches 2023 and 2025), as are
-//     years 08–11 and 26–27.
+//     years 08–11. Years 26–27 carry no numbers yet, which the daily discovery
+//     sweep re-checks rather than assumes.
 //
 // The college lists below are a measured snapshot: for each batch year, every
 // code in 000–599 was probed at serial 001 (the first student a college admits,
@@ -39,12 +40,23 @@
 //
 // Total: 1103 college-year blocks holding 160,609 registration numbers and about
 // 158,571 students — both measured rather than extrapolated, both in
-// `MEASURED_INTAKE` below. Refresh the college lists with
-// `bun scripts/census-manifest.mjs` and the population with
-// `bun scripts/census-intake.mjs`; the full evidence is `docs/census-intake.json`.
+// `MEASURED_INTAKE` below, which the daily job regenerates.
+//
+// The lists in this file are the *declared* grid: a reviewed baseline. They are
+// not the whole grid, because a batch year that opens and a college that starts a
+// batch do not announce themselves — `scripts/census-intake.mjs --discover` sweeps
+// code space for the year the portal has just begun numbering, re-sweeps two
+// declared years a day on rotation, and appends the codes whose first student
+// answers to `census-discovered.ts`. `CENSUS_YEARS` and `CENSUS_COLLEGES` below
+// are that union, so the walk, the measurement and the dashboard all grow on their
+// own. Reviewed removal is still `bun scripts/census-manifest.mjs`, and the
+// population is still `bun scripts/census-intake.mjs`; the evidence is
+// `docs/census-intake.json`.
 //
 // What this file does NOT contain: any registration number. A block is a range
 // and a count, and a range plus the serial rule is the whole population.
+
+import { CENSUS_DISCOVERED } from "./census-discovered";
 
 /** One crawlable block: a contiguous run of registration numbers. */
 export interface CensusBlock {
@@ -72,11 +84,15 @@ export const SERIAL_MAX = 999;
  */
 export const SKIP_AFTER_MISSES = 25;
 
-/** Batch years the API serves. 12 = 2012 is the first; 25 = 2025 the last. */
-export const CENSUS_YEARS = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25] as const;
+/**
+ * The declared grid: what the API served when the lists below were last reviewed
+ * by hand. 12 = 2012 is the first; 25 = 2025 the last *declared* year —
+ * `CENSUS_YEARS` further down is this list plus whatever discovery has found.
+ */
+const DECLARED_YEARS = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25] as const;
 
-/** College codes with a B.Tech batch in each year, measured 2026-09-29. */
-export const CENSUS_COLLEGES: Record<number, readonly number[]> = {
+/** College codes with a B.Tech batch in each declared year, measured 2026-09-29. */
+const DECLARED_COLLEGES: Record<number, readonly number[]> = {
   12: [
     104, 105, 106, 108, 109, 110, 201, 202, 204, 205, 206, 207, 208, 209, 210, 211, 214, 215, 216,
     217, 219, 220, 223, 224, 225, 227, 228, 230, 231, 259, 287, 288, 289, 291, 292, 293, 294, 297,
@@ -171,6 +187,29 @@ export const CENSUS_COLLEGES: Record<number, readonly number[]> = {
   ],
 };
 
+/**
+ * The grid the app and the crawl both walk: the declared lists above, plus every
+ * block discovery has appended since (`census-discovered.ts`).
+ *
+ * This union is the only definition of "what exists" — the walk, the measurement
+ * and the dashboard all read it, so a batch year that opens becomes work without
+ * anyone editing a constant.
+ */
+export const CENSUS_YEARS: readonly number[] = [
+  ...new Set([...DECLARED_YEARS, ...Object.keys(CENSUS_DISCOVERED).map(Number)]),
+].sort((a, b) => a - b);
+
+/** College codes per batch year, declared plus discovered, ascending. */
+export const CENSUS_COLLEGES: Record<number, readonly number[]> = (() => {
+  const merged: Record<number, readonly number[]> = {};
+  for (const year of CENSUS_YEARS) {
+    merged[year] = [
+      ...new Set([...(DECLARED_COLLEGES[year] ?? []), ...(CENSUS_DISCOVERED[year] ?? [])]),
+    ].sort((a, b) => a - b);
+  }
+  return merged;
+})();
+
 function pad(value: number, width: number): string {
   return String(value).padStart(width, "0");
 }
@@ -227,9 +266,9 @@ export interface MeasuredIntake {
 /**
  * Measured intake per batch year, not sampled.
  *
- * Every one of the 1,103 blocks was probed for its highest live serial on
- * 2026-09-29 — a binary search for the first miss boundary with gap arbitration
- * above it, about 17 requests per block. That retires the 15-block sample this
+ * Every block in the grid was probed for its highest live serial on 2026-09-29 —
+ * a binary search for the first miss boundary with gap arbitration above it,
+ * about 17 requests per block. That retires the 15-block sample this
  * file used to carry, which said a block averages 145 students (the truth is
  * 146) and that the serial never passes 433 (2012 · college 210 passes 998).
  *

@@ -14,10 +14,14 @@
     "census:manifest": "bun scripts/census-manifest.mjs",
     "census:intake": "bun scripts/census-intake.mjs",
     "census:refresh": "bun scripts/census-intake.mjs --refresh --write-constants",
+    "census:discover": "bun scripts/census-intake.mjs --discover",
+    "census:ledger": "bun scripts/census-ledger.mjs --verify",
     "census:sessions": "bun scripts/census-sessions.mjs",
     "census:heartbeat": "bun scripts/census-heartbeat.mjs",
     "census:status": "bun scripts/census-status.mjs",
     "census:verify": "bun scripts/census-verify.mjs",
+    "analytics:status": "bun scripts/analytics-status.mjs",
+    "analytics:probe": "bun scripts/analytics-status.mjs --probe",
     "census:key": "bun scripts/check-credentials.mjs"
   },
   "dependencies": {

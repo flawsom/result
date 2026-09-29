@@ -89,6 +89,45 @@ export interface CensusPayload {
   branchYear: Array<{ batchYear: number; branch: string; observations: number }>;
 }
 
+/**
+ * The outstanding-work ledger, as the database derives it.
+ *
+ * `census_plan()` is the answer to "what is left", and it is derived from the
+ * block ledger plus the portal's last-known session window rather than from a
+ * constant compiled into this bundle. That distinction is the whole point: a new
+ * batch year, a college that admitted more students, or a semester BPUT has only
+ * now started serving all appear here as work, without anybody editing a number.
+ *
+ * Counts per batch year only — the ledger names blocks, and the public read
+ * deliberately does not.
+ */
+export interface CensusPlanYear {
+  year: number;
+  blocks: number;
+  firstPassDone: number;
+  /** Serials this batch year still has to read for the first time. */
+  serialsLeft: number;
+  /** Block-and-semester units the portal now serves that were not captured. */
+  pendingPasses: number;
+  /** Serial span those passes cover — the maintenance walk's cost basis. */
+  passSerialsPending: number;
+  passesDone: number;
+}
+
+export interface CensusPlan {
+  blocks: number;
+  blocksMeasured: number;
+  blocksDone: number;
+  serialsRemaining: number;
+  passesDone: number;
+  passesPending: number;
+  passSerialsPending: number;
+  /** When the portal's session window was last checked. */
+  watchCheckedAt: string | null;
+  updatedAt: string | null;
+  years: CensusPlanYear[];
+}
+
 const READ_TIMEOUT_MS = 10_000;
 const WRITE_TIMEOUT_MS = 12_000;
 
@@ -106,6 +145,29 @@ export async function fetchCensus(): Promise<CensusPayload> {
     return res.data as unknown as CensusPayload;
   } catch (e) {
     throw classifyTelemetryError(e);
+  }
+}
+
+/**
+ * The live work ledger.
+ *
+ * Returns null rather than throwing when the function is absent, because a
+ * deployment can be a migration behind and the dashboard must still render: the
+ * panels then say, in words, that they are reading the baseline measurement
+ * instead of the ledger. "Missing" is a state to display here, not an error to
+ * hide behind an empty panel.
+ */
+export async function fetchCensusPlan(): Promise<CensusPlan | null> {
+  try {
+    const res = await withTimeout(
+      (signal) => supabase.rpc("census_plan").abortSignal(signal),
+      READ_TIMEOUT_MS,
+    );
+    if (res.error || !res.data) return null;
+    const plan = res.data as unknown as CensusPlan;
+    return typeof plan?.blocks === "number" ? plan : null;
+  } catch {
+    return null;
   }
 }
 
@@ -183,6 +245,87 @@ export async function saveCursor(input: {
     throw classifyTelemetryError({ message: res.error.message, code: res.error.code });
   }
 }
+
+/* ─────────────────────────────────────────────── ledger (write side) ─── */
+// Written by whichever crawl is running, page-driven or scheduled. A page-driven
+// block that did not report itself would be re-read by the next scheduled slice,
+// and re-reading means duplicating observations — so the ledger is written by
+// both runners rather than by the scheduler alone.
+
+/** Record what the measurement says each block holds. Idempotent. */
+export async function noteCensusBlocks(
+  rows: Array<{ year: number; code: number; max: number }>,
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const res = await withTimeout(
+    (signal) =>
+      supabase.rpc("census_note_blocks", { _rows: rows as unknown as never }).abortSignal(signal),
+    WRITE_TIMEOUT_MS,
+  );
+  if (res.error) {
+    throw classifyTelemetryError({ message: res.error.message, code: res.error.code });
+  }
+  return typeof res.data === "number" ? res.data : 0;
+}
+
+/** Record which sessions the portal last said it serves, per batch year. */
+export async function noteCensusWatch(
+  rows: Array<{ year: number; semesters: number[] }>,
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const res = await withTimeout(
+    (signal) =>
+      supabase.rpc("census_note_watch", { _rows: rows as unknown as never }).abortSignal(signal),
+    WRITE_TIMEOUT_MS,
+  );
+  if (res.error) {
+    throw classifyTelemetryError({ message: res.error.message, code: res.error.code });
+  }
+  return typeof res.data === "number" ? res.data : 0;
+}
+
+/**
+ * Where a block's walk got to, and which semesters its first pass captured.
+ * `frontier` is the highest serial that resolved, which is what a later
+ * maintenance pass re-reads; `completed` is true only when the walk reached its
+ * measured bound rather than parking on upstream trouble.
+ */
+export async function noteCensusWalk(input: {
+  year: number;
+  code: number;
+  offset: number;
+  frontier: number;
+  captured?: number[];
+  completed?: boolean;
+}): Promise<void> {
+  const res = await withTimeout(
+    (signal) =>
+      supabase
+        .rpc("census_note_walk", {
+          _year: input.year,
+          _code: input.code,
+          _offset: input.offset,
+          _frontier: input.frontier,
+          _captured: (input.captured ?? []) as unknown as never,
+          _completed: input.completed ?? false,
+        })
+        .abortSignal(signal),
+    WRITE_TIMEOUT_MS,
+  );
+  if (res.error) {
+    throw classifyTelemetryError({ message: res.error.message, code: res.error.code });
+  }
+}
+
+/*
+ * Maintenance passes are deliberately absent from this client.
+ *
+ * Claiming, sweeping and applying a pass is the scheduled crawl's job — it runs
+ * with the service key over plain PostgREST in `census-headless.ts`, the same way
+ * it writes cursors and observations. A browser tab can start a first pass, and it
+ * reports what it read here, but re-reading a published semester is a job for the
+ * runner that can be trusted to finish it.
+ */
 
 /* ─────────────────────────────────────────────────────────────── live ─── */
 
