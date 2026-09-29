@@ -243,6 +243,11 @@ export async function readSemester(
         semId: String(input.semester),
         session,
       });
+      // Count every accepted request toward the ramp, not just student records.
+      // Semester reads outnumber records nine to one, so a governor that only
+      // ramps on records creeps up at a ninth of the intended speed -- measured:
+      // 61 record successes moved the ceiling 4 -> 7 req/s over a whole slice.
+      runtime.governor?.onSuccess();
       const grades = res?.grades ?? [];
       if (grades.length === 0) continue;
 

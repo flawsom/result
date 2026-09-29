@@ -42,13 +42,20 @@ name: BPUT census
 # 35.6 req/s for 45 s with zero 429s. A 16-worker run could not exceed a 16 req/s
 # ceiling, which is the point of the governor: the ceiling binds, not the network.
 #
-# The default ceiling is 16 req/s — about 26 hours for the estimated 1.47 M
-# requests — deliberately under a 45-second observation, because this runs for a
-# day and the portal is somebody else's server. 30 req/s measured clean at
-# 29.6 req/s sustained (~14 hours); raise it with the `max_rps` input when
-# dispatching. The governor ramps up from a quarter of the ceiling and halves on
-# any 429 with a five-second cooldown across all workers, so raising it is a bet
-# that pays out and self-corrects if the portal disagrees.
+# The default ceiling is 16 req/s, deliberately under a 45-second observation,
+# because this runs for a day and the portal is somebody else's server. Raise it
+# with the `max_rps` input when dispatching; the governor ramps up from a quarter
+# of the ceiling and halves on any 429 with a five-second cooldown across all
+# workers, so raising it is a bet that pays out and self-corrects.
+#
+# MEASURED, and the reason the default concurrency is 16 rather than 8: this crawl
+# is latency-bound, so the real throughput is workers / latency, and the ceiling is
+# mostly a safety rail. Against the live portal, zero 429s throughout:
+#     8 workers → 3.8 req/s      24 workers → 7.4 req/s
+# A student costs 9 requests (1 record + 8 semesters) and `subjects` answers in
+# ~797 ms, so more workers is the only real lever — up to a point, since the portal
+# queues under parallelism. At the measured 7.4 req/s the estimated 1.47 M requests
+# take roughly two days.
 
 on:
   schedule:
@@ -82,9 +89,9 @@ on:
         required: false
         default: "16"
       concurrency:
-        description: Workers, each walking one college-year block at a time (1–16)
+        description: Workers, each walking one college-year block at a time (1–32)
         required: false
-        default: "8"
+        default: "16"
       max_blocks:
         description: Start at most this many blocks this run (0 = no cap)
         required: false
@@ -142,7 +149,7 @@ jobs:
           # half hours; a manual dispatch decides for itself.
           CENSUS_SECONDS: ${{ github.event_name == 'push' && 300 || inputs.seconds || 19800 }}
           CENSUS_MAX_RPS: ${{ inputs.max_rps || '16' }}
-          CENSUS_CONCURRENCY: ${{ inputs.concurrency || '8' }}
+          CENSUS_CONCURRENCY: ${{ inputs.concurrency || vars.CENSUS_CONCURRENCY || '16' }}
           CENSUS_ADAPTIVE: ${{ vars.CENSUS_ADAPTIVE || '1' }}
           CENSUS_MAX_BLOCKS: ${{ inputs.max_blocks || '0' }}
         run: bun scripts/census-tick.mjs
