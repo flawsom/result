@@ -27,8 +27,14 @@ export interface CensusFetchers {
 }
 
 export interface CensusRuntime {
-  /** Politeness delay before every upstream request. */
+  /** Politeness delay before every upstream request. Ignored when `governor` is set. */
   rateMs: number;
+  /**
+   * Shared aggregate rate governor. When present it replaces `rateMs`, so a
+   * multi-worker run is paced by one measured ceiling rather than by N
+   * independent guesses.
+   */
+  governor?: RateGovernor;
   /** Whether to re-probe cleared semesters through supplementary sessions. */
   probeBackPapers: boolean;
   /** Called before every request; the browser runner parks here while paused. */
@@ -43,6 +49,85 @@ export const DEFAULT_RATE_MS = 1_000;
 export const DEFAULT_RATE_LIMIT_BACKOFF_MS = 30_000;
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/* ──────────────────────────────────────────────────────── pacing ─────────── */
+
+/**
+ * Aggregate rate governor.
+ *
+ * The original crawl paced itself with a fixed sleep per request, which makes
+ * throughput an accident of latency: with 12 workers and a 291 ms median round
+ * trip the real rate was never the one the config implied. This governs the
+ * *aggregate* instead — N workers all call `acquire()` and the governor hands
+ * out evenly spaced slots, so "how fast are we hitting somebody else's server"
+ * is a number we choose rather than a number we discover.
+ *
+ * It also adapts, because the honest position is that we do not know how much
+ * the portal will tolerate over twelve hours. It creeps up while the portal says
+ * yes and halves on the first 429, with a cooldown so every worker stands down
+ * together instead of retrying into the rate limiter.
+ *
+ * Measured on 2026-09-29 against `results.bput.ac.in`: 12 concurrent workers with
+ * no delay sustained 35.6 req/s for 45 s with zero 429s (p50 291 ms, p95 1 074 ms).
+ * That is a 45-second observation, not a promise about twelve hours, which is
+ * exactly why the ceiling below is configurable and the backoff is automatic.
+ */
+export class RateGovernor {
+  /** Current aggregate ceiling in requests per second. */
+  private rps: number;
+  /** Wall-clock time the next request may start. */
+  private nextSlotAt = 0;
+  private coolingUntil = 0;
+  private rateLimitEvents = 0;
+
+  constructor(
+    /** Hard ceiling. The governor never exceeds this even when unopposed. */
+    readonly maxRps: number,
+    /** Where the ramp starts. Lower is gentler on a cold morning. */
+    startRps = Math.max(0.5, maxRps / 4),
+    /** Slowest it will back off to before it stops being a crawl. */
+    readonly minRps = 0.5,
+  ) {
+    this.rps = Math.min(Math.max(startRps, minRps), maxRps);
+  }
+
+  get currentRps(): number {
+    return this.rps;
+  }
+
+  /** Milliseconds every worker must wait while the governor is standing down. */
+  get backoffMs(): number {
+    return Math.max(0, this.coolingUntil - Date.now());
+  }
+
+  /** Wait for this worker's slot. Call immediately before every upstream request. */
+  async acquire(): Promise<void> {
+    const now = Date.now();
+    const cooldown = Math.max(0, this.coolingUntil - now);
+    const at = Math.max(now + cooldown, this.nextSlotAt);
+    this.nextSlotAt = at + 1_000 / this.rps;
+    const waitMs = at - now;
+    if (waitMs > 0) await sleep(waitMs);
+  }
+
+  /** A clean response: creep toward the ceiling. */
+  onSuccess(): void {
+    this.rps = Math.min(this.maxRps, this.rps * 1.01);
+  }
+
+  /** A 429: halve the rate and stand every worker down for a short cooldown. */
+  onRateLimited(): void {
+    this.rateLimitEvents += 1;
+    this.rps = Math.max(this.minRps, this.rps / 2);
+    this.coolingUntil = Date.now() + 5_000;
+    this.nextSlotAt = this.coolingUntil;
+  }
+
+  /** How many 429s this run has seen. Zero is the expected answer. */
+  get rateLimits(): number {
+    return this.rateLimitEvents;
+  }
+}
 
 export function classifyUpstream(msg: string): "missing" | "rate_limited" | "fatal" | "transient" {
   if (msg.startsWith(ERR.NOT_PUBLISHED)) return "missing";
@@ -109,14 +194,20 @@ export function estimateRequests(total: number, probeBackPapers = false): number
 export async function loadStudent(
   fetchers: CensusFetchers,
   rollNo: string,
+  governor?: RateGovernor,
 ): Promise<StudentDetails | null | undefined> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      return await fetchers.studentDetails(rollNo);
+      const student = await fetchers.studentDetails(rollNo);
+      governor?.onSuccess();
+      return student;
     } catch (e) {
       const kind = classifyUpstream((e as Error)?.message ?? "");
       if (kind === "missing" || kind === "fatal") return null;
       if (kind === "rate_limited") {
+        // Tell the governor first: one worker's 429 is every worker's problem,
+        // and it must slow the aggregate rather than just this retry.
+        governor?.onRateLimited();
         await sleep(DEFAULT_RATE_LIMIT_BACKOFF_MS);
         continue;
       }
@@ -144,7 +235,8 @@ export async function readSemester(
 
   for (const session of input.sessions) {
     await runtime.gate?.();
-    await sleep(runtime.rateMs);
+    if (runtime.governor) await runtime.governor.acquire();
+    else await sleep(runtime.rateMs);
     try {
       const res = await fetchers.subjects({
         rollNo: input.rollNo,
@@ -175,6 +267,7 @@ export async function readSemester(
     } catch (e) {
       const kind = classifyUpstream((e as Error)?.message ?? "");
       if (kind === "rate_limited") {
+        runtime.governor?.onRateLimited();
         await sleep(runtime.rateLimitBackoffMs ?? DEFAULT_RATE_LIMIT_BACKOFF_MS);
         continue;
       }

@@ -22,9 +22,11 @@ import {
   pauseCensus,
   resumeCensus,
   runCensus,
+  runCensusGrid,
   subscribeCensus,
   type CensusRunnerState,
 } from "@/lib/census-runner";
+import { SKIP_AFTER_MISSES, censusBlocks, estimatedRequests } from "@/lib/census-blocks";
 import { toast } from "sonner";
 
 function formatDuration(ms: number): string {
@@ -41,6 +43,10 @@ export function CensusControl() {
   const [end, setEnd] = useState("");
   const [rateMs, setRateMs] = useState(1000);
   const [probe, setProbe] = useState(false);
+  const [years, setYears] = useState("");
+  const [gridRps, setGridRps] = useState(8);
+  const [gridWorkers, setGridWorkers] = useState(4);
+  const [gridBlocks, setGridBlocks] = useState(0);
   const [state, setState] = useState<CensusRunnerState>(getCensusState);
 
   useEffect(() => subscribeCensus(setState), []);
@@ -57,8 +63,36 @@ export function CensusControl() {
   const requests = parsed ? estimateRequests(parsed.total, probe) : 0;
   const durationMs = requests * Math.max(250, rateMs);
 
+  // The measured grid, and what the current selection of it would cost.
+  const grid = useMemo(() => {
+    const wanted = years
+      .split(/[,\s]+/)
+      .map(Number)
+      .filter(Number.isFinite);
+    const all = censusBlocks();
+    const selected =
+      wanted.length > 0
+        ? all.filter((b) => wanted.includes(b.year) || wanted.includes(b.year - 2000))
+        : all;
+    const capped = gridBlocks > 0 ? selected.slice(0, gridBlocks) : selected;
+    const requests = estimatedRequests(capped);
+    return {
+      years: wanted,
+      selected: capped.length,
+      all: all.length,
+      requests,
+      hours: requests / Math.max(1, gridRps) / 3600,
+    };
+  }, [years, gridBlocks, gridRps]);
+
   const progressPct =
-    state.total > 0 ? Math.min(100, (Math.min(state.index, state.total) / state.total) * 100) : 0;
+    state.mode === "grid"
+      ? state.gridTotal > 0
+        ? Math.min(100, (state.blocksDone / state.gridTotal) * 100)
+        : 0
+      : state.total > 0
+        ? Math.min(100, (Math.min(state.index, state.total) / state.total) * 100)
+        : 0;
 
   const startRun = async () => {
     if (!parsed) return;
@@ -76,6 +110,25 @@ export function CensusControl() {
       );
     } catch (e) {
       toast.error(`Census stopped: ${(e as Error)?.message ?? "unknown error"}`);
+    }
+  };
+
+  const startGrid = async () => {
+    if (grid.selected === 0) return;
+    try {
+      toast.info("Grid crawl started — leave this tab open. Progress is saved per block.");
+      await runCensusGrid({
+        years: grid.years,
+        maxBlocks: gridBlocks,
+        concurrency: gridWorkers,
+        maxRps: gridRps,
+      });
+      const s = getCensusState();
+      toast.success(
+        `Grid pass finished: ${s.blocksDone.toLocaleString()} blocks, ${s.observations.toLocaleString()} observations.`,
+      );
+    } catch (e) {
+      toast.error(`Grid crawl stopped: ${(e as Error)?.message ?? "unknown error"}`);
     }
   };
 
@@ -99,12 +152,13 @@ export function CensusControl() {
       </div>
 
       <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Autonomous crawl:</span> this panel drives a
-        range by hand. <code>.github/workflows/census.yml</code> runs the identical walk with no tab
-        open and resumes from the same saved offset — set the repository variables{" "}
-        <code>CENSUS_RANGE_START</code> and <code>CENSUS_RANGE_END</code>, add the{" "}
-        <code>SUPABASE_SERVICE_ROLE_KEY</code> secret, and it ticks on its own. The landing page
-        follows it live either way.
+        <span className="font-medium text-foreground">Two engines, one reduction.</span> The grid
+        below is the measured BPUT space, committed in <code>src/lib/census-blocks.ts</code> — no
+        range to configure. <code>.github/workflows/census.yml</code> walks it with no tab open: add
+        the repository secrets <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+        and it ticks every five minutes on its own, resuming each block from the same saved offset.
+        Pacing there is an aggregate request ceiling that ramps up and halves on any 429. The
+        landing page follows either engine live.
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -243,6 +297,137 @@ export function CensusControl() {
           </p>
         </div>
       ) : null}
+
+      <div className="mt-6 border-t pt-5">
+        <h3 className="text-sm font-semibold">Crawl the measured grid</h3>
+        <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
+          The whole BPUT space as measured on 2026-09-29: {grid.all.toLocaleString()} college-year
+          blocks across batches 2012–2025, each declared <code>YY01CCC001</code>–
+          <code>YY01CCC999</code> and abandoned after {SKIP_AFTER_MISSES} consecutive misses so a
+          block costs its intake rather than its bound. Leave the years box empty to walk
+          everything.
+        </p>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label htmlFor="grid-years">Batch years</Label>
+            <Input
+              id="grid-years"
+              placeholder="23,24,25 — empty for all"
+              value={years}
+              onChange={(e) => setYears(e.target.value)}
+              disabled={state.running}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="grid-rps">Requests per second</Label>
+            <Input
+              id="grid-rps"
+              type="number"
+              min={1}
+              max={30}
+              value={gridRps}
+              onChange={(e) => setGridRps(Number(e.target.value) || 8)}
+              disabled={state.running}
+            />
+            <p className="text-xs text-muted-foreground">
+              Measured tolerance: 35.6 req/s for 45 s with zero 429s. It halves itself on any 429.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="grid-workers">Workers</Label>
+            <Input
+              id="grid-workers"
+              type="number"
+              min={1}
+              max={8}
+              value={gridWorkers}
+              onChange={(e) => setGridWorkers(Number(e.target.value) || 4)}
+              disabled={state.running}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="grid-blocks">Max blocks (0 = all)</Label>
+            <Input
+              id="grid-blocks"
+              type="number"
+              min={0}
+              value={gridBlocks}
+              onChange={(e) => setGridBlocks(Number(e.target.value) || 0)}
+              disabled={state.running}
+            />
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Selected <strong>{grid.selected.toLocaleString()}</strong> of {grid.all.toLocaleString()}{" "}
+          blocks ≈ <strong>{grid.requests.toLocaleString()}</strong> upstream requests ≈{" "}
+          <strong>{formatDuration(grid.hours * 3_600_000)}</strong> at {Math.max(1, gridRps)} req/s.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button onClick={() => void startGrid()} disabled={state.running || grid.selected === 0}>
+            Crawl the grid
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => (state.paused ? resumeCensus() : pauseCensus())}
+            disabled={!state.running}
+          >
+            {state.paused ? "Resume" : "Pause"}
+          </Button>
+          <Button variant="destructive" onClick={cancelCensus} disabled={!state.running}>
+            Stop
+          </Button>
+        </div>
+
+        {state.mode === "grid" && state.gridTotal > 0 ? (
+          <div className="mt-4 space-y-2">
+            <Progress value={progressPct} />
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              <span>
+                <span className="text-muted-foreground">Blocks:</span>{" "}
+                <strong>
+                  {state.blocksDone.toLocaleString()} / {state.gridTotal.toLocaleString()}
+                </strong>
+              </span>
+              {state.blocksSkipped > 0 ? (
+                <span>
+                  <span className="text-muted-foreground">Ended early:</span>{" "}
+                  <strong>{state.blocksSkipped.toLocaleString()}</strong>
+                </span>
+              ) : null}
+              <span>
+                <span className="text-muted-foreground">In flight:</span>{" "}
+                <strong>
+                  {state.blockLabel ?? "—"} · serial {state.blockSerial}/{state.blockTotal}
+                </strong>
+              </span>
+              <span>
+                <span className="text-muted-foreground">Probed:</span>{" "}
+                <strong>{state.visited.toLocaleString()}</strong>
+              </span>
+              <span>
+                <span className="text-muted-foreground">Students:</span>{" "}
+                <strong>{state.students.toLocaleString()}</strong>
+              </span>
+              <span>
+                <span className="text-muted-foreground">Observations:</span>{" "}
+                <strong>{state.observations.toLocaleString()}</strong>
+              </span>
+              <span>
+                <span className="text-muted-foreground">Stored:</span>{" "}
+                <strong>{state.stored.toLocaleString()}</strong>
+              </span>
+              <span>
+                <span className="text-muted-foreground">Rate-limit answers:</span>{" "}
+                <strong>{state.rateLimits}</strong>
+              </span>
+            </div>
+            {state.lastError ? <p className="text-xs text-destructive">{state.lastError}</p> : null}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

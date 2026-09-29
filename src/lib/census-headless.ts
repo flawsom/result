@@ -23,6 +23,7 @@
 // per-request delay is unchanged, so politeness does not degrade with scale.
 import {
   DEFAULT_RATE_MS,
+  RateGovernor,
   loadStudent,
   observeStudent,
   parseCensusRange,
@@ -32,7 +33,13 @@ import {
   type CensusObservation,
   type CensusRuntime,
 } from "./census-core";
-import { CENSUS_YEARS, SKIP_AFTER_MISSES, censusBlocks, type CensusBlock } from "./census-blocks";
+import {
+  CENSUS_YEARS,
+  SKIP_AFTER_MISSES,
+  censusBlocks,
+  estimatedRequests,
+  type CensusBlock,
+} from "./census-blocks";
 import {
   setUpstreamLogger,
   studentDetails as upstreamStudentDetails,
@@ -49,7 +56,18 @@ export interface CensusTickConfig {
   rangeEnd: string | null;
   /** Wall-clock budget for this tick. The crawl is sliced, never endless. */
   seconds: number;
-  /** Politeness delay per worker before each upstream request. */
+  /**
+   * Aggregate request ceiling across all workers, in requests per second. The
+   * number that actually decides how long the census takes.
+   */
+  maxRps: number;
+  /**
+   * When true the governor ramps up from a quarter of `maxRps` and halves on any
+   * 429. When false it holds `maxRps` exactly, which is the right choice for a
+   * short targeted re-run and the wrong one for a twelve-hour crawl.
+   */
+  adaptive: boolean;
+  /** Fallback per-request delay, used only when the governor is disabled. */
   rateMs: number;
   /** Workers, each owning one college-year block at a time. */
   concurrency: number;
@@ -69,8 +87,14 @@ export interface CensusTickConfig {
 const DEFAULT_SECONDS = 240;
 const DEFAULT_BATCH_SIZE = 25;
 const DEFAULT_FLUSH_MS = 15_000;
-const DEFAULT_CONCURRENCY = 4;
-const MAX_CONCURRENCY = 8;
+const DEFAULT_CONCURRENCY = 8;
+const MAX_CONCURRENCY = 16;
+/**
+ * Default aggregate ceiling. Measured tolerance was 35.6 req/s for 45 s; 16 is
+ * chosen to sit well under that for a crawl that runs for a day, and it is one
+ * environment variable away from being raised.
+ */
+const DEFAULT_MAX_RPS = 16;
 /** Blocks that could not be read from upstream before the tick gives up. */
 const TRANSIENT_BLOCKS_BEFORE_QUIT = 4;
 
@@ -93,6 +117,14 @@ function intEnv(env: Env, name: string, fallback: number): number {
 
 function boolEnv(env: Env, name: string): boolean {
   const raw = (env[name] ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
+/** Opt-out flags: absent means on, because the crawl should self-tune by default. */
+function boolEnvDefault(env: Env, name: string, fallback: boolean): boolean {
+  const raw = (env[name] ?? "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (raw === "0" || raw === "false" || raw === "no") return false;
   return raw === "1" || raw === "true" || raw === "yes";
 }
 
@@ -149,6 +181,8 @@ export function readCensusConfig(env: Env = process.env): CensusTickConfig {
     rangeStart,
     rangeEnd,
     seconds: Math.max(20, intEnv(env, "CENSUS_SECONDS", DEFAULT_SECONDS)),
+    maxRps: Math.max(0.5, intEnv(env, "CENSUS_MAX_RPS", DEFAULT_MAX_RPS)),
+    adaptive: boolEnvDefault(env, "CENSUS_ADAPTIVE", true),
     rateMs: Math.max(200, intEnv(env, "CENSUS_RATE_MS", DEFAULT_RATE_MS)),
     concurrency: Math.min(
       MAX_CONCURRENCY,
@@ -216,6 +250,14 @@ export interface CensusTickSummary {
   seconds: number;
   /** Upstream requests actually issued, counted, not estimated. */
   requests: number;
+  /** Achieved aggregate rate, computed from real requests and real seconds. */
+  requestsPerSecond: number;
+  /** Ceiling this run was allowed to reach. */
+  maxRps: number;
+  /** Where the governor finished (it ramps up, and halves on a 429). */
+  finalRps: number;
+  /** 429s seen. Zero is the expected answer, and any other number is a finding. */
+  rateLimits: number;
   /** Blocks this tick intended to walk. */
   blocksTotal: number;
   /** Blocks that made progress. */
@@ -251,6 +293,10 @@ function emptySummary(config: CensusTickConfig, mode: "range" | "grid"): CensusT
     status: "budget",
     seconds: 0,
     requests: 0,
+    requestsPerSecond: 0,
+    maxRps: config.maxRps,
+    finalRps: config.maxRps,
+    rateLimits: 0,
     blocksTotal: 0,
     blocksVisited: 0,
     blocksDone: 0,
@@ -393,9 +439,12 @@ async function walkRange(
       if (aborted() || now() >= deadline - 1_000) break;
 
       const rollNo = rollAt(start, index, width);
-      await sleep(config.rateMs);
+      // The governor decides the aggregate pace; `rateMs` is only the fallback
+      // when one is not attached (a single `runCensusTick` with pacing off).
+      if (runtime.governor) await runtime.governor.acquire();
+      else await sleep(config.rateMs);
 
-      const student = await loadStudent(fetchers, rollNo);
+      const student = await loadStudent(fetchers, rollNo, runtime.governor);
       res.visited += 1;
       visitDelta += 1;
 
@@ -507,9 +556,11 @@ export async function runCensusTick(
 
   const startedAt = now();
   const deadline = startedAt + config.seconds * 1_000;
+  const governor = new RateGovernor(config.maxRps, config.adaptive ? undefined : config.maxRps);
   const runtime: CensusRuntime = {
     rateMs: config.rateMs,
     probeBackPapers: config.probeBackPapers,
+    governor,
   };
 
   try {
@@ -537,6 +588,10 @@ export async function runCensusTick(
   } finally {
     summary.seconds = Math.round((now() - startedAt) / 100) / 10;
     summary.requests = counter.requests;
+    summary.requestsPerSecond =
+      summary.seconds > 0 ? Math.round((counter.requests / summary.seconds) * 10) / 10 : 0;
+    summary.finalRps = Math.round(governor.currentRps * 10) / 10;
+    summary.rateLimits = governor.rateLimits;
     setUpstreamLogger(null);
   }
 
@@ -566,9 +621,13 @@ export async function runCensusGrid(
 
   const startedAt = now();
   const deadline = startedAt + config.seconds * 1_000;
+  // One governor for every worker: the ceiling is a property of the crawl, not
+  // of a worker, so no worker can outrun the others into the rate limiter.
+  const governor = new RateGovernor(config.maxRps, config.adaptive ? undefined : config.maxRps);
   const runtime: CensusRuntime = {
     rateMs: config.rateMs,
     probeBackPapers: config.probeBackPapers,
+    governor,
   };
 
   let next = 0;
@@ -611,6 +670,10 @@ export async function runCensusGrid(
   } finally {
     summary.seconds = Math.round((now() - startedAt) / 100) / 10;
     summary.requests = counter.requests;
+    summary.requestsPerSecond =
+      summary.seconds > 0 ? Math.round((counter.requests / summary.seconds) * 10) / 10 : 0;
+    summary.finalRps = Math.round(governor.currentRps * 10) / 10;
+    summary.rateLimits = governor.rateLimits;
     setUpstreamLogger(null);
   }
 
@@ -618,6 +681,52 @@ export async function runCensusGrid(
     throw Object.assign(new Error(summary.error ?? "census failed"), { summary });
   }
   return summary;
+}
+
+/**
+ * Report where the census actually is, and how long the rest should take.
+ *
+ * The ETA is deliberately crude and labelled as such: it scales the estimated
+ * total request count by the fraction of blocks still unfinished and divides by
+ * the rate *this tick* achieved. It assumes the remaining blocks cost what the
+ * finished ones did, which is true on average because block cost is dominated by
+ * intake size. A failed read is not worth failing a tick over.
+ */
+async function reportProgress(config: CensusTickConfig, summary: CensusTickSummary): Promise<void> {
+  try {
+    const progress = await rpc<{
+      ranges: number;
+      doneRanges: number;
+      visited: number;
+      notFound: number;
+      observations: number;
+      lastBatchAt: string | null;
+    }>(config, "census_progress", {});
+
+    const totalBlocks = censusBlocks().length;
+    const done = progress?.doneRanges ?? 0;
+    const remaining = Math.max(totalBlocks - done, 0);
+    const rps = summary.requestsPerSecond;
+    const requests = estimatedRequests();
+    const etaHours = rps > 0 ? (requests * (remaining / totalBlocks)) / rps / 3600 : 0;
+
+    console.log(
+      `[census] progress (whole grid) — blocks ${done}/${totalBlocks} finished, ` +
+        `${(progress?.observations ?? 0).toLocaleString()} observations, ` +
+        `${(progress?.visited ?? 0).toLocaleString()} numbers probed, ` +
+        `${(progress?.notFound ?? 0).toLocaleString()} genuinely absent`,
+    );
+    console.log(
+      `[census] this tick ${summary.requests.toLocaleString()} requests at ` +
+        `${rps} req/s (${summary.rateLimits} rate-limit answer(s)); ` +
+        `remaining ≈ ${remaining.toLocaleString()} blocks ≈ ${Math.round(requests * (remaining / totalBlocks)).toLocaleString()} requests` +
+        (etaHours > 0
+          ? ` → ETA ≈ ${etaHours < 48 ? `${etaHours.toFixed(1)} h` : `${(etaHours / 24).toFixed(1)} days`} at this pace (estimate: assumes intake averages ${145} per block)`
+          : ""),
+    );
+  } catch (e) {
+    console.log(`[census] progress unavailable: ${(e as Error)?.message ?? "unknown"}`);
+  }
 }
 
 /** Run a tick from process env and report it the way a CI log wants. */
@@ -631,14 +740,16 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
     ? `grid${config.years.length > 0 ? ` (years ${config.years.join(",")})` : ` (all ${CENSUS_YEARS.length} years)`}`
     : `range ${config.rangeStart}..${config.rangeEnd}`;
 
+  const startRps = config.adaptive ? Math.max(0.5, config.maxRps / 4) : config.maxRps;
   console.log(
     `[census] tick starting — ${scope}, budget ${config.seconds}s, ` +
-      `pace ${config.rateMs}ms × ${config.concurrency} worker(s) ≈ ` +
-      `${(config.concurrency * (1_000 / config.rateMs)).toFixed(1)} req/s` +
+      `${config.concurrency} worker(s), rate ${startRps.toFixed(1)}` +
+      `${config.adaptive ? `→${config.maxRps}` : ""} req/s aggregate` +
       `${config.maxBlocks > 0 ? `, max ${config.maxBlocks} blocks` : ""}`,
   );
 
   const summary = grid ? await runCensusGrid(config) : await runCensusTick(config);
   console.log(`[census] ${JSON.stringify(summary)}`);
+  await reportProgress(config, summary);
   return summary;
 }

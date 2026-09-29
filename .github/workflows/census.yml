@@ -8,27 +8,32 @@ name: BPUT census
 # staying open.
 #
 # Required repository configuration (Settings → Secrets and variables → Actions):
-#   Secret: SUPABASE_URL            — project URL (or a variable of the same name)
+#   Secret: SUPABASE_URL              — project URL (or a variable of the same name)
 #   Secret: SUPABASE_SERVICE_ROLE_KEY — writes need the service role; the census
-#                                     RPCs deliberately refuse an anonymous caller
+#                                       RPCs deliberately refuse an anonymous caller
 #
 # Nothing else is required: the grid is committed, not configured. To crawl a
 # subset, set CENSUS_YEARS (e.g. `23,24,25`) as a repository variable.
 #
-# Cadence: the repository is public, so Actions minutes are unmetered and the
-# crawl is limited by what the portal will tolerate rather than by a CI budget. A
-# fresh tick starts every five minutes and walks for most of them, which is about
-# as continuous as a scheduler gets. `concurrency` below means a slow tick delays
-# the next start instead of piling runs on top of each other.
+# PACING — the number that decides how long this takes
+# ----------------------------------------------------
+# Pacing is an aggregate requests-per-second ceiling (`CENSUS_MAX_RPS`), not a
+# per-request sleep, because with several workers a sleep makes the real rate an
+# accident of latency. Measured on 2026-09-29 against results.bput.ac.in:
+# p50 291 ms, p95 1,074 ms, and 12 concurrent workers with no delay sustained
+# 35.6 req/s for 45 s with zero 429s.
 #
-# The real limit is the upstream pace, not the runner. Four workers at a 1s
-# per-request delay is about 4 requests/second; a student costs nine (one record
-# plus eight semesters), so ~27 students/minute sustained — roughly four days for
-# the whole grid, whose ~160,000 students are about 1.5 million requests. Narrow
-# CENSUS_YEARS for a fast first result: `23,24,25` is the currently-enrolled slice
-# and finishes in about a day. Lower CENSUS_RATE_MS or raise CENSUS_CONCURRENCY to
-# go faster — and watch the log for 429s if you do, because the portal is somebody
-# else's server and the census is a guest in it.
+# The default ceiling is 16 req/s, deliberately well under a 45-second
+# observation, because this crawl runs for about a day and the portal is somebody
+# else's server. At 16 req/s the estimated 1.47 M requests take ~26 hours; at 30
+# req/s, ~14 hours. The governor ramps up from a quarter of the ceiling and halves
+# on any 429 with a 5 s cooldown across all workers, so raising the ceiling is a
+# bet that pays out and self-corrects if the portal disagrees.
+#
+# Cadence: the repository is public, so Actions minutes are unmetered and the
+# crawl is limited by the portal rather than by a CI budget. A 40-minute slice
+# every five minutes is roughly 90% duty cycle; `concurrency` below means a slow
+# tick delays the next start instead of piling runs on top of each other.
 
 on:
   schedule:
@@ -48,14 +53,14 @@ on:
         description: Wall-clock budget for this run, in seconds (max ~21000)
         required: false
         default: "2400"
-      rate_ms:
-        description: Delay before each upstream request, in milliseconds
+      max_rps:
+        description: Aggregate request ceiling in requests/second (measured safe >35)
         required: false
-        default: "1000"
+        default: "16"
       concurrency:
-        description: Workers, each walking one college-year block at a time (1–8)
+        description: Workers, each walking one college-year block at a time (1–16)
         required: false
-        default: "4"
+        default: "8"
       max_blocks:
         description: Start at most this many blocks this run (0 = no cap)
         required: false
@@ -74,7 +79,7 @@ permissions:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
       # Nothing below is needed to decide whether a crawl is configured, so this
       # runs first and a misconfigured hour costs seconds rather than a checkout.
@@ -95,7 +100,8 @@ jobs:
         if: steps.config.outputs.configured == 'true'
 
       # No dependency install: the tick imports only its own TypeScript, so Bun
-      # runs it directly and the job stays short.
+      # runs it directly and the job stays short. This is also why the workflow is
+      # not the place to run W1's test suite — a census tick should not wait on it.
       - uses: oven-sh/setup-bun@v2
         if: steps.config.outputs.configured == 'true'
         with:
@@ -110,7 +116,8 @@ jobs:
           CENSUS_RANGE_START: ${{ inputs.range_start }}
           CENSUS_RANGE_END: ${{ inputs.range_end }}
           CENSUS_SECONDS: ${{ inputs.seconds || '2400' }}
-          CENSUS_RATE_MS: ${{ inputs.rate_ms || '1000' }}
-          CENSUS_CONCURRENCY: ${{ inputs.concurrency || '4' }}
+          CENSUS_MAX_RPS: ${{ inputs.max_rps || '16' }}
+          CENSUS_CONCURRENCY: ${{ inputs.concurrency || '8' }}
+          CENSUS_ADAPTIVE: ${{ vars.CENSUS_ADAPTIVE || '1' }}
           CENSUS_MAX_BLOCKS: ${{ inputs.max_blocks || '0' }}
         run: bun scripts/census-tick.mjs

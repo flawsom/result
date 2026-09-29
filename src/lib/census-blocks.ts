@@ -203,3 +203,26 @@ export function blocksForYear(year: number): CensusBlock[] {
 export function gridSize(blocks: CensusBlock[] = censusBlocks()): number {
   return blocks.reduce((sum, block) => sum + (Number(block.end) - Number(block.start) + 1), 0);
 }
+
+/**
+ * Mean students per college-year block. Measured by binary-searching the highest
+ * live serial for 15 sampled blocks: 34 … 433, median 132, mean 145. It is a
+ * sample, so the estimate below is labelled as one — the crawl replaces it with
+the truth as it goes.
+ */
+export const SAMPLED_INTAKE_MEAN = 145;
+
+/** Upstream reads a single student costs: one record plus eight semesters. */
+export const REQUESTS_PER_STUDENT = 9;
+
+/**
+ * Estimated upstream requests to complete the grid. Used only to report progress
+ * and an ETA; nothing about correctness depends on it. The per-block `skipMisses`
+ * tail is included because an empty or finished block still costs its probes.
+ */
+export function estimatedRequests(
+  blocks: CensusBlock[] = censusBlocks(),
+  skipMisses: number = SKIP_AFTER_MISSES,
+): number {
+  return blocks.length * (SAMPLED_INTAKE_MEAN * REQUESTS_PER_STUDENT + skipMisses);
+}
