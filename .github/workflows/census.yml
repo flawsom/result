@@ -1,50 +1,66 @@
 name: BPUT census
 
-# The crawl runs here instead of in somebody's browser tab. Every run is one
-# bounded slice of a declared registration-number range, and it resumes from the
-# offset the previous run persisted in the database. A missed run therefore costs
-# progress, never correctness, and no run depends on a tab staying open.
+# The crawl runs here instead of in somebody's browser tab. Each run walks a slice
+# of the measured registration-number grid in src/lib/census-blocks.ts — every
+# batch year (2012–2025) × every college code that has one, which is 1,103 blocks
+# — and resumes each block from the offset the previous run persisted. A missed
+# run therefore costs progress, never correctness, and no run depends on a tab
+# staying open.
 #
 # Required repository configuration (Settings → Secrets and variables → Actions):
-#   Variables: CENSUS_RANGE_START, CENSUS_RANGE_END    — the range to walk
-#   Secrets:   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — writes need the service role
+#   Secret: SUPABASE_URL            — project URL (or a variable of the same name)
+#   Secret: SUPABASE_SERVICE_ROLE_KEY — writes need the service role; the census
+#                                     RPCs deliberately refuse an anonymous caller
 #
-# Until a range is set, each scheduled run exits in seconds after the config
-# check below. Nothing is collected and nothing is broken — it just waits.
+# Nothing else is required: the grid is committed, not configured. To crawl a
+# subset, set CENSUS_YEARS (e.g. `23,24,25`) as a repository variable.
 #
 # Cadence: the repository is public, so Actions minutes are unmetered and the
-# crawl is limited by what the portal will tolerate rather than by a CI budget.
-# A fresh tick therefore starts every five minutes and walks for most of them,
-# which is about as continuous as a scheduler gets. `concurrency` below means a
-# slow tick delays the next start instead of piling runs on top of each other.
+# crawl is limited by what the portal will tolerate rather than by a CI budget. A
+# fresh tick starts every five minutes and walks for most of them, which is about
+# as continuous as a scheduler gets. `concurrency` below means a slow tick delays
+# the next start instead of piling runs on top of each other.
 #
-# The real limit is the upstream pace, not the runner: at the default 1s delay a
-# student costs nine requests (one record plus eight semesters), so roughly seven
-# students a minute is the sustained ceiling however often this fires. Lower
-# CENSUS_RATE_MS to raise it, and watch for 429s in the log if you do.
+# The real limit is the upstream pace, not the runner. Four workers at a 1s
+# per-request delay is about 4 requests/second; a student costs nine (one record
+# plus eight semesters), so ~27 students/minute sustained. That covers the whole
+# grid in a couple of days. Lower CENSUS_RATE_MS or raise CENSUS_CONCURRENCY to go
+# faster — and watch the log for 429s if you do, because the portal is somebody
+# else's server and the census is a guest in it.
 
 on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
+      years:
+        description: Batch years to crawl, e.g. "23,24,25". Empty means all 14.
+        required: false
       range_start:
-        description: First registration number in the range (overrides the variable)
+        description: Optional single-range override — first registration number
         required: false
       range_end:
-        description: Last registration number in the range (overrides the variable)
+        description: Optional single-range override — last registration number
         required: false
       seconds:
         description: Wall-clock budget for this run, in seconds (max ~21000)
         required: false
-        default: "3000"
+        default: "2400"
       rate_ms:
         description: Delay before each upstream request, in milliseconds
         required: false
         default: "1000"
+      concurrency:
+        description: Workers, each walking one college-year block at a time (1–8)
+        required: false
+        default: "4"
+      max_blocks:
+        description: Start at most this many blocks this run (0 = no cap)
+        required: false
+        default: "0"
 
 # One tick at a time. Two overlapping ticks would interleave flushes against the
-# same cursor, which is recoverable but pointless. Not cancelling in progress
+# same cursors, which is recoverable but pointless. Not cancelling in progress
 # means a long dispatch run finishes rather than being cut off by the schedule.
 concurrency:
   group: bput-census
@@ -59,17 +75,18 @@ jobs:
     timeout-minutes: 45
     steps:
       # Nothing below is needed to decide whether a crawl is configured, so this
-      # runs first and an unconfigured hour costs seconds rather than a checkout.
-      - name: Check census configuration
+      # runs first and a misconfigured hour costs seconds rather than a checkout.
+      - name: Check census credentials
         id: config
         env:
-          CENSUS_RANGE_START: ${{ inputs.range_start || vars.CENSUS_RANGE_START }}
+          HAVE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          HAVE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ -n "$CENSUS_RANGE_START" ]; then
+          if [ -n "$HAVE_URL" ] && [ -n "$HAVE_KEY" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Census range not set::Add repository variables CENSUS_RANGE_START and CENSUS_RANGE_END to begin the crawl."
+            echo "::notice title=Census credentials missing::Add repository secrets SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to begin the crawl."
           fi
 
       - uses: actions/checkout@v4
@@ -82,13 +99,16 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Run one census slice
+      - name: Walk one census slice
         if: steps.config.outputs.configured == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          CENSUS_RANGE_START: ${{ inputs.range_start || vars.CENSUS_RANGE_START }}
-          CENSUS_RANGE_END: ${{ inputs.range_end || vars.CENSUS_RANGE_END }}
-          CENSUS_SECONDS: ${{ inputs.seconds || '270' }}
+          CENSUS_YEARS: ${{ inputs.years || vars.CENSUS_YEARS }}
+          CENSUS_RANGE_START: ${{ inputs.range_start }}
+          CENSUS_RANGE_END: ${{ inputs.range_end }}
+          CENSUS_SECONDS: ${{ inputs.seconds || '2400' }}
           CENSUS_RATE_MS: ${{ inputs.rate_ms || '1000' }}
+          CENSUS_CONCURRENCY: ${{ inputs.concurrency || '4' }}
+          CENSUS_MAX_BLOCKS: ${{ inputs.max_blocks || '0' }}
         run: bun scripts/census-tick.mjs
