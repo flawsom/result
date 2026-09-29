@@ -15,35 +15,45 @@ name: BPUT census
 # Nothing else is required: the grid is committed, not configured. To crawl a
 # subset, set CENSUS_YEARS (e.g. `23,24,25`) as a repository variable.
 #
-# PACING — the number that decides how long this takes
-# ----------------------------------------------------
+# TRIGGERS — why there are three
+# ------------------------------
+# `schedule` is the intended driver but has fired exactly once in this workflow's
+# life (2026-09-29T01:11Z) while reporting itself `active`, and the repository had
+# no commit for the 71 days before that — past GitHub's 60-day threshold for
+# automatically disabling scheduled workflows. The cause is not reachable from the
+# repository, and the managed credential cannot re-enable a workflow.
+#
+# So the schedule is not the only trigger:
+#   push   — a change to the crawler verifies itself on real data in five minutes
+#   dispatch — a human can start or re-run a slice at any time
+#
+# And since a job may run for six hours while public-repository minutes are
+# unmetered, a *scheduled* run takes a five-and-a-half-hour slice rather than a
+# short one: even two firings a day are eleven hours of crawling. A run killed by
+# the ceiling loses at most the unflushed batch, because the cursor is written
+# every fifteen seconds.
+#
+# PACING — the number that decides how long the whole thing takes
+# --------------------------------------------------------------
 # Pacing is an aggregate requests-per-second ceiling (`CENSUS_MAX_RPS`), not a
 # per-request sleep, because with several workers a sleep makes the real rate an
 # accident of latency. Measured on 2026-09-29 against results.bput.ac.in:
 # p50 291 ms, p95 1,074 ms, and 12 concurrent workers with no delay sustained
-# 35.6 req/s for 45 s with zero 429s.
+# 35.6 req/s for 45 s with zero 429s. A 16-worker run could not exceed a 16 req/s
+# ceiling, which is the point of the governor: the ceiling binds, not the network.
 #
-# The default ceiling is 16 req/s, deliberately well under a 45-second
-# observation, because this crawl runs for about a day and the portal is somebody
-# else's server. At 16 req/s the estimated 1.47 M requests take ~26 hours; at 30
-# req/s, ~14 hours. The governor ramps up from a quarter of the ceiling and halves
-# on any 429 with a 5 s cooldown across all workers, so raising the ceiling is a
-# bet that pays out and self-corrects if the portal disagrees.
-#
-# Cadence: the repository is public, so Actions minutes are unmetered and the
-# crawl is limited by the portal rather than by a CI budget. A 40-minute slice
-# every five minutes is roughly 90% duty cycle; `concurrency` below means a slow
-# tick delays the next start instead of piling runs on top of each other.
+# The default ceiling is 16 req/s — about 26 hours for the estimated 1.47 M
+# requests — deliberately under a 45-second observation, because this runs for a
+# day and the portal is somebody else's server. 30 req/s measured clean at
+# 29.6 req/s sustained (~14 hours); raise it with the `max_rps` input when
+# dispatching. The governor ramps up from a quarter of the ceiling and halves on
+# any 429 with a five-second cooldown across all workers, so raising it is a bet
+# that pays out and self-corrects if the portal disagrees.
 
 on:
   schedule:
     - cron: "*/5 * * * *"
 
-  # A push that touches the crawler re-validates the tick on real data, and it is
-  # the only trigger that can be relied on to fire: this repository went 71 days
-  # without a commit before 2026-09-29, past GitHub's 60-day threshold for
-  # automatically disabling scheduled workflows, and the schedule above has fired
-  # exactly once in its life. A short slice on push keeps that verification cheap.
   push:
     branches: [main]
     paths:
@@ -64,7 +74,7 @@ on:
         description: Optional single-range override — last registration number
         required: false
       seconds:
-        description: Wall-clock budget for this run, in seconds (job ceiling ~ 20000)
+        description: Wall-clock budget for this run, in seconds (job ceiling ~20000)
         required: false
         default: "19800"
       max_rps:
@@ -82,22 +92,18 @@ on:
 
 # One tick at a time. Two overlapping ticks would interleave flushes against the
 # same cursors, which is recoverable but pointless. Not cancelling in progress
-# means a long dispatch run finishes rather than being cut off by the schedule.
+# means a long slice finishes rather than being cut off by the next trigger.
 concurrency:
   group: bput-census
   cancel-in-progress: false
 
 permissions:
-  contents: read  jobs:
-    tick:
-      runs-on: ubuntu-latest
-      # A job may run for six hours. Since Actions minutes on a public repository
-      # are unmetered, and since this repository's cron has proved unreliable (one
-      # firing in its entire life), a scheduled run takes a long slice rather than
-      # a short one: if the schedule fires twice a day, that is still eleven hours
-      # of crawling. Anything killed by this ceiling loses at most the unflushed
-      # batch, because the cursor is written every 15 seconds.
-      timeout-minutes: 350
+  contents: read
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       # Nothing below is needed to decide whether a crawl is configured, so this
       # runs first and a misconfigured hour costs seconds rather than a checkout.
@@ -118,8 +124,7 @@ permissions:
         if: steps.config.outputs.configured == 'true'
 
       # No dependency install: the tick imports only its own TypeScript, so Bun
-      # runs it directly and the job stays short. This is also why the workflow is
-      # not the place to run W1's test suite — a census tick should not wait on it.
+      # runs it directly and the job stays short.
       - uses: oven-sh/setup-bun@v2
         if: steps.config.outputs.configured == 'true'
         with:
