@@ -23,6 +23,18 @@ export function parseBatchYear(batch: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * `Odd-(2012-13)` — the label BPUT files a term under, and the term is half of an
+ * academic year that starts in the year named.
+ *
+ * Verified against real batches on 2026-09-29, because a derivation nobody has
+ * checked is a guess with better manners. Batches 2015-2020 publish all eight
+ * semesters under these labels with no alternatives needed. Anything earlier
+ * answers for only its last few, and that is the portal's retention window rather
+ * than a wrong label: no variant spelling or zero-padded semester id recovers
+ * them (13 label variants probed on a 2012 student, none hit), while the
+ * semesters that do answer are exactly the ones this function names.
+ */
 function sessionLabel(yearStart: number, term: "Odd" | "Even"): string {
   const yearEnd = (yearStart + 1) % 100;
   return `${term}-(${yearStart}-${String(yearEnd).padStart(2, "0")})`;

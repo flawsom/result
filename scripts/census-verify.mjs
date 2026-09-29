@@ -257,6 +257,17 @@ if (projectUrl && pubKey) {
       `${Number(meta.observations ?? 0).toLocaleString()} pooled observations · ` +
         `${meta.batchYears ?? 0} batch year(s) · ${meta.branches ?? 0} branches · k≥${meta.kAnonymity ?? "?"}`,
     );
+    // Published per semester says how much of the portal's history is still being
+    // served. It is not a labelling bug: every label the derivation produces was
+    // probed on real 2012-2020 batches, and the ones that answer do so without
+    // help, while the old sessions BPUT has aged out answer to nothing at all.
+    note(
+      "publication by semester (published/observed)",
+      (census?.bySemester ?? [])
+        .map((r) => `S${r.semester} ${Number(r.published ?? 0)}/${Number(r.observations ?? 0)}`)
+        .join(" · "),
+    );
+
     const years = (census?.byYear ?? []).map((r) => r.batchYear);
     check(
       "years covered so far",

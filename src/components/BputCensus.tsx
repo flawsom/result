@@ -388,6 +388,20 @@ export function BputCensus() {
                       );
                     })}
                   </div>
+                  {/*
+                    An early semester reading near 0% looks like a failed read and is
+                    not one: the portal stops serving old sessions, so a 2012 batch
+                    keeps only its last two semesters there. Measured 2026-09-29 by
+                    probing one student per batch year under every session label the
+                    derivation produces; the census will narrow it from thousands.
+                  */}
+                  <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                    An early semester near 0% here is usually the portal having aged that session
+                    out, not a failed read. Probed one student per batch year: 2012 still answers
+                    for semesters 7–8 only, 2013 for 5, 7 and 8, 2014 for 3–8, and 2015 onward for
+                    all eight. Nothing in the numbering derivation is wrong — the university keeps a
+                    rolling window of what it serves.
+                  </p>
                 </Block>
               </div>
 
