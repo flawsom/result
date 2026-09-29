@@ -526,7 +526,7 @@ function LiveTicker({
             {fmtInt(events)}
           </div>
           <div className="label-caps mt-1 text-muted-foreground">
-            anonymous observations recorded
+            lookups on this site · anonymous, no identity attached
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-6">

@@ -35,6 +35,7 @@ import {
 } from "./census-core";
 import {
   CENSUS_YEARS,
+  MEASURED_STUDENTS,
   SKIP_AFTER_MISSES,
   censusBlocks,
   estimatedRequests,
@@ -784,7 +785,7 @@ async function reportProgress(config: CensusTickConfig, summary: CensusTickSumma
         `${rps} req/s (${summary.rateLimits} rate-limit answer(s)); ` +
         `remaining ≈ ${remaining.toLocaleString()} blocks ≈ ${Math.round(requests * (remaining / totalBlocks)).toLocaleString()} requests` +
         (etaHours > 0
-          ? ` → ETA ≈ ${etaHours < 48 ? `${etaHours.toFixed(1)} h` : `${(etaHours / 24).toFixed(1)} days`} at this pace (estimate: assumes intake averages ${145} per block)`
+          ? ` → ETA ≈ ${etaHours < 48 ? `${etaHours.toFixed(1)} h` : `${(etaHours / 24).toFixed(1)} days`} at this pace (estimate basis: the measured ${MEASURED_STUDENTS.toLocaleString()} students over ${totalBlocks.toLocaleString()} blocks)`
           : ""),
     );
   } catch (e) {

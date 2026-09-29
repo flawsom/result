@@ -54,8 +54,9 @@ name: BPUT census
 #     8 workers → 3.8 req/s      24 workers → 7.4 req/s
 # A student costs 9 requests (1 record + 8 semesters) and `subjects` answers in
 # ~797 ms, so more workers is the only real lever — up to a point, since the portal
-# queues under parallelism. At the measured 7.4 req/s the estimated 1.47 M requests
-# take roughly two days.
+# queues under parallelism. At the measured 7.4 req/s the 1.45 M requests the grid
+# is measured to need (158,571 students across 1,103 blocks, ~17 probes per block
+# already spent to weigh them) take roughly two days.
 
 on:
   schedule:

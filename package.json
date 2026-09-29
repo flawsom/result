@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "census:tick": "bun scripts/census-tick.mjs",
     "census:manifest": "bun scripts/census-manifest.mjs",
+    "census:intake": "bun scripts/census-intake.mjs",
     "census:status": "bun scripts/census-status.mjs",
+    "census:verify": "bun scripts/census-verify.mjs",
     "census:key": "bun scripts/check-credentials.mjs"
   },
   "dependencies": {

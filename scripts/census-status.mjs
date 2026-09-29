@@ -11,7 +11,12 @@
 //
 // Nothing here is authoritative about progress: the fact table is. This just
 // reads it and does the arithmetic out loud.
-import { censusBlocks, estimatedRequests, SAMPLED_INTAKE_MEAN } from "../src/lib/census-blocks.ts";
+import {
+  MEASURED_SERIALS,
+  MEASURED_STUDENTS,
+  censusBlocks,
+  estimatedRequests,
+} from "../src/lib/census-blocks.ts";
 
 const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 const key =
@@ -62,6 +67,10 @@ const num = (n) => Number(n ?? 0).toLocaleString();
 console.log("BPUT census — status");
 console.log(`  blocks finished   ${done}/${totalBlocks}  (${pct.toFixed(1)}%)`);
 console.log(`  ranges declared   ${num(progress.ranges)}`);
+console.log(
+  `  grid measured     ${num(MEASURED_SERIALS)} registration numbers across ` +
+    `${num(totalBlocks)} blocks ≈ ${num(MEASURED_STUDENTS)} students (probed, not sampled)`,
+);
 console.log(`  numbers probed    ${num(progress.visited)}`);
 console.log(`  genuinely absent  ${num(progress.notFound)}`);
 console.log(`  observations      ${num(progress.observations)}`);
@@ -85,7 +94,8 @@ if (rps > 0) {
       (hours < 48 ? `${hours.toFixed(1)} hours` : `${(hours / 24).toFixed(1)} days`),
   );
   console.log(
-    `Estimate basis: ${(SAMPLED_INTAKE_MEAN * 9 + 25).toLocaleString()} requests per block ` +
-      `(${SAMPLED_INTAKE_MEAN} students sampled, 9 reads each, 25-probe block tail) × ${num(totalBlocks)} blocks.`,
+    `Estimate basis: the grid was measured, not sampled — ${num(MEASURED_SERIALS)} registration numbers ` +
+      `in ${num(totalBlocks)} blocks hold ≈ ${num(MEASURED_STUDENTS)} students, at 9 reads each plus a ` +
+      `25-probe block tail = ${num(requests)} requests.`,
   );
 }

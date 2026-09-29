@@ -18,6 +18,7 @@ import {
   type CensusPayload,
   type CensusProgress,
 } from "@/lib/census-client";
+import { MEASURED_BLOCKS, MEASURED_SERIALS, MEASURED_STUDENTS } from "@/lib/census-blocks";
 import { fmtAgo, fmtInt, fmtPct, wilson } from "@/lib/analytics-stats";
 
 const ACCENT = "oklch(0.45 0.22 265)";
@@ -163,8 +164,8 @@ function ProgressLine({
         <span className="text-muted-foreground">obs / probed</span> {perProbe.toFixed(1)}
       </span>
       <span>
-        <span className="text-muted-foreground">ranges</span> {fmtInt(ranges)} ·{" "}
-        {fmtInt(progress.doneRanges)} complete
+        <span className="text-muted-foreground">ranges completed</span>{" "}
+        {fmtInt(progress.doneRanges)}/{fmtInt(MEASURED_BLOCKS)} · {fmtInt(ranges)} read
       </span>
       {lastBatchAt ? (
         <span className="text-muted-foreground">
@@ -283,7 +284,7 @@ export function BputCensus() {
         </div>
         <div className="text-right">
           <div className="label-caps text-muted-foreground">
-            {observations > 0 ? "anonymous observations" : "collecting"}
+            {observations > 0 ? "anonymous student-semester observations" : "collecting"}
           </div>
           <div className="font-display mt-1 text-3xl tabular-nums">
             {fmtInt(live?.observations ?? observations)}
@@ -297,6 +298,13 @@ export function BputCensus() {
         college, outcome and totals; the registration number is never stored, so a row here is an
         observation and not a person. Cells below {data.meta.kAnonymity} observations are pooled or
         withheld.
+      </p>
+
+      <p className="mt-2 max-w-3xl font-mono text-[11px] leading-relaxed text-muted-foreground">
+        The {fmtInt(MEASURED_BLOCKS)} college-and-year ranges below were measured, not guessed:
+        every one was probed for its last live registration number, and they hold{" "}
+        {fmtInt(MEASURED_SERIALS)} numbers across roughly {fmtInt(MEASURED_STUDENTS)} students. A
+        block is complete when its serials have been read end to end, holes and all.
       </p>
 
       <div className="mt-6 space-y-6">

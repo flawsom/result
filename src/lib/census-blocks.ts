@@ -18,10 +18,12 @@
 //     hit and 079+ miss, across five branches (16, 48, 18, 17, 7) interleaved —
 //     so the serial indexes the college's intake, not a branch block. College 329,
 //     same batch: 001–070 with three single-number gaps (12, 18, 32).
-//   • The serial does not reach 999. Measured maxima run 034 (21/337) to 433
-//     (25/104), median ~132. Ranges here therefore end at 999 and the walk skips
-//     ahead after `SKIP_AFTER_MISSES` consecutive misses, which costs the same as
-//     a measured bound and cannot truncate a college that grew.
+//   • The serial does not reach 999, but it gets much closer than a small sample
+//     suggested: every block was measured on 2026-09-29 and the maxima run 0 to
+//     998 (2012 · college 210), median 97, mean 146. Ranges here therefore end
+//     at 999 and the walk skips ahead after `SKIP_AFTER_MISSES` consecutive
+//     misses, which costs the same as a measured bound and cannot truncate a
+//     college that grew.
 //   • `01` is not a course code we could vary: every other value in that slot
 //     (02…20) misses at a college that definitely has students, and every record
 //     we have ever seen reports `courseName: "B.Tech"`.
@@ -35,7 +37,11 @@
 // has, and 2025 adds 440–450 — which is exactly why each year carries its own
 // list rather than one shared union.
 //
-// Total: 1103 college-year blocks. Refresh with `bun scripts/census-manifest.mjs`.
+// Total: 1103 college-year blocks holding 160,609 registration numbers and about
+// 158,571 students — both measured rather than extrapolated, both in
+// `MEASURED_INTAKE` below. Refresh the college lists with
+// `bun scripts/census-manifest.mjs` and the population with
+// `bun scripts/census-intake.mjs`; the full evidence is `docs/census-intake.json`.
 //
 // What this file does NOT contain: any registration number. A block is a range
 // and a count, and a range plus the serial rule is the whole population.
@@ -56,7 +62,7 @@ export interface CensusBlock {
   serials: number;
 }
 
-/** Highest serial the portal allocates. Measured maximum is 433. */
+/** Highest serial the portal allocates. Measured maximum is 998 (2012 · college 210). */
 export const SERIAL_MAX = 999;
 
 /**
@@ -204,25 +210,111 @@ export function gridSize(blocks: CensusBlock[] = censusBlocks()): number {
   return blocks.reduce((sum, block) => sum + (Number(block.end) - Number(block.start) + 1), 0);
 }
 
+/** What one batch year's blocks were measured to hold. */
+export interface MeasuredIntake {
+  /** Blocks measured for this year. */
+  blocks: number;
+  /** Sum of the highest live serial in each block — an upper bound on students. */
+  serials: number;
+  /** Mean serials per block. */
+  mean: number;
+  /** Median block. */
+  median: number;
+  /** Busiest single college that year. */
+  max: number;
+}
+
 /**
- * Mean students per college-year block. Measured by binary-searching the highest
- * live serial for 15 sampled blocks: 34 … 433, median 132, mean 145. It is a
- * sample, so the estimate below is labelled as one — the crawl replaces it with
-the truth as it goes.
+ * Measured intake per batch year, not sampled.
+ *
+ * Every one of the 1,103 blocks was probed for its highest live serial on
+ * 2026-09-29 — a binary search for the first miss boundary with gap arbitration
+ * above it, about 17 requests per block. That retires the 15-block sample this
+ * file used to carry, which said a block averages 145 students (the truth is
+ * 146) and that the serial never passes 433 (2012 · college 210 passes 998).
+ *
+ * Method, per-block results and the audits are in `docs/census-intake.json`;
+ * reproduce with `bun scripts/census-intake.mjs`.
  */
-export const SAMPLED_INTAKE_MEAN = 145;
+export const MEASURED_INTAKE: Record<number, MeasuredIntake> = {
+  2012: { blocks: 82, serials: 18_208, mean: 222, median: 150, max: 998 },
+  2013: { blocks: 83, serials: 15_262, mean: 183.9, median: 118, max: 959 },
+  2014: { blocks: 87, serials: 12_274, mean: 141.1, median: 93, max: 679 },
+  2015: { blocks: 90, serials: 14_966, mean: 166.3, median: 117, max: 796 },
+  2016: { blocks: 85, serials: 14_590, mean: 171.6, median: 98, max: 929 },
+  2017: { blocks: 81, serials: 10_248, mean: 126.5, median: 79, max: 543 },
+  2018: { blocks: 77, serials: 8_208, mean: 106.6, median: 81, max: 431 },
+  2019: { blocks: 76, serials: 8_693, mean: 114.4, median: 77, max: 502 },
+  2020: { blocks: 73, serials: 7_231, mean: 99.1, median: 73, max: 532 },
+  2021: { blocks: 72, serials: 8_617, mean: 119.7, median: 84, max: 522 },
+  2022: { blocks: 73, serials: 9_819, mean: 134.5, median: 106, max: 623 },
+  2023: { blocks: 71, serials: 8_974, mean: 126.4, median: 77, max: 590 },
+  2024: { blocks: 73, serials: 10_874, mean: 149, median: 83, max: 686 },
+  2025: { blocks: 80, serials: 12_645, mean: 158.1, median: 91, max: 714 },
+};
+
+/**
+ * Holes: serials below a block's maximum that answer for nobody — a dropout, a
+ * transfer, a withdrawn record. They are why the grid holds fewer students than
+ * it declares serials.
+ *
+ * Measured by walking 22 audited blocks serial by serial (`audits` in
+ * `docs/census-intake.json`): 3.4% of the serials below the maximum are missing
+ * in the 2012–2014 batches, 0.4% in 2015–2025. The rate is split by era because
+ * the holes are: nearly every one of them sat in a batch that has had a decade
+ * to change. Applied to the measurement above, the grid holds about 158,571
+ * students and not the 160,609 serials it declares.
+ */
+export const MEASURED_HOLE_RATE = { before2015: 0.034, from2015: 0.0042 } as const;
+
+/** Serials the grid declares, summed over the measurement: an upper bound. */
+export const MEASURED_SERIALS = 160_609;
+
+/** Students per block in one batch year, holes removed. */
+export function measuredMean(year: number): number {
+  const intake = MEASURED_INTAKE[year];
+  if (!intake) return 0;
+  const rate = year <= 2014 ? MEASURED_HOLE_RATE.before2015 : MEASURED_HOLE_RATE.from2015;
+  return intake.mean * (1 - rate);
+}
+
+/** Measured students in one batch year, holes removed. */
+export function measuredStudents(year: number): number {
+  const intake = MEASURED_INTAKE[year];
+  if (!intake) return 0;
+  const rate = year <= 2014 ? MEASURED_HOLE_RATE.before2015 : MEASURED_HOLE_RATE.from2015;
+  return intake.serials * (1 - rate);
+}
+
+/** Students the whole grid holds, measured, holes removed. */
+export const MEASURED_STUDENTS = Math.round(
+  Object.keys(MEASURED_INTAKE).reduce((sum, year) => sum + measuredStudents(Number(year)), 0),
+);
+
+/** Blocks the measurement covers — the denominator of crawl progress. */
+export const MEASURED_BLOCKS = Object.values(MEASURED_INTAKE).reduce(
+  (sum, intake) => sum + intake.blocks,
+  0,
+);
 
 /** Upstream reads a single student costs: one record plus eight semesters. */
 export const REQUESTS_PER_STUDENT = 9;
 
 /**
- * Estimated upstream requests to complete the grid. Used only to report progress
- * and an ETA; nothing about correctness depends on it. The per-block `skipMisses`
- * tail is included because an empty or finished block still costs its probes.
+ * Estimated upstream requests to complete the grid, from the measurement rather
+ * than a guess. Used only to report progress and an ETA; nothing about
+ * correctness depends on it. The per-block `skipMisses` tail is included because
+ * an empty or finished block still costs its probes.
  */
 export function estimatedRequests(
   blocks: CensusBlock[] = censusBlocks(),
   skipMisses: number = SKIP_AFTER_MISSES,
 ): number {
-  return blocks.length * (SAMPLED_INTAKE_MEAN * REQUESTS_PER_STUDENT + skipMisses);
+  const fallback = MEASURED_STUDENTS / censusBlocks().length;
+  let total = 0;
+  for (const block of blocks) {
+    const perBlock = measuredMean(block.year) || fallback;
+    total += perBlock * REQUESTS_PER_STUDENT + skipMisses;
+  }
+  return Math.round(total);
 }
