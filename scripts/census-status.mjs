@@ -11,12 +11,71 @@
 //
 // Nothing here is authoritative about progress: the fact table is. This just
 // reads it and does the arithmetic out loud.
+import { readFileSync } from "node:fs";
 import {
+  MEASURED_BLOCK_SERIALS,
+  MEASURED_INTAKE,
   MEASURED_SERIALS,
   MEASURED_STUDENTS,
   censusBlocks,
   estimatedRequests,
+  measuredBlocks,
 } from "../src/lib/census-blocks.ts";
+
+/**
+ * The dashboard draws the intake distribution from the embedded per-block
+ * measurement, so that array has to be the evidence file rather than a copy of
+ * it. Re-zip `docs/census-intake.json` in grid order and fail loudly on any
+ * disagreement — a drifted constant here would quietly misstate the university.
+ */
+function checkMeasurement() {
+  const raw = readFileSync(new URL("../docs/census-intake.json", import.meta.url), "utf8");
+  const evidence = JSON.parse(raw).blocks ?? {};
+  const pad = (value, width) => String(value).padStart(width, "0");
+  const zip = censusBlocks().map((block) => {
+    const key = `${pad(block.year % 100, 2)}-${pad(block.code, 3)}`;
+    const rec = evidence[key];
+    if (!rec) throw new Error(`docs/census-intake.json has no measurement for ${key}`);
+    return Number(rec.serial) || 0;
+  });
+
+  if (zip.length !== MEASURED_BLOCK_SERIALS.length) {
+    throw new Error(
+      `evidence holds ${zip.length} blocks against ${MEASURED_BLOCK_SERIALS.length} embedded`,
+    );
+  }
+  for (let i = 0; i < zip.length; i++) {
+    if (zip[i] !== MEASURED_BLOCK_SERIALS[i]) {
+      const block = measuredBlocks()[i];
+      throw new Error(
+        `block ${block?.label ?? i} measured ${zip[i]} in the evidence but ${MEASURED_BLOCK_SERIALS[i]} is embedded`,
+      );
+    }
+  }
+  // The per-year summary has to be the same measurement: a year whose declared
+  // serial total disagrees with its blocks is a transcription slip.
+  for (const [year, intake] of Object.entries(MEASURED_INTAKE)) {
+    const rows = measuredBlocks().filter((row) => row.year === Number(year));
+    if (rows.length !== intake.blocks) {
+      throw new Error(
+        `20${year}: ${rows.length} blocks in the grid against ${intake.blocks} declared`,
+      );
+    }
+    const serials = rows.reduce((a, row) => a + row.serial, 0);
+    if (serials !== intake.serials) {
+      throw new Error(
+        `20${year}: ${serials} serials in the grid against ${intake.serials} declared`,
+      );
+    }
+  }
+  const sum = MEASURED_BLOCK_SERIALS.reduce((a, b) => a + b, 0);
+  if (sum !== MEASURED_SERIALS) {
+    throw new Error(`per-block serials sum to ${sum} against MEASURED_SERIALS ${MEASURED_SERIALS}`);
+  }
+  return { blocks: zip.length, serials: sum };
+}
+
+const measured = checkMeasurement();
 
 const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 const key =
@@ -70,6 +129,9 @@ console.log(`  ranges declared   ${num(progress.ranges)}`);
 console.log(
   `  grid measured     ${num(MEASURED_SERIALS)} registration numbers across ` +
     `${num(totalBlocks)} blocks ≈ ${num(MEASURED_STUDENTS)} students (probed, not sampled)`,
+);
+console.log(
+  `  measurement       ${num(measured.blocks)} per-block readings match docs/census-intake.json`,
 );
 console.log(`  numbers probed    ${num(progress.visited)}`);
 console.log(`  genuinely absent  ${num(progress.notFound)}`);

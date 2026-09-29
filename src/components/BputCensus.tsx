@@ -19,6 +19,7 @@ import {
   type CensusProgress,
 } from "@/lib/census-client";
 import { MEASURED_BLOCKS, MEASURED_SERIALS, MEASURED_STUDENTS } from "@/lib/census-blocks";
+import { SESSION_WATCH, SESSION_WATCH_CHECKED_AT } from "@/lib/census-session-watch";
 import { fmtAgo, fmtInt, fmtPct, wilson } from "@/lib/analytics-stats";
 
 const ACCENT = "oklch(0.45 0.22 265)";
@@ -33,6 +34,48 @@ const COALESCE_MS = 1_500;
 const POLL_LIVE_MS = 60_000;
 /** Push unavailable: poll often enough that the panels never lag the crawl. */
 const POLL_OFFLINE_MS = 15_000;
+
+/**
+ * `[3, 4, 5, 6, 7, 8]` → `3–8`; `[7, 8]` → `7, 8`. Runs of three or more collapse,
+ * because a reader wants the shape of the window, not its members.
+ */
+function compressSemesters(semesters: readonly number[]): string {
+  const runs: number[][] = [];
+  for (const semester of [...semesters].sort((a, b) => a - b)) {
+    const last = runs[runs.length - 1];
+    if (last && semester === last[last.length - 1] + 1) last.push(semester);
+    else runs.push([semester]);
+  }
+  return runs
+    .map((run) => (run.length >= 3 ? `${run[0]}–${run[run.length - 1]}` : run.join(", ")))
+    .join(", ");
+}
+
+/**
+ * The daily session watch as one sentence.
+ *
+ * Batch years that the portal serves the same way collapse into a single clause,
+ * so the sentence keeps saying something as cohorts age out and new sessions are
+ * declared, rather than growing a line per year.
+ */
+function describeSessionWatch(): string {
+  const groups: Array<{ years: number[]; served: readonly number[] }> = [];
+  for (const [year, served] of Object.entries(SESSION_WATCH).sort(
+    (a, b) => Number(a[0]) - Number(b[0]),
+  )) {
+    const last = groups[groups.length - 1];
+    if (last && last.served.join() === served.join()) last.years.push(Number(year));
+    else groups.push({ years: [Number(year)], served });
+  }
+  return groups
+    .map((group) => {
+      const { years } = group;
+      const span =
+        years.length > 2 ? `${years[0]}–${years[years.length - 1]}` : years.join(" and ");
+      return `${span} for S${compressSemesters(group.served)}`;
+    })
+    .join(", ");
+}
 
 /** Ticks once a second so "persisted" never reads as frozen. */
 function Age({ iso }: { iso: string }) {
@@ -389,18 +432,20 @@ export function BputCensus() {
                     })}
                   </div>
                   {/*
-                    An early semester reading near 0% looks like a failed read and is
-                    not one: the portal stops serving old sessions, so a 2012 batch
-                    keeps only its last two semesters there. Measured 2026-09-29 by
-                    probing one student per batch year under every session label the
-                    derivation produces; the census will narrow it from thousands.
+                    An early semester reading near 0% looks like a failed read and is not
+                    one: the portal stops serving old sessions. The sentence below is
+                    generated from the daily session watch rather than written by hand,
+                    because it is a statement about today — see
+                    `src/lib/census-session-watch.ts`.
                   */}
                   <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
                     An early semester near 0% here is usually the portal having aged that session
-                    out, not a failed read. Probed one student per batch year: 2012 still answers
-                    for semesters 7–8 only, 2013 for 5, 7 and 8, 2014 for 3–8, and 2015 onward for
-                    all eight. Nothing in the numbering derivation is wrong — the university keeps a
-                    rolling window of what it serves.
+                    out, not a failed read. An automated check asks the portal for all eight derived
+                    sessions of one student in every batch year; on {SESSION_WATCH_CHECKED_AT} it
+                    answered {describeSessionWatch()}. Nothing in the numbering derivation is wrong
+                    — the university keeps a rolling window of what it serves, and a session appears
+                    only once its exams have been held, which is why the newest batches are still
+                    partway down the list.
                   </p>
                 </Block>
               </div>

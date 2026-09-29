@@ -17,21 +17,25 @@ name: BPUT census
 #
 # TRIGGERS — why there are three
 # ------------------------------
-# `schedule` is the intended driver but has fired exactly once in this workflow's
-# life (2026-09-29T01:11Z) while reporting itself `active`, and the repository had
-# no commit for the 71 days before that — past GitHub's 60-day threshold for
-# automatically disabling scheduled workflows. The cause is not reachable from the
-# repository, and the managed credential cannot re-enable a workflow.
+# `schedule` is the driver. It fired exactly once in this workflow's life
+# (2026-09-29T01:11Z) while reporting itself `active`, and the repository had no
+# commit for the 71 days before that — past GitHub's sixty-day threshold for
+# automatically disabling scheduled workflows. That is the whole cause, and it is
+# fixed from the other side: census-refresh.yml runs daily and commits, so the
+# repository is never inactive long enough for the schedule to be disabled again,
+# and it dispatches a slice directly as a second path in case it ever is.
 #
 # So the schedule is not the only trigger:
 #   push   — a change to the crawler verifies itself on real data in five minutes
-#   dispatch — a human can start or re-run a slice at any time
+#   dispatch — a human, or the daily refresh job, can start a slice at any time
 #
 # And since a job may run for six hours while public-repository minutes are
 # unmetered, a *scheduled* run takes a five-and-a-half-hour slice rather than a
-# short one: even two firings a day are eleven hours of crawling. A run killed by
-# the ceiling loses at most the unflushed batch, because the cursor is written
-# every fifteen seconds.
+# short one. With the schedule firing every five minutes and a run taking five and
+# a half hours, the concurrency group below keeps one slice running back to back
+# with the next already queued, which is how a two-day census actually finishes in
+# two days. A run killed by the ceiling loses at most the unflushed batch, because
+# the cursor is written every fifteen seconds.
 #
 # PACING — the number that decides how long the whole thing takes
 # --------------------------------------------------------------

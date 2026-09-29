@@ -13,6 +13,9 @@
     "census:tick": "bun scripts/census-tick.mjs",
     "census:manifest": "bun scripts/census-manifest.mjs",
     "census:intake": "bun scripts/census-intake.mjs",
+    "census:refresh": "bun scripts/census-intake.mjs --refresh --write-constants",
+    "census:sessions": "bun scripts/census-sessions.mjs",
+    "census:heartbeat": "bun scripts/census-heartbeat.mjs",
     "census:status": "bun scripts/census-status.mjs",
     "census:verify": "bun scripts/census-verify.mjs",
     "census:key": "bun scripts/check-credentials.mjs"

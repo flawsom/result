@@ -1,0 +1,19 @@
+{
+  "published": {
+    "blocks": 1103,
+    "serials": 160609,
+    "students": 158571,
+    "measuredAt": "2026-09-29",
+    "checkedAt": "2026-09-29"
+  },
+  "lastCheckAt": "2026-09-29T09:15:23.024Z",
+  "checks": 1,
+  "history": [
+    {
+      "at": "2026-09-29T09:15:23.024Z",
+      "verified": 80,
+      "changed": 0,
+      "crawl": "skipped"
+    }
+  ]
+}

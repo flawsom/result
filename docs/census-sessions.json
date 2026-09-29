@@ -1,0 +1,882 @@
+{
+  "firstCheckedAt": "2026-09-29T09:16:45.276Z",
+  "checkedAt": "2026-09-29T09:17:32.018Z",
+  "years": {
+    "2012": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2012-13)",
+          "semester": 1,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2012-13)",
+          "semester": 2,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2013-14)",
+          "semester": 3,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2013-14)",
+          "semester": 4,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2014-15)",
+          "semester": 5,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2014-15)",
+          "semester": 6,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2015-16)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2015-16)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2013": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2013-14)",
+          "semester": 1,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2013-14)",
+          "semester": 2,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2014-15)",
+          "semester": 3,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2014-15)",
+          "semester": 4,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2015-16)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2015-16)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2016-17)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2016-17)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2014": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2014-15)",
+          "semester": 1,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2014-15)",
+          "semester": 2,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2015-16)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2015-16)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2016-17)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2016-17)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2017-18)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2017-18)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2015": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2015-16)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2015-16)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2016-17)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2016-17)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2017-18)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2017-18)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2018-19)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2018-19)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2016": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2016-17)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2016-17)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2017-18)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2017-18)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2018-19)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2018-19)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2019-20)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2019-20)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2017": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2017-18)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2017-18)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2018-19)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2018-19)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2019-20)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2019-20)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2020-21)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2020-21)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2018": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2018-19)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2018-19)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2019-20)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2019-20)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2020-21)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2020-21)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2021-22)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2021-22)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2019": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2019-20)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2019-20)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2020-21)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2020-21)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2021-22)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2021-22)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2022-23)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2022-23)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2020": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2020-21)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2020-21)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2021-22)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2021-22)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2022-23)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2022-23)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2023-24)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2023-24)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2021": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2021-22)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2021-22)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2022-23)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2022-23)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2023-24)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2023-24)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2024-25)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2024-25)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2022": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2022-23)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2022-23)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2023-24)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2023-24)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2024-25)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2024-25)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2025-26)",
+          "semester": 7,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2025-26)",
+          "semester": 8,
+          "state": "published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29",
+        "7": "2026-09-29",
+        "8": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2023": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2023-24)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2023-24)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2024-25)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2024-25)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2025-26)",
+          "semester": 5,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2025-26)",
+          "semester": 6,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2026-27)",
+          "semester": 7,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2026-27)",
+          "semester": 8,
+          "state": "not_published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29",
+        "5": "2026-09-29",
+        "6": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2024": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2024-25)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2024-25)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2025-26)",
+          "semester": 3,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2025-26)",
+          "semester": 4,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2026-27)",
+          "semester": 5,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2026-27)",
+          "semester": 6,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2027-28)",
+          "semester": 7,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2027-28)",
+          "semester": 8,
+          "state": "not_published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29",
+        "3": "2026-09-29",
+        "4": "2026-09-29"
+      },
+      "served": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    },
+    "2025": {
+      "code": 104,
+      "probes": [
+        {
+          "session": "Odd-(2025-26)",
+          "semester": 1,
+          "state": "published"
+        },
+        {
+          "session": "Even-(2025-26)",
+          "semester": 2,
+          "state": "published"
+        },
+        {
+          "session": "Odd-(2026-27)",
+          "semester": 3,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2026-27)",
+          "semester": 4,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2027-28)",
+          "semester": 5,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2027-28)",
+          "semester": 6,
+          "state": "not_published"
+        },
+        {
+          "session": "Odd-(2028-29)",
+          "semester": 7,
+          "state": "not_published"
+        },
+        {
+          "session": "Even-(2028-29)",
+          "semester": 8,
+          "state": "not_published"
+        }
+      ],
+      "firstSeen": {
+        "1": "2026-09-29",
+        "2": "2026-09-29"
+      },
+      "served": [
+        1,
+        2
+      ],
+      "checkedAt": "2026-09-29T09:17:32.018Z"
+    }
+  }
+}

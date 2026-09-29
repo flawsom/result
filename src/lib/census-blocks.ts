@@ -250,8 +250,143 @@ export const MEASURED_INTAKE: Record<number, MeasuredIntake> = {
   2022: { blocks: 73, serials: 9_819, mean: 134.5, median: 106, max: 623 },
   2023: { blocks: 71, serials: 8_974, mean: 126.4, median: 77, max: 590 },
   2024: { blocks: 73, serials: 10_874, mean: 149, median: 83, max: 686 },
-  2025: { blocks: 80, serials: 12_645, mean: 158.1, median: 91, max: 714 },
+  2025: { blocks: 80, serials: 12_645, mean: 158.1, median: 90, max: 714 },
 };
+
+/** The day the block-by-block measurement was taken. */
+export const MEASURED_AT = "2026-09-29";
+
+/**
+ * The last day every reading above was re-checked against the portal.
+ *
+ * `scripts/census-intake.mjs --refresh` re-probes each block's recorded bound
+ * (two requests) and re-measures only the blocks where the portal has moved, then
+ * `--write-constants` stamps this date. A daily scheduled job runs both, so this
+ * date is a fact about the published numbers rather than a claim about them, and
+ * a reading that quietly went stale would show up here as a stale date.
+ */
+export const MEASURED_CHECKED_AT = "2026-09-29";
+
+/**
+ * The highest live serial in every block — the raw measurement behind
+ * `MEASURED_INTAKE`, one value per block in `censusBlocks()` order (batch year
+ * ascending, then college code ascending).
+ *
+ * 1,103 values summing to `MEASURED_SERIALS`. It was zipped out of
+ * `docs/census-intake.json` in this exact order; `measuredBlocks()` re-checks
+ * the length at runtime, and `bun scripts/census-status.mjs` re-zips the whole
+ * evidence file against this array and exits non-zero if the two ever drift.
+ * It is embedded rather than fetched so the distribution of college intake is a
+ * computation over the measurement instead of a 140 KB download.
+ */
+// prettier-ignore
+// One line per 16 blocks: reflowing this to the print width would bury the data.
+export const MEASURED_BLOCK_SERIALS: readonly number[] = [
+  183, 273, 344, 112, 224, 229, 273, 734, 116, 208, 282, 8, 162, 492, 998, 648,
+  488, 307, 258, 45, 530, 70, 540, 209, 252, 811, 7, 475, 27, 207, 606, 391,
+  548, 89, 583, 98, 401, 481, 580, 337, 200, 344, 106, 224, 178, 116, 73, 52,
+  30, 104, 178, 48, 150, 60, 94, 50, 179, 67, 69, 8, 119, 14, 56, 98,
+  86, 114, 34, 123, 19, 42, 124, 276, 128, 6, 149, 394, 51, 42, 27, 72,
+  74, 204, 175, 448, 602, 86, 206, 201, 163, 818, 73, 138, 221, 4, 69, 959,
+  570, 216, 139, 193, 39, 36, 445, 39, 28, 268, 137, 221, 869, 53, 320, 317,
+  17, 48, 684, 184, 534, 42, 757, 104, 293, 352, 560, 132, 59, 249, 117, 136,
+  62, 57, 27, 19, 81, 16, 133, 36, 57, 36, 32, 136, 31, 5, 503, 40,
+  118, 84, 52, 137, 7, 114, 30, 17, 130, 15, 140, 56, 148, 237, 21, 13,
+  10, 19, 163, 35, 124, 169, 624, 623, 93, 534, 198, 147, 679, 94, 149, 185,
+  9, 43, 460, 581, 274, 138, 60, 85, 25, 21, 34, 13, 105, 72, 268, 64,
+  259, 179, 13, 37, 398, 116, 260, 22, 417, 110, 325, 368, 368, 71, 88, 177,
+  41, 13, 146, 23, 216, 81, 142, 24, 14, 95, 8, 214, 54, 61, 32, 176,
+  23, 227, 15, 319, 95, 95, 94, 104, 46, 7, 91, 7, 15, 14, 50, 37,
+  20, 20, 136, 12, 153, 50, 26, 35, 24, 126, 32, 106, 334, 572, 604, 85,
+  573, 265, 215, 796, 84, 76, 163, 10, 48, 514, 782, 346, 236, 137, 115, 29,
+  6, 228, 31, 4, 203, 56, 243, 45, 197, 195, 19, 34, 543, 144, 525, 8,
+  416, 251, 330, 383, 282, 26, 221, 124, 119, 7, 101, 210, 199, 55, 247, 30,
+  2, 5, 234, 65, 57, 70, 231, 20, 280, 167, 295, 117, 2, 199, 65, 103,
+  167, 74, 6, 121, 14, 61, 34, 14, 76, 79, 44, 69, 151, 19, 201, 131,
+  23, 28, 31, 129, 24, 92, 354, 571, 672, 72, 564, 237, 141, 929, 80, 51,
+  92, 3, 49, 544, 797, 355, 183, 84, 111, 19, 174, 38, 65, 96, 267, 55,
+  203, 195, 8, 156, 517, 104, 538, 5, 446, 320, 310, 297, 553, 66, 45, 76,
+  207, 6, 140, 202, 135, 25, 152, 37, 1, 71, 57, 39, 54, 170, 12, 284,
+  131, 298, 114, 229, 116, 160, 108, 86, 18, 95, 60, 22, 28, 77, 98, 62,
+  27, 163, 12, 213, 99, 36, 29, 51, 85, 82, 57, 291, 58, 456, 203, 119,
+  543, 82, 33, 198, 3, 33, 525, 196, 218, 50, 47, 34, 1, 207, 16, 23,
+  137, 193, 20, 180, 102, 3, 136, 399, 65, 501, 3, 193, 343, 245, 235, 371,
+  79, 43, 110, 154, 1, 169, 197, 146, 29, 152, 2, 64, 91, 36, 50, 202,
+  13, 231, 78, 184, 137, 256, 64, 181, 71, 33, 17, 74, 21, 28, 15, 43,
+  100, 56, 9, 107, 15, 233, 103, 5, 32, 76, 45, 34, 292, 49, 136, 144,
+  73, 34, 218, 9, 99, 96, 80, 64, 39, 175, 25, 11, 35, 81, 186, 42,
+  96, 5, 126, 317, 43, 368, 43, 194, 250, 280, 358, 431, 100, 67, 100, 142,
+  1, 116, 232, 111, 22, 105, 14, 4, 63, 127, 40, 242, 47, 229, 54, 155,
+  58, 15, 156, 190, 94, 25, 122, 27, 40, 33, 19, 29, 69, 31, 20, 82,
+  14, 167, 156, 78, 47, 68, 106, 98, 94, 304, 444, 158, 116, 65, 51, 259,
+  62, 3, 18, 181, 10, 35, 155, 66, 187, 77, 178, 28, 125, 243, 502, 34,
+  405, 1, 203, 215, 238, 281, 373, 120, 92, 127, 43, 100, 238, 24, 93, 12,
+  7, 36, 132, 241, 41, 21, 240, 35, 260, 66, 182, 33, 19, 107, 8, 130,
+  37, 57, 24, 46, 23, 22, 17, 44, 45, 13, 10, 108, 7, 128, 135, 105,
+  4, 51, 143, 63, 187, 335, 532, 149, 66, 147, 73, 31, 182, 50, 193, 34,
+  89, 63, 2, 22, 43, 115, 18, 82, 2, 89, 83, 347, 21, 337, 142, 207,
+  313, 356, 59, 89, 102, 102, 35, 88, 31, 75, 9, 3, 80, 251, 27, 9,
+  160, 50, 177, 85, 196, 5, 78, 2, 104, 49, 38, 42, 54, 13, 18, 23,
+  37, 74, 25, 24, 72, 20, 109, 76, 183, 30, 102, 71, 40, 191, 294, 458,
+  124, 70, 216, 92, 61, 234, 260, 34, 22, 133, 92, 3, 108, 53, 152, 34,
+  121, 12, 118, 139, 522, 379, 201, 261, 300, 418, 41, 93, 165, 68, 79, 204,
+  29, 72, 19, 53, 238, 22, 37, 228, 59, 247, 118, 271, 4, 60, 28, 142,
+  47, 20, 22, 84, 37, 34, 43, 46, 49, 12, 20, 86, 17, 143, 61, 237,
+  5, 162, 55, 93, 131, 25, 266, 432, 113, 27, 109, 176, 169, 89, 212, 319,
+  7, 48, 140, 119, 3, 65, 106, 227, 43, 191, 10, 26, 191, 623, 53, 474,
+  236, 296, 412, 38, 158, 236, 86, 113, 225, 33, 92, 28, 27, 71, 159, 44,
+  28, 297, 41, 351, 149, 464, 4, 139, 31, 157, 57, 72, 13, 137, 43, 38,
+  36, 61, 110, 2, 13, 123, 13, 288, 72, 153, 7, 105, 108, 93, 122, 387,
+  518, 134, 63, 150, 154, 234, 89, 276, 274, 26, 79, 60, 54, 122, 229, 29,
+  189, 8, 80, 129, 590, 44, 264, 355, 364, 59, 102, 223, 32, 103, 217, 42,
+  76, 31, 77, 154, 53, 20, 35, 330, 39, 327, 179, 398, 1, 132, 160, 43,
+  40, 94, 57, 37, 11, 82, 55, 6, 9, 77, 23, 281, 38, 44, 3, 105,
+  37, 41, 53, 34, 35, 78, 407, 631, 212, 62, 182, 142, 330, 96, 308, 261,
+  35, 69, 84, 82, 40, 114, 314, 49, 231, 9, 47, 131, 450, 37, 370, 330,
+  686, 39, 38, 324, 52, 135, 352, 34, 139, 20, 56, 143, 77, 32, 26, 391,
+  19, 544, 221, 409, 5, 126, 154, 67, 74, 118, 44, 39, 57, 75, 75, 7,
+  21, 120, 10, 346, 53, 76, 8, 122, 83, 64, 86, 132, 101, 44, 7, 433,
+  709, 247, 71, 188, 201, 375, 66, 290, 87, 66, 108, 89, 55, 191, 298, 82,
+  272, 7, 43, 80, 392, 25, 410, 451, 714, 123, 90, 260, 159, 213, 405, 46,
+  167, 75, 3, 190, 117, 37, 25, 307, 36, 618, 442, 332, 21, 243, 203, 47,
+  58, 123, 65, 52, 75, 64, 110, 15, 8, 147, 21, 344, 35, 128, 15, 84,
+  91, 44, 84, 65, 231, 134, 108, 41, 5, 36, 24, 171, 53, 30, 75,
+];
+
+/** One block joined back to its measurement. */
+export interface MeasuredBlock {
+  /** Admission year, e.g. 2012. */
+  year: number;
+  /** College code. */
+  code: number;
+  /** Log label, e.g. `2012 · college 210`. */
+  label: string;
+  /** Highest serial the portal answered for on `MEASURED_AT`. */
+  serial: number;
+}
+
+/**
+ * The measurement, block by block, in grid order.
+ *
+ * `MEASURED_BLOCK_SERIALS` is positional, so this is the only place the two
+ * arrays are stitched together — every distribution, quantile and concentration
+ * figure in the dashboard is computed from this join rather than from a
+ * pre-aggregated copy, which keeps one definition of "the measurement".
+ */
+export function measuredBlocks(): MeasuredBlock[] {
+  const blocks = censusBlocks();
+  if (MEASURED_BLOCK_SERIALS.length !== blocks.length) {
+    console.warn(
+      `[census] ${MEASURED_BLOCK_SERIALS.length} measured blocks against ${blocks.length} in the grid — run scripts/census-intake.mjs`,
+    );
+  }
+  return blocks.map((block, i) => ({
+    year: block.year,
+    code: block.code,
+    label: block.label,
+    serial: MEASURED_BLOCK_SERIALS[i] ?? 0,
+  }));
+}
 
 /**
  * Holes: serials below a block's maximum that answer for nobody — a dropout, a

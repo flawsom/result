@@ -1,0 +1,160 @@
+name: BPUT measurement refresh
+
+# The crawl in census.yml reads each registration number once and moves on, which
+# is the right way to measure a population and the wrong way to keep a published
+# figure true. This job is the other half of the census, and it is what makes the
+# numbers on the page look after themselves:
+#
+#   1. re-check every recorded reading against the portal — two requests per block
+#      to confirm the recorded bound still holds, and a full re-measure only where
+#      the portal has moved (a college that admitted more students, or closed);
+#   2. re-derive the constants the dashboard imports from that evidence file, so
+#      the published numbers cannot drift away from the measurement behind them;
+#   3. ask the portal which of the eight derived semester sessions every batch year
+#      answers for. A session declared after a block was read is invisible to the
+#      crawl, and this is the only thing that notices it;
+#   4. commit the result and a heartbeat.
+#
+# The commit is not bookkeeping. GitHub disables a scheduled workflow after sixty
+# days without repository activity, and that is exactly what had happened to the
+# crawl's own schedule before this job existed: it reported itself active while
+# never firing. A commit a day is what keeps the crawl alive, and the heartbeat is
+# where somebody can see that the automation actually ran.
+#
+# Neither this job nor the crawl needs a human. If the portal is unreachable the
+# check is recorded as failed and the commit still happens, because the automation
+# must not need a healthy upstream in order to keep itself from being disabled.
+#
+# Required repository configuration (the same two secrets census.yml uses):
+#   Secret: SUPABASE_URL              — only needed to dispatch a crawl slice
+#   Secret: SUPABASE_SERVICE_ROLE_KEY — only needed to dispatch a crawl slice
+#
+# The measurement itself reads the public result portal and needs no credentials.
+
+on:
+  schedule:
+    # 02:20 UTC, which is mid-morning in India and well clear of the crawl's own
+    # five-minute schedule's busiest hours.
+    - cron: "20 2 * * *"
+  workflow_dispatch:
+    inputs:
+      years:
+        description: Batch years to re-check, e.g. "24,25". Empty means all 14.
+        required: false
+
+concurrency:
+  group: bput-census-refresh
+  cancel-in-progress: false
+
+permissions:
+  # Push the refreshed measurement and the heartbeat.
+  contents: write
+  # Dispatch a crawl slice without depending on the crawl's schedule.
+  actions: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check census credentials
+        id: config
+        env:
+          HAVE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          HAVE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "$HAVE_URL" ] && [ -n "$HAVE_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Census credentials missing::Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to let this job dispatch a crawl slice. The measurement check runs either way."
+          fi
+
+      # ~2,200 requests against the public portal at six a second: about six
+      # minutes. Deliberately unhurried, because this runs every day forever.
+      - name: Re-check every recorded reading
+        id: intake
+        continue-on-error: true
+        env:
+          CENSUS_YEARS: ${{ inputs.years }}
+        run: |
+          bun scripts/census-intake.mjs --refresh --seconds 3600 --rps 6 --concurrency 6 \
+            --report /tmp/intake.json
+
+      - name: Re-derive the constants the dashboard imports
+        continue-on-error: true
+        run: bun scripts/census-intake.mjs --seconds 1 --write-constants
+
+      - name: Watch which sessions the portal declares
+        continue-on-error: true
+        run: bun scripts/census-sessions.mjs
+
+      # A regenerated constant that does not typecheck or format would be worse
+      # than a stale one, and this is the last place it can be caught: a push made
+      # by a workflow does not trigger ci.yml.
+      - name: Verify the regenerated tree
+        continue-on-error: true
+        run: |
+          bun install --frozen-lockfile
+          bun tsc -b --noEmit
+          bun x prettier --check src scripts
+          bun x eslint src scripts
+
+      - name: Ask the crawl for a slice
+        id: crawl
+        if: steps.config.outputs.configured == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run census.yml --ref main
+
+      - name: Record the check
+        if: always()
+        run: |
+          bun scripts/census-heartbeat.mjs \
+            --verified "$(jq -r '.verified // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown)" \
+            --changed "$(jq -r '.changed // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown)" \
+            --crawl "${{ steps.crawl.outcome }}"
+
+      - name: Commit whatever moved
+        run: |
+          git config user.name "BPUT census"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/census-intake.json docs/census-sessions.json docs/census-automation.json \
+                  src/lib/census-blocks.ts src/lib/census-session-watch.ts
+          if git diff --cached --quiet; then
+            echo "::notice title=Census refresh::Nothing moved. The published measurement still matches the portal."
+            exit 0
+          fi
+          git commit \
+            -m "chore(census): daily measurement refresh" \
+            -m "Re-checked $(jq -r '.blocksChecked // 0' /tmp/intake.json 2>/dev/null || echo 0) readings against the portal, $(jq -r '.changed // 0' /tmp/intake.json 2>/dev/null || echo 0) moved. Session watch and heartbeat recorded."
+          git push
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## BPUT measurement refresh"
+            echo
+            echo "| what | value |"
+            echo "| --- | --- |"
+            echo "| readings re-checked | $(jq -r '.blocksChecked // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown) |"
+            echo "| blocks re-measured | $(jq -r '.changed // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown) |"
+            echo "| readings that could not be read | $(jq -r '.failed // "unknown"' /tmp/intake.json 2>/dev/null || echo unknown) |"
+            echo "| crawl slice | ${{ steps.crawl.outcome }} |"
+            echo
+            echo "Published today: \`$(jq -c '.published' docs/census-automation.json 2>/dev/null || echo unknown)\`"
+            echo
+            echo "Sessions the portal serves, by batch year:"
+            echo
+            echo '```'
+            jq -r '.years | to_entries | sort_by(.key | tonumber) | .[] | "\(.key)  S\(.value.served | join(", S"))"' docs/census-sessions.json 2>/dev/null || echo "unavailable"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

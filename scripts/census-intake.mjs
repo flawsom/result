@@ -34,7 +34,12 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { studentDetails } from "../src/lib/bput-upstream.ts";
 import { RateGovernor } from "../src/lib/census-core.ts";
-import { CENSUS_COLLEGES, CENSUS_YEARS, SERIAL_MAX } from "../src/lib/census-blocks.ts";
+import {
+  CENSUS_COLLEGES,
+  CENSUS_YEARS,
+  MEASURED_HOLE_RATE,
+  SERIAL_MAX,
+} from "../src/lib/census-blocks.ts";
 
 /* ───────────────────────────────────────────────────────────── args ─── */
 
@@ -60,6 +65,16 @@ const AUDIT_BLOCKS = String(flag("audit-blocks", ""))
   .map((s) => s.trim())
   .filter(Boolean);
 const FORCE = flag("force", false) === true;
+// `--refresh` re-checks every recorded reading instead of skipping it: two
+// requests per block to confirm the bound still holds, and a full search only
+// where the portal has moved. This is what the daily scheduled check runs.
+const REFRESH = flag("refresh", false) === true;
+// Rewrite the measurement constants in the module the dashboard imports. A
+// measurement nobody re-runs is a dashboard that slowly stops being true.
+const WRITE_CONSTANTS = flag("write-constants", false) === true;
+const TS_FILE = "src/lib/census-blocks.ts";
+// Machine-readable outcome of this run, for the scheduled job that records it.
+const REPORT = flag("report", null);
 const YEAR_ARG = flag("years", null);
 const ONLY = YEAR_ARG
   ? String(YEAR_ARG)
@@ -90,8 +105,17 @@ store.method = "binary-search-window";
 store.window = WINDOW;
 store.blocks ??= {};
 
-function save() {
-  store.measuredAt = new Date().toISOString();
+/**
+ * Persist the evidence file.
+ *
+ * `measuredAt` is stamped only when a reading was established or changed, so a
+ * verification pass that finds nothing new leaves the file byte-identical — and
+ * leaves the date the numbers were measured telling the truth. `checkedAt`
+ * records the verification itself, which is what makes "verified daily" a fact
+ * rather than a claim.
+ */
+function save(stamp = false) {
+  if (stamp) store.measuredAt = new Date().toISOString();
   mkdirSync(dirname(FILE), { recursive: true });
   writeFileSync(FILE, `${JSON.stringify(store, null, 2)}\n`);
 }
@@ -225,19 +249,45 @@ async function exactCount(prefix, upper) {
   return { live, unreadable, probed: limit };
 }
 
-/* ───────────────────────────────────────────────────────────── sweep ─── */
+/**
+ * Does the recorded bound still describe the portal?
+ *
+ * Two requests: the recorded serial must still answer for a student, and the
+ * serial above it must still answer for nobody. Anything else — including an
+ * unreadable answer — falls through to a full re-measure, because re-measuring a
+ * block costs minutes while publishing a bound the portal has moved past costs a
+ * wrong number about the university.
+ */
+async function stillHolds(prefix, bound) {
+  if (bound === 0) {
+    const first = await probe(`${prefix}001`);
+    return first.state === "miss";
+  }
+  const top = await probe(`${prefix}${String(bound).padStart(3, "0")}`);
+  if (top.state !== "hit") return false;
+  if (bound >= SERIAL_MAX) return true;
+  const above = await probe(`${prefix}${String(bound + 1).padStart(3, "0")}`);
+  return above.state === "miss";
+}
+
+/* ──────────────────────── sweep ─── */
 
 const deadline = Date.now() + SECONDS * 1_000;
 const pending = [];
 for (const year of YEARS) {
   for (const code of CENSUS_COLLEGES[year]) {
     const id = key(year, code);
-    if (!FORCE && typeof store.blocks[id]?.serial === "number") continue;
+    const recorded = store.blocks[id]?.serial;
+    const known = typeof recorded === "number";
+    if (known && !FORCE && !REFRESH) continue;
     pending.push({
       id,
       year,
       code,
       prefix: `${String(year).padStart(2, "0")}01${String(code).padStart(3, "0")}`,
+      // null means "search for it": either nothing is recorded, or the reading
+      // is not being trusted this pass.
+      verify: known && !FORCE ? recorded : null,
     });
   }
 }
@@ -249,10 +299,19 @@ if (pending.length === 0) {
 let cursor = 0;
 let done = 0;
 let failed = 0;
+let verified = 0;
+/** Readings that were established or actually moved. */
+let readings = 0;
 
 async function worker() {
   while (cursor < pending.length && Date.now() < deadline) {
     const job = pending[cursor++];
+    if (typeof job.verify === "number" && (await stillHolds(job.prefix, job.verify))) {
+      verified += 1;
+      done += 1;
+      continue;
+    }
+    const previous = store.blocks[job.id]?.serial;
     const measured = await highestLive(job.prefix);
     if (measured.serial === null) {
       failed += 1;
@@ -269,9 +328,13 @@ async function worker() {
         at: new Date().toISOString(),
       };
     }
+    // A fresh reading only counts as a change when it disagrees with what was
+    // recorded, so a verification pass that finds nothing new stamps no date and
+    // produces no evidence-file diff.
+    if (previous !== store.blocks[job.id].serial) readings += 1;
     done += 1;
     if (done % 25 === 0) {
-      save();
+      save(readings > 0);
       console.log(
         `[intake] ${done}/${pending.length} blocks · ${job.id} → ${store.blocks[job.id].serial ?? "unreadable"}`,
       );
@@ -280,7 +343,8 @@ async function worker() {
 }
 
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-save();
+if (REFRESH) store.checkedAt = new Date().toISOString();
+save(readings > 0);
 
 /* ──────────────────────────────────────────────────────────── audit ─── */
 
@@ -326,6 +390,137 @@ if (AUDIT > 0 || AUDIT_BLOCKS.length > 0) {
   store.audits = audits;
   save();
 }
+
+/* ─────────────────────────── rewrite the grid's own constants ─── */
+
+/** `160609` → `160_609`, matching the underscores the module already uses. */
+const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "_");
+
+/**
+ * Re-derive the constants in `census-blocks.ts` from the evidence file.
+ *
+ * The dashboard reads those constants, so a measurement nobody re-runs is a
+ * dashboard that quietly stops being true. This is what lets the daily scheduled
+ * check keep the published figures honest without a human deciding to.
+ *
+ * The definitions are stated here so the regenerated file cannot drift from its
+ * own rules: `mean` is serials ÷ blocks at one decimal, `median` is the upper
+ * middle reading of the sorted block, `max` is the largest reading, and the
+ * student count removes the measured hole rate for the year's era.
+ */
+function renderConstants() {
+  const years = [];
+  const flat = [];
+  let missing = 0;
+  for (const year of CENSUS_YEARS) {
+    const values = [];
+    for (const code of CENSUS_COLLEGES[year] ?? []) {
+      const serial = store.blocks[key(year, code)]?.serial;
+      if (typeof serial !== "number") {
+        missing += 1;
+        continue;
+      }
+      values.push(serial);
+      flat.push(serial);
+    }
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = sorted.length;
+    const serials = values.reduce((a, v) => a + v, 0);
+    years.push({
+      year: 2000 + year,
+      blocks: n,
+      serials,
+      mean: n > 0 ? Number((serials / n).toFixed(1)) : 0,
+      median: n > 0 ? sorted[Math.round((n - 1) * 0.5)] : 0,
+      max: n > 0 ? sorted[n - 1] : 0,
+      students:
+        serials * (1 - (year <= 14 ? MEASURED_HOLE_RATE.before2015 : MEASURED_HOLE_RATE.from2015)),
+    });
+  }
+  return {
+    years,
+    flat,
+    serials: flat.reduce((a, v) => a + v, 0),
+    students: Math.round(years.reduce((a, r) => a + r.students, 0)),
+    missing,
+  };
+}
+
+/** Replace everything between two anchors, keeping the anchors themselves. */
+function swap(src, start, end, body) {
+  const from = src.indexOf(start);
+  if (from === -1) throw new Error(`${TS_FILE}: cannot find ${start.slice(0, 48)}…`);
+  const to = src.indexOf(end, from + start.length);
+  if (to === -1) throw new Error(`${TS_FILE}: cannot find the end of ${start.slice(0, 48)}…`);
+  return `${src.slice(0, from + start.length)}${body}${src.slice(to)}`;
+}
+
+function writeConstants() {
+  const { years, flat, serials, students, missing } = renderConstants();
+  if (missing > 0) {
+    // Half a measurement would rewrite the block array out of alignment with the
+    // grid, which is the one way this could publish a wrong number.
+    console.error(`[intake] refusing to rewrite ${TS_FILE}: ${missing} block(s) have no reading.`);
+    process.exitCode = 4;
+    return;
+  }
+
+  const before = readFileSync(TS_FILE, "utf8");
+  const measuredAt = (store.measuredAt ?? new Date().toISOString()).slice(0, 10);
+  const checkedAt = (store.checkedAt ?? store.measuredAt ?? new Date().toISOString()).slice(0, 10);
+  let after = before;
+
+  after = swap(
+    after,
+    "export const MEASURED_INTAKE: Record<number, MeasuredIntake> = {\n",
+    "\n};",
+    years
+      .map(
+        (r) =>
+          `  ${r.year}: { blocks: ${r.blocks}, serials: ${grouped(r.serials)}, mean: ${r.mean}, median: ${r.median}, max: ${r.max} },`,
+      )
+      .join("\n"),
+  );
+  after = after.replace(
+    /export const MEASURED_AT = "[^"]*";/,
+    `export const MEASURED_AT = "${measuredAt}";`,
+  );
+  after = after.replace(
+    /export const MEASURED_CHECKED_AT = "[^"]*";/,
+    `export const MEASURED_CHECKED_AT = "${checkedAt}";`,
+  );
+  after = after.replace(
+    /export const MEASURED_SERIALS = [\d_]+;/,
+    `export const MEASURED_SERIALS = ${grouped(serials)};`,
+  );
+  after = swap(
+    after,
+    "export const MEASURED_BLOCK_SERIALS: readonly number[] = [\n",
+    "\n];",
+    Array.from(
+      { length: Math.ceil(flat.length / 16) },
+      (_, i) => `  ${flat.slice(i * 16, i * 16 + 16).join(", ")},`,
+    ).join("\n"),
+  );
+  // The header states the totals in prose. Left alone it would contradict the
+  // numbers underneath it the first time a college opens or closes.
+  after = after.replace(
+    /Total: [\d,]+ college-year blocks holding [\d,]+ registration numbers and about\n\/\/ [\d,]+ students/,
+    `Total: ${flat.length} college-year blocks holding ${serials.toLocaleString("en-US")} registration numbers and about\n// ${students.toLocaleString("en-US")} students`,
+  );
+
+  if (after === before) {
+    console.log(`[intake] ${TS_FILE} already matches the measurement`);
+    return;
+  }
+  writeFileSync(TS_FILE, after);
+  console.log(
+    `[intake] rewrote ${TS_FILE}: ${flat.length} blocks, ${serials.toLocaleString("en-US")} numbers, ` +
+      `${students.toLocaleString("en-US")} students, measured ${measuredAt}, checked ${checkedAt}`,
+  );
+}
+
+if (WRITE_CONSTANTS) writeConstants();
 
 /* ───────────────────────────────────────────────────────────── report ─── */
 
@@ -397,6 +592,32 @@ if (store.audits?.length) {
   console.log(
     `[intake] audit: ${store.audits.length} blocks full-walked, total drift ${drift} serial(s) over ${store.audits.reduce((n, a) => n + a.exact, 0)} exact students.`,
   );
+}
+if (REFRESH) {
+  console.log(
+    `[intake] refresh: ${verified} reading(s) confirmed still exact, ` +
+      `${readings} block(s) re-measured to a different number`,
+  );
+}
+if (typeof REPORT === "string") {
+  writeFileSync(
+    REPORT,
+    `${JSON.stringify(
+      {
+        at: new Date().toISOString(),
+        refresh: REFRESH,
+        blocksChecked: pending.length,
+        verified,
+        changed: readings,
+        failed,
+        blocks: totalBlocks,
+        serials: total,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  console.log(`[intake] wrote ${REPORT}`);
 }
 console.log(`[intake] wrote ${FILE}`);
 process.exitCode = failed > 0 ? 3 : 0;
