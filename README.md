@@ -973,7 +973,6 @@ result/
 │   ├── server.ts · start.ts         # SSR entry and server-function middleware
 │   └── styles.css                   # Tailwind v4 entry, design tokens, dark mode
 ├── supabase/migrations/             # append-only, timestamped SQL
-├── AGENTS.md                        # guardrail: keep main in a working state (pushes sync to live)
 ├── components.json · eslint.config.js · .prettierrc · bunfig.toml · tsconfig.json
 └── vite.config.ts                   # thin wrapper over @lovable.dev/vite-tanstack-config
 ```
@@ -1092,7 +1091,7 @@ The "Continue with Google" button calls Supabase's Google provider directly — 
 | Analytics RPC schema           | [`supabase/migrations/`](supabase/migrations)                                                             |
 | Bulk engine                    | [`src/lib/bulk/`](src/lib/bulk)                                                                           |
 | Environment template           | [`.env.example`](.env.example)                                                                            |
-| Contributing guardrails        | [`AGENTS.md`](AGENTS.md) — `main` must always stay deployable                                             |
+| Contributing guardrails        | `main` must always stay deployable — it deploys on every push                                             |
 | Privacy & FAQ (user-facing)    | [`/privacy`](https://result.unifies.codes/privacy)                                                        |
 
 $$ \text{SGPA} = \frac{\sum_{i=1}^{n} C_i \times G_i}{\sum_{i=1}^{n} C_i} \qquad\qquad \text{CGPA} = \frac{\sum_{n=1}^{k} \text{SGPA}_n \times C_n}{\sum_{n=1}^{k} C_n} $$
