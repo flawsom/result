@@ -230,7 +230,10 @@ async function rpc<T>(config: CensusTickConfig, fn: string, body: unknown): Prom
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new CensusWriteError(`${fn} failed (${res.status}): ${text.slice(0, 300)}`);
+    const err = new CensusWriteError(`${fn} failed (${res.status}): ${text.slice(0, 300)}`);
+    // Keep the status: a rejected credential and a rejected payload are the same
+    // shape of error to the callers that only log, but not to the preflight.
+    throw Object.assign(err, { status: res.status });
   }
   if (!text) return undefined as T;
   try {
@@ -684,6 +687,52 @@ export async function runCensusGrid(
 }
 
 /**
+ * Prove the credentials before walking anything.
+ *
+ * `census_cursor_state` is the cheapest call that requires both a valid key *and*
+ * the service role, so it is the right probe: it fails exactly the way the crawl
+ * would, but before an hour has been spent finding out. The failure is then
+ * translated into the one sentence that says what to change, because "401 Invalid
+ * API key" in a scheduler log costs somebody an afternoon.
+ */
+export async function preflightCensus(config: CensusTickConfig): Promise<void> {
+  const blocks = selectedBlocks(config);
+  const probe = blocks[0] ?? censusBlocks()[0];
+  const project = config.supabaseUrl.replace(/^https?:\/\//, "");
+
+  try {
+    await rpc(config, "census_cursor_state", {
+      _range_start: probe.start,
+      _range_end: probe.end,
+    });
+  } catch (e) {
+    const detail = (e as Error)?.message ?? String(e);
+    const status = (e as { status?: number })?.status ?? 0;
+    const invalidKey = /invalid api key/i.test(detail);
+    const noWritePermission =
+      status === 401 || status === 403 || /42501|not readable|not permitted/i.test(detail);
+
+    if (invalidKey) {
+      throw new Error(
+        `Census credentials rejected: the value in SUPABASE_SERVICE_ROLE_KEY is not a valid API key for ${project}. ` +
+          `Supabase answers with this for a legacy JWT that no longer belongs to the project — for example a key saved ` +
+          `before the project was deleted and recreated. Take the current service_role secret (Project Settings → API ` +
+          `keys) or create an sb_secret_… secret key, paste it with no quotes and no trailing newline, and re-run. ` +
+          `Upstream said: ${detail}`,
+      );
+    }
+    if (noWritePermission) {
+      throw new Error(
+        `Census credentials are valid but have no write permission on ${project}: the key is not the service_role key. ` +
+          `An anon/publishable key is refused here on purpose — census_cursor_state is gated by census_can_write(), which ` +
+          `accepts only service_role or an admin session. Upstream said: ${detail}`,
+      );
+    }
+    throw new Error(`Census preflight could not read ${project}/rest/v1: ${detail}`);
+  }
+}
+
+/**
  * Report where the census actually is, and how long the rest should take.
  *
  * The ETA is deliberately crude and labelled as such: it scales the estimated
@@ -747,6 +796,10 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
       `${config.adaptive ? `→${config.maxRps}` : ""} req/s aggregate` +
       `${config.maxBlocks > 0 ? `, max ${config.maxBlocks} blocks` : ""}`,
   );
+
+  // Fail with a diagnosis, not with a 401 halfway through a slice.
+  await preflightCensus(config);
+  console.log("[census] preflight ok — service role accepted, cursor state readable");
 
   const summary = grid ? await runCensusGrid(config) : await runCensusTick(config);
   console.log(`[census] ${JSON.stringify(summary)}`);
