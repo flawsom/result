@@ -62,12 +62,12 @@ export function PanelCard({
   return (
     <section className={`an-panel ${className}`} style={style}>
       <header className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <h3 className="label-caps flex items-center gap-2 font-bold">
+        <h4 className="label-caps flex items-center gap-2 font-bold">
           <span className="px-2 py-0.5 text-background" style={{ background: "var(--foreground)" }}>
             {index}
           </span>
           {title}
-        </h3>
+        </h4>
         {meta ? <span className="label-caps text-muted-foreground">{meta}</span> : null}
       </header>
       {children}
@@ -167,7 +167,7 @@ export function IntervalBar({
 }
 
 /** Row with a label, a 0–100% track, and a right-aligned readout. */
-function MeterRow({
+export function MeterRow({
   label,
   value,
   max,
@@ -204,7 +204,12 @@ function MeterRow({
 interface TooltipInjected {
   active?: boolean;
   label?: string | number;
-  payload?: Array<{ dataKey?: string | number; value?: number | string | null }>;
+  payload?: Array<{
+    dataKey?: string | number;
+    value?: number | string | null;
+    /** The datum itself, so a tooltip can read fields the chart does not plot. */
+    payload?: Record<string, unknown>;
+  }>;
 }
 
 function VolumeTooltip({ active, label, payload }: TooltipInjected) {
@@ -254,6 +259,37 @@ function VolumeTooltip({ active, label, payload }: TooltipInjected) {
   );
 }
 
+export function PanelGroup({ label, note }: { label: ReactNode; note?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-2">
+      <h3 className="label-caps font-bold">{label}</h3>
+      {note ? <span className="label-caps text-muted-foreground">{note}</span> : null}
+    </div>
+  );
+}
+
+export type AcquisitionLink = "connecting" | "live" | "offline";
+
+/** Which channel is feeding a panel. Stated, never implied. */
+export function LinkChip({ link }: { link: AcquisitionLink }) {
+  const text = link === "live" ? "Live push" : link === "connecting" ? "Connecting" : "Polling";
+  const color = link === "live" ? OK : link === "connecting" ? "var(--muted-foreground)" : WARN;
+  return (
+    <span className="label-caps inline-flex items-center gap-2" style={{ color }}>
+      <span className="relative inline-flex h-2 w-2">
+        {link === "live" ? (
+          <span
+            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+            style={{ background: OK }}
+          />
+        ) : null}
+        <span className="relative inline-flex h-2 w-2" style={{ background: color }} />
+      </span>
+      {text}
+    </span>
+  );
+}
+
 export function VolumePanel({ payload }: { payload: AnalyticsPayload }) {
   const series = useMemo(() => buildVolumeSeries(payload.observed.daily, 7), [payload]);
 
@@ -271,7 +307,7 @@ export function VolumePanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="03"
+      index="04"
       title="Volume, trend & 7-day forecast"
       meta={`${series.points.length - 7} days observed · ${series.points.filter((p) => p.isForecast).length} forecast`}
       style={{ animationDelay: "80ms" }}
@@ -472,7 +508,7 @@ export function OutcomePanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="04"
+      index="05"
       title="Outcome mix & success rate"
       meta={`n = ${fmtInt(stats.attempts)} primary attempts`}
       style={{ animationDelay: "140ms" }}
@@ -545,7 +581,7 @@ export function LatencyPanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="05"
+      index="06"
       title="Upstream latency by semester"
       meta={`n = ${fmtInt(stats.n)} measured attempts`}
       style={{ animationDelay: "200ms" }}
@@ -642,7 +678,7 @@ export function SeasonalityPanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="06"
+      index="07"
       title="When lookups happen · IST"
       meta="7 × 24 · all-time observed"
       style={{ animationDelay: "240ms" }}
@@ -735,7 +771,7 @@ export function BranchPanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="07"
+      index="08"
       title="Branch structure & concentration"
       meta="k ≥ 25 anonymity floor"
       style={{ animationDelay: "300ms" }}
@@ -846,7 +882,7 @@ export function PublicationPanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="08"
+      index="09"
       title="Publication matrix"
       meta={`${matrix.observed} year × semester cells observed`}
       style={{ animationDelay: "340ms" }}
@@ -926,7 +962,7 @@ export function YearPanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="09"
+      index="10"
       title="Observed volume by batch year"
       meta={`${observedYears.length} years observed`}
       style={{ animationDelay: "380ms" }}
@@ -983,7 +1019,7 @@ export function FunnelPanel({ payload }: { payload: AnalyticsPayload }) {
 
   return (
     <PanelCard
-      index="10"
+      index="11"
       title="Semester coverage"
       meta={totalAttempts > 0 ? "primary attempts only" : "awaiting primaries"}
       style={{ animationDelay: "420ms" }}
@@ -1053,7 +1089,7 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
     [
       "Published rate",
       "Published primary attempts ÷ all primary attempts, with a Wilson 95% interval.",
-      "panel 04",
+      "panel 05",
     ],
     [
       "Probe",
@@ -1068,23 +1104,53 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
     [
       "p50 / p95",
       "Percentile of measured end-to-end duration across attempts with a sample.",
-      "panel 05",
+      "panel 06",
     ],
     [
       "Trend & forecast",
       "Ordinary least squares on the 90-day daily series, with a 95% prediction interval — not a confidence interval on the mean.",
-      "panel 03",
+      "panel 04",
     ],
-    ["Anomaly", "Robust z-score (median/MAD) ≥ 2.5 on the daily series.", "panel 03"],
+    ["Anomaly", "Robust z-score (median/MAD) ≥ 2.5 on the daily series.", "panel 04"],
     [
       "HHI / Gini",
       "Concentration of requests across visible branch buckets; a description of this sample, not of the university.",
-      "panel 07",
+      "panel 08",
     ],
     [
       "k ≥ 25",
       "A branch bucket is published only when at least 25 observations support it; smaller buckets pool into Other.",
-      "panels 07, 04",
+      "panels 08, 06",
+    ],
+    [
+      "Measured intake",
+      "The highest live registration number in each college-and-year range, probed block by block rather than sampled; students remove the measured hole rate.",
+      "panel 01",
+    ],
+    [
+      "Hole",
+      "A registration number below a college's maximum that answers for nobody — a dropout, a transfer or a withdrawn record.",
+      "panel 01",
+    ],
+    [
+      "Theil–Sen slope",
+      "Median of all pairwise slopes, shown beside OLS because one real trough year moves a least-squares line further than it should.",
+      "panel 01",
+    ],
+    [
+      "Gini / top decile",
+      "Concentration of intake across the 1,103 measured colleges — a description of the university's numbering, not of its admissions policy.",
+      "panel 02",
+    ],
+    [
+      "Probe coverage",
+      "Numbers probed so far ÷ the 160,609 numbers the grid declares. The denominator was measured, which is the only reason a percentage is meaningful.",
+      "panel 03",
+    ],
+    [
+      "Reads left (est.)",
+      "Nine reads per student plus one probe per number, summed over the per-block means and minus the reads already spent. An estimate, and labelled as one.",
+      "panel 03",
     ],
     [
       "Schema",
@@ -1131,6 +1197,16 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
         <li>
           Latency is measured in the browser and therefore includes the visitor's own network — it
           is a user-perceived figure, not an upstream-only measurement.
+        </li>
+        <li>
+          Panels 01–03 describe the university and come from the census measurement; panels 04–11
+          describe this deployment&apos;s own traffic. The two are never blended, and each panel
+          states which it is.
+        </li>
+        <li>
+          Intake is the portal&apos;s numbering standing in for cohort size. It is an upper bound:
+          it counts records the portal still serves rather than students who ever enrolled, and
+          older batches have had a decade in which to change.
         </li>
         <li>
           Counts describe activity on this site. They are not enrolment numbers, pass rates, or any

@@ -191,31 +191,62 @@ export async function saveCursor(input: {
  * counter row and broadcasts every change to it, so a batch landing in the
  * portal reaches every open dashboard in about a second — no polling delay and
  * no cached figure. Readers get that one row and never the observation stream.
+ *
+ * Several sections on the landing page want this same row, and one socket per
+ * section would mean the database fanning every insert out N times. So the
+ * channel is a module-level singleton: the first subscriber opens it, the last
+ * one to leave closes it, and everyone in between is served by one subscription.
+ * Subscribing is therefore safe to do from as many components as need it.
  */
-export function subscribeCensusLive(
-  onRow: (row: CensusLiveCounters) => void,
-  onStatus?: (status: "connecting" | "live" | "offline") => void,
-): LiveSubscription {
-  let closed = false;
-  onStatus?.("connecting");
+type LinkStatus = "connecting" | "live" | "offline";
 
-  const channel = supabase
+interface CensusSubscriber {
+  onRow: (row: CensusLiveCounters) => void;
+  onStatus?: (status: LinkStatus) => void;
+}
+
+const censusSubscribers = new Set<CensusSubscriber>();
+let censusChannel: ReturnType<typeof supabase.channel> | null = null;
+let censusLink: LinkStatus = "connecting";
+
+function ensureCensusChannel(): void {
+  if (censusChannel) return;
+  censusChannel = supabase
     .channel("census-live-counters")
     .on("postgres_changes", { event: "*", schema: "public", table: "census_live" }, (payload) => {
       const row = (payload.new ?? null) as CensusLiveCounters | null;
-      if (row && typeof row.observations === "number") onRow(row);
+      if (!row || typeof row.observations !== "number") return;
+      for (const subscriber of censusSubscribers) subscriber.onRow(row);
     })
     .subscribe((status) => {
-      if (closed) return;
-      if (status === "SUBSCRIBED") onStatus?.("live");
-      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-        onStatus?.("offline");
-      }
+      censusLink =
+        status === "SUBSCRIBED"
+          ? "live"
+          : status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"
+            ? "offline"
+            : "connecting";
+      for (const subscriber of censusSubscribers) subscriber.onStatus?.(censusLink);
     });
+}
+
+export function subscribeCensusLive(
+  onRow: (row: CensusLiveCounters) => void,
+  onStatus?: (status: LinkStatus) => void,
+): LiveSubscription {
+  const subscriber: CensusSubscriber = { onRow, onStatus };
+  censusSubscribers.add(subscriber);
+  ensureCensusChannel();
+  // A late subscriber still learns the current state immediately instead of
+  // waiting for the next broadcast.
+  onStatus?.(censusLink);
 
   return {
     close: () => {
-      closed = true;
+      censusSubscribers.delete(subscriber);
+      if (censusSubscribers.size > 0 || !censusChannel) return;
+      const channel = censusChannel;
+      censusChannel = null;
+      censusLink = "connecting";
       void supabase.removeChannel(channel);
     },
   };

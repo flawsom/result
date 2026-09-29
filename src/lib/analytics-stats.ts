@@ -214,6 +214,29 @@ export function linearRegression(xs: readonly number[], ys: readonly number[]): 
 }
 
 /**
+ * Theil–Sen slope: the median of every pairwise slope.
+ *
+ * Least squares gives one outlier pair of observations the power to move the
+ * whole line, which is the wrong property for a 14-point intake series whose
+ * single 2020 trough is real and should not be averaged away. The Theil–Sen
+ * estimator is the standard robust alternative: it is computed from the median
+ * pairwise slope, has a breakdown point near 29%, and agrees with OLS on clean
+ * data. Reported next to OLS, never instead of it, so the two can be compared.
+ */
+export function theilSen(xs: readonly number[], ys: readonly number[]): number {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 2) return 0;
+  const slopes: number[] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const dx = xs[j] - xs[i];
+      if (Math.abs(dx) > EPS) slopes.push((ys[j] - ys[i]) / dx);
+    }
+  }
+  return slopes.length === 0 ? 0 : median(slopes);
+}
+
+/**
  * Point forecast at `xNext` with a 95% **prediction** interval (not a
  * confidence interval on the mean line): it widens with distance from the
  * centre of mass of the observed x's, which is the honest way to show an

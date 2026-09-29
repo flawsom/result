@@ -45,11 +45,26 @@ import {
   KpiTile,
   LatencyPanel,
   OutcomePanel,
+  PanelGroup,
   PublicationPanel,
   SeasonalityPanel,
   VolumePanel,
   YearPanel,
+  type AcquisitionLink,
 } from "@/components/analytics/panels";
+import {
+  fetchCensus,
+  subscribeCensusLive,
+  type CensusLiveCounters,
+  type CensusPayload,
+} from "@/lib/census-client";
+import { MEASURED_BLOCKS } from "@/lib/census-blocks";
+import { blockDistribution, censusAcquisition, intakeSeries } from "@/lib/intake-stats";
+import {
+  BlockDistributionPanel,
+  CensusAcquisitionPanel,
+  IntakePanel,
+} from "@/components/analytics/university";
 
 /**
  * While the realtime channel is live, a slow reconciliation read guards against
@@ -291,6 +306,39 @@ export function HomeAnalytics() {
     };
   }, [queryClient]);
 
+  // The census is the second live stream, and it is the one that lets this
+  // section say something about the university instead of about the site. Same
+  // query key as the census section further down the page, so the two share a
+  // single read and — through the shared subscription in census-client — a
+  // single Realtime channel.
+  const [censusLive, setCensusLive] = useState<CensusLiveCounters | null>(null);
+  const [censusLink, setCensusLink] = useState<AcquisitionLink>("connecting");
+
+  const census = useQuery({
+    queryKey: ["bput-census"],
+    queryFn: fetchCensus,
+    retry: 1,
+    staleTime: 10_000,
+    refetchInterval: censusLink === "live" ? 60_000 : 15_000,
+    refetchIntervalInBackground: false,
+  });
+
+  useEffect(() => {
+    let timer: number | null = null;
+    const sub = subscribeCensusLive((row) => {
+      setCensusLive(row);
+      if (timer !== null) return;
+      timer = window.setTimeout(() => {
+        timer = null;
+        void queryClient.invalidateQueries({ queryKey: ["bput-census"] });
+      }, COALESCE_MS);
+    }, setCensusLink);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      sub.close();
+    };
+  }, [queryClient]);
+
   return (
     <section aria-labelledby="analytics-heading" className="mt-20">
       <style>{SCOPED_STYLES}</style>
@@ -316,18 +364,25 @@ export function HomeAnalytics() {
             )}
           </div>
           <div className="label-caps mt-1 text-muted-foreground">
-            {q.data ? "telemetry schema v2 · observed only" : "schema unverified"}
+            {q.data ? "census measured · telemetry v2 · nothing modelled" : "store unverified"}
           </div>
         </div>
       </div>
 
       <p className="mt-6 max-w-3xl text-sm text-muted-foreground">
-        Every figure below is derived from requests this site actually served: one anonymous row per
-        upstream attempt, recording the batch year, semester, branch, outcome and measured duration
-        — never a roll number, name, grade or any other identifying detail. Branches with fewer than
-        25 observations are pooled into <em>Other</em>, and the time series is gap-filled with real
+        Two measured sources, no modelled series anywhere. Panels 01–03 describe the university: all
+        1,103 college-and-year ranges on the public result portal were probed for their last live
+        registration number, and the census is walking those ranges now, storing one anonymous row
+        per student-semester. Panels 04–11 describe this deployment: one anonymous row per upstream
+        attempt it served — batch year, semester, branch, outcome and measured duration — and never
+        a roll number, name, grade or any other identifying detail. Branches with fewer than 25
+        observations are pooled into <em>Other</em>, and the time series is gap-filled with real
         zeros so an idle day never looks like missing data.
       </p>
+
+      <div className="mt-8">
+        <UniversityBlock census={census.data} censusLive={censusLive} censusLink={censusLink} />
+      </div>
 
       <div className="mt-8">
         {q.isPending ? (
@@ -362,6 +417,51 @@ export function HomeAnalytics() {
 
 /* ─────────────────────────────────────────────────────────────────── body ── */
 
+/**
+ * Panels 01–03 — the university, from the measured grid.
+ *
+ * Mounted deliberately outside the telemetry read. The intake measurement is
+ * static data compiled into this bundle, so the first two panels render even
+ * when the analytics RPC is absent or the store is unreachable; only panel 03
+ * needs a connection, and it says so on itself rather than implying one.
+ */
+function UniversityBlock({
+  census,
+  censusLive,
+  censusLink,
+}: {
+  census: CensusPayload | undefined;
+  censusLive: CensusLiveCounters | null;
+  censusLink: AcquisitionLink;
+}) {
+  // The measurement is fixed — one probe per block on 2026-09-29 — so it derives
+  // once per mount. Only the acquisition figures move, with the live census row.
+  const intake = useMemo(() => intakeSeries(), []);
+  const distribution = useMemo(() => blockDistribution(), []);
+  const acquisition = useMemo(() => censusAcquisition(census, censusLive), [census, censusLive]);
+
+  return (
+    <div className="space-y-8">
+      <PanelGroup
+        label="The university · measured grid"
+        note={`${fmtInt(MEASURED_BLOCKS)} colleges probed block by block`}
+      />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+        <div className="md:col-span-12">
+          <IntakePanel series={intake} />
+        </div>
+        <div className="md:col-span-6">
+          <BlockDistributionPanel dist={distribution} />
+        </div>
+        <div className="md:col-span-6">
+          <CensusAcquisitionPanel acquisition={acquisition} link={censusLink} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsBody({
   data,
   live,
@@ -381,6 +481,8 @@ function AnalyticsBody({
 
   return (
     <div className="space-y-8">
+      <PanelGroup label="This deployment · observed live" note="anonymous telemetry · schema v2" />
+
       <LiveTicker
         data={data}
         live={live}
@@ -517,7 +619,7 @@ function LiveTicker({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="label-caps text-muted-foreground">
-            01 · Live counter {status === "live" ? "· pushed from the database" : ""}
+            Live counter · this deployment {status === "live" ? "· pushed from the database" : ""}
           </div>
           <div
             className="font-display mt-2 text-5xl leading-none tabular-nums"
@@ -618,7 +720,7 @@ function ColdStart() {
   return (
     <div className="border-heavy p-6">
       <div className="label-caps text-muted-foreground">
-        Panels 03–10 · awaiting the first observation
+        Panels 04–11 · awaiting the first observation
       </div>
       <h3 className="font-display mt-2 text-3xl">No observations recorded yet.</h3>
       <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">
