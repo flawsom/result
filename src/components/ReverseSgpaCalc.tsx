@@ -67,8 +67,7 @@ export function ReverseSgpaCalc({
           <div className="font-mono text-sm">Enter valid target and credits.</div>
         ) : result.trivial ? (
           <div className="font-mono text-sm">
-            You're already above this target. Even a 0 next semester keeps you at or above {target}
-            .
+            You're already above this target. Even a 0 next semester keeps you at or above {target}.
           </div>
         ) : result.unreachable ? (
           <div>

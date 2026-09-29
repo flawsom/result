@@ -392,8 +392,8 @@ export function HomeAnalytics() {
         1,103 college-and-year ranges on the public result portal were probed for their last live
         registration number, and the census is walking those ranges now, storing one anonymous row
         per student-semester. Panels 04–11 describe this deployment: one anonymous row per upstream
-        attempt it served (batch year, semester, branch, outcome and measured duration), and never
-        a roll number, name, grade or any other identifying detail. Branches with fewer than 25
+        attempt it served (batch year, semester, branch, outcome and measured duration), and never a
+        roll number, name, grade or any other identifying detail. Branches with fewer than 25
         observations are pooled into <em>Other</em>, and the time series is gap-filled with real
         zeros so an idle day never looks like missing data.
       </p>

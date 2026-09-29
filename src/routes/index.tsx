@@ -596,7 +596,8 @@ function Index() {
 
               {plan.length === 0 && (
                 <div className="border-thick mt-6 p-6 font-mono text-sm">
-                  Could not parse batch year from student record, so semester sessions cannot be computed.
+                  Could not parse batch year from student record, so semester sessions cannot be
+                  computed.
                 </div>
               )}
             </div>

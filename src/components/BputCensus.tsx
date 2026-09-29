@@ -363,9 +363,9 @@ export function BputCensus() {
               The crawl has started but stored nothing.
             </h3>
             <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">
-              Numbers have been probed, so the ranges are being read, but no student record has
-              come back yet. Panels appear the moment the first observation is written; nothing is
-              filled in ahead of that.
+              Numbers have been probed, so the ranges are being read, but no student record has come
+              back yet. Panels appear the moment the first observation is written; nothing is filled
+              in ahead of that.
             </p>
           </div>
         ) : (

@@ -154,11 +154,11 @@ export function CensusControl() {
       <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Two engines, one reduction.</span> The grid
         below is the measured BPUT space, committed in <code>src/lib/census-blocks.ts</code>, with
-        no range to configure. <code>.github/workflows/census.yml</code> walks it with no tab open: add
-        the repository secrets <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code>{" "}
-        and it ticks every five minutes on its own, resuming each block from the same saved offset.
-        Pacing there is an aggregate request ceiling that ramps up and halves on any 429. The
-        landing page follows either engine live.
+        no range to configure. <code>.github/workflows/census.yml</code> walks it with no tab open:
+        add the repository secrets <code>SUPABASE_URL</code> and{" "}
+        <code>SUPABASE_SERVICE_ROLE_KEY</code> and it ticks every five minutes on its own, resuming
+        each block from the same saved offset. Pacing there is an aggregate request ceiling that
+        ramps up and halves on any 429. The landing page follows either engine live.
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

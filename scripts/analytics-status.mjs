@@ -240,9 +240,7 @@ if (!write.ok || accepted === 0) {
   process.exit(1);
 }
 if (!moved) {
-  console.error(
-    "\n[analytics] FAILED, the row was stored but the live counter did not follow it.",
-  );
+  console.error("\n[analytics] FAILED, the row was stored but the live counter did not follow it.");
   process.exit(1);
 }
 if (!pushed) {

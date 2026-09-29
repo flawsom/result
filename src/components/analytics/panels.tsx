@@ -1240,8 +1240,8 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
           use.
         </li>
         <li>
-          Latency is measured in the browser and therefore includes the visitor's own network, so
-          it is a user-perceived figure, not an upstream-only measurement.
+          Latency is measured in the browser and therefore includes the visitor's own network, so it
+          is a user-perceived figure, not an upstream-only measurement.
         </li>
         <li>
           Panels 01–03 describe the university and come from the census measurement; panels 04–11
