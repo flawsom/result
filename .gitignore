@@ -17,6 +17,12 @@ dist-ssr
 .nitro
 *.local
 
+# Local secrets and tool scaffolding - never tracked
+.env
+.env.*
+!.env.example
+.lovable/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
