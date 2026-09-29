@@ -38,6 +38,20 @@ name: BPUT census
 on:
   schedule:
     - cron: "*/5 * * * *"
+
+  # A push that touches the crawler re-validates the tick on real data, and it is
+  # the only trigger that can be relied on to fire: this repository went 71 days
+  # without a commit before 2026-09-29, past GitHub's 60-day threshold for
+  # automatically disabling scheduled workflows, and the schedule above has fired
+  # exactly once in its life. A short slice on push keeps that verification cheap.
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/census-*.ts"
+      - "src/lib/bput-upstream.ts"
+      - "scripts/census-tick.mjs"
+      - ".github/workflows/census.yml"
+
   workflow_dispatch:
     inputs:
       years:
@@ -115,7 +129,9 @@ jobs:
           CENSUS_YEARS: ${{ inputs.years || vars.CENSUS_YEARS }}
           CENSUS_RANGE_START: ${{ inputs.range_start }}
           CENSUS_RANGE_END: ${{ inputs.range_end }}
-          CENSUS_SECONDS: ${{ inputs.seconds || '2400' }}
+          # A push is a smoke slice; the schedule and a manual dispatch get the
+          # full budget.
+          CENSUS_SECONDS: ${{ github.event_name == 'push' && 300 || inputs.seconds || 2400 }}
           CENSUS_MAX_RPS: ${{ inputs.max_rps || '16' }}
           CENSUS_CONCURRENCY: ${{ inputs.concurrency || '8' }}
           CENSUS_ADAPTIVE: ${{ vars.CENSUS_ADAPTIVE || '1' }}
