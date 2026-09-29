@@ -23,9 +23,11 @@ name: BPUT census
 #
 # The real limit is the upstream pace, not the runner. Four workers at a 1s
 # per-request delay is about 4 requests/second; a student costs nine (one record
-# plus eight semesters), so ~27 students/minute sustained. That covers the whole
-# grid in a couple of days. Lower CENSUS_RATE_MS or raise CENSUS_CONCURRENCY to go
-# faster — and watch the log for 429s if you do, because the portal is somebody
+# plus eight semesters), so ~27 students/minute sustained — roughly four days for
+# the whole grid, whose ~160,000 students are about 1.5 million requests. Narrow
+# CENSUS_YEARS for a fast first result: `23,24,25` is the currently-enrolled slice
+# and finishes in about a day. Lower CENSUS_RATE_MS or raise CENSUS_CONCURRENCY to
+# go faster — and watch the log for 429s if you do, because the portal is somebody
 # else's server and the census is a guest in it.
 
 on:
