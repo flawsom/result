@@ -146,6 +146,20 @@
   text-transform: uppercase;
 }
 
+/*
+ * `label-caps` is sized for panel titles and section headers. Inside a KPI tile
+ * it is too wide: 12px with 0.15em tracking turns a five-word caption into five
+ * lines in a box ~200px across, which is what made the census tiles read as a
+ * wall of text. This is the same voice, one step down.
+ */
+@utility label-micro {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* ===== DevTools Caught Overlay animations ===== */
 @keyframes dtg-bg-fade {
   from {

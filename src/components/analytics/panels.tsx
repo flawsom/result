@@ -18,6 +18,8 @@ import {
 } from "recharts";
 
 import type { AnalyticsPayload } from "@/lib/analytics-client";
+// Shared with the census section, so tile figures are sized by one rule.
+import { figureStyle } from "@/components/analytics/figure";
 import {
   branchStats,
   buildVolumeSeries,
@@ -61,14 +63,17 @@ export function PanelCard({
 }) {
   return (
     <section className={`an-panel ${className}`} style={style}>
-      <header className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <h4 className="label-caps flex items-center gap-2 font-bold">
-          <span className="px-2 py-0.5 text-background" style={{ background: "var(--foreground)" }}>
+      <header className="mb-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+        <h4 className="label-caps flex min-w-0 items-center gap-2 font-bold break-words">
+          <span
+            className="shrink-0 px-2 py-0.5 text-background"
+            style={{ background: "var(--foreground)" }}
+          >
             {index}
           </span>
           {title}
         </h4>
-        {meta ? <span className="label-caps text-muted-foreground">{meta}</span> : null}
+        {meta ? <span className="label-micro min-w-0 text-muted-foreground">{meta}</span> : null}
       </header>
       {children}
     </section>
@@ -105,6 +110,7 @@ export function KpiTile({
   sub,
   accent,
   sample,
+  format,
 }: {
   label: string;
   value: number;
@@ -112,20 +118,82 @@ export function KpiTile({
   sub?: ReactNode;
   accent?: string;
   sample?: string;
+  /**
+   * How to render the figure. Defaults to grouped digits; pass `fmtCompact` for
+   * a value that would otherwise outgrow the tile.
+   */
+  format?: (n: number) => string;
 }) {
   const n = useCountUp(value);
+  const text = (format ?? fmtInt)(n);
+  // Sized from the settled value, not the animating one: a count-up passes
+  // through fewer digits on its way and a size that tracked it would twitch.
+  const chars = (format ?? fmtInt)(value).length + (unit ? unit.length * 0.6 : 0);
   return (
-    <div className="border-thick p-4">
-      <div className="label-caps text-muted-foreground">{label}</div>
+    <div className="@container border-thick min-w-0 overflow-hidden p-4">
+      <div className="label-micro text-muted-foreground">{label}</div>
       <div
-        className="font-display mt-2 text-3xl leading-none tabular-nums"
-        style={accent ? { color: accent } : undefined}
+        className="font-display mt-2 leading-none tabular-nums break-words"
+        style={{ ...figureStyle(chars), ...(accent ? { color: accent } : {}) }}
       >
-        {fmtInt(n)}
-        {unit ? <span className="ml-1 text-lg">{unit}</span> : null}
+        {text}
+        {unit ? (
+          <span className="ml-1" style={{ fontSize: "0.5em" }}>
+            {unit}
+          </span>
+        ) : null}
       </div>
-      {sub ? <div className="mt-2 font-mono text-[11px] leading-tight">{sub}</div> : null}
-      {sample ? <div className="label-caps mt-1 text-muted-foreground">{sample}</div> : null}
+      {sub ? (
+        <div className="mt-2 font-mono text-[11px] leading-snug break-words">{sub}</div>
+      ) : null}
+      {sample ? <div className="label-micro mt-1.5 text-muted-foreground">{sample}</div> : null}
+    </div>
+  );
+}
+
+/**
+ * A small bordered stat, for three-up rows inside a panel.
+ *
+ * Shares `figureStyle` with `KpiTile` so a value never outgrows its box; the
+ * caption and note give way before the figure does.
+ */
+export function StatBox({
+  label,
+  value,
+  note,
+  accent,
+  maxRem = 1.75,
+  plain = false,
+}: {
+  label: string;
+  value: string;
+  note?: ReactNode;
+  accent?: string;
+  /** Ceiling for the figure, in rem — a row of small stats does not want 38px digits. */
+  maxRem?: number;
+  /** Drop the border, for a stat that already sits inside a bordered box. */
+  plain?: boolean;
+}) {
+  return (
+    <div
+      className={
+        plain
+          ? "@container min-w-0 overflow-hidden"
+          : "@container border-thick min-w-0 overflow-hidden p-3"
+      }
+    >
+      <div className="label-micro text-muted-foreground">{label}</div>
+      <div
+        className="font-display mt-1 leading-none tabular-nums break-words"
+        style={{ ...figureStyle(value.length, maxRem), ...(accent ? { color: accent } : {}) }}
+      >
+        {value}
+      </div>
+      {note ? (
+        <div className="mt-1 font-mono text-[10px] leading-snug break-words text-muted-foreground">
+          {note}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -143,7 +211,9 @@ export function IntervalBar({
   const { p, low, high } = interval;
   return (
     <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 font-mono text-[11px] tabular-nums">{format(p)}</span>
+      <span className="w-14 shrink-0 font-mono text-[11px] whitespace-nowrap tabular-nums">
+        {format(p)}
+      </span>
       <span className="relative block h-3 min-w-16 flex-1 bg-muted">
         <span
           className="absolute top-1/2 h-[3px] -translate-y-1/2"
@@ -159,7 +229,7 @@ export function IntervalBar({
           style={{ left: `calc(${p * 100}% - 1.5px)`, background: accent }}
         />
       </span>
-      <span className="w-28 shrink-0 text-right font-mono text-[10px] text-muted-foreground tabular-nums">
+      <span className="w-24 shrink-0 text-right font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {format(low)}–{format(high)}
       </span>
     </div>
@@ -186,7 +256,7 @@ export function MeterRow({
   return (
     <div className="an-branch-row" title={title}>
       <div className="mb-1 flex items-baseline justify-between gap-2 font-mono text-[11px]">
-        <span className="truncate font-bold uppercase">{label}</span>
+        <span className="min-w-0 truncate font-bold uppercase">{label}</span>
         <span className="shrink-0 tabular-nums">{right}</span>
       </div>
       <div className="relative h-3 w-full bg-muted">
@@ -312,13 +382,13 @@ export function VolumePanel({ payload }: { payload: AnalyticsPayload }) {
       meta={`${series.points.length - 7} days observed · ${series.points.filter((p) => p.isForecast).length} forecast`}
       style={{ animationDelay: "80ms" }}
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2">
         <KpiTile
           label="Last 7 days"
           value={series.last7}
           sub={
             series.wow === null ? (
-              <span className="text-muted-foreground">no comparable prior week</span>
+              <span className="text-muted-foreground">no comparable prior week yet</span>
             ) : (
               <span style={{ color: series.wow >= 0 ? OK : FAIL }}>
                 {fmtSignedPct(series.wow)} week over week
@@ -450,7 +520,7 @@ export function VolumePanel({ payload }: { payload: AnalyticsPayload }) {
         )}
       </div>
 
-      <div className="label-caps mt-2 flex flex-wrap justify-between gap-2 text-muted-foreground">
+      <div className="label-micro mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-4" style={{ background: ACCENT }} /> observed /day
         </span>
@@ -513,29 +583,26 @@ export function OutcomePanel({ payload }: { payload: AnalyticsPayload }) {
       meta={`n = ${fmtInt(stats.attempts)} primary attempts`}
       style={{ animationDelay: "140ms" }}
     >
-      <div className="border-thick p-4">
-        <div className="label-caps text-muted-foreground">Published rate · Wilson 95% CI</div>
-        <div className="font-display mt-2 text-4xl leading-none tabular-nums" style={{ color: OK }}>
+      <div className="@container border-thick min-w-0 overflow-hidden p-4">
+        <div className="label-micro text-muted-foreground">Published rate · Wilson 95% CI</div>
+        <div
+          className="font-display mt-2 leading-none tabular-nums break-words"
+          style={{ ...figureStyle(fmtPct(stats.success.p, 1).length, 2.25), color: OK }}
+        >
           {fmtPct(stats.success.p, 1)}
         </div>
         <div className="mt-3">
           <IntervalBar interval={stats.success} format={(v) => fmtPct(v, 0)} accent={OK} />
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-[11px]">
-          <div>
-            <div className="label-caps text-muted-foreground">published</div>
-            <div className="tabular-nums">{fmtInt(stats.published)}</div>
-          </div>
-          <div>
-            <div className="label-caps text-muted-foreground">transport faults</div>
-            <div className="tabular-nums" style={{ color: failed > 0 ? FAIL : undefined }}>
-              {fmtInt(failed)}
-            </div>
-          </div>
-          <div>
-            <div className="label-caps text-muted-foreground">cache served</div>
-            <div className="tabular-nums">{fmtPct(stats.cacheShare, 0)}</div>
-          </div>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <StatBox plain label="published" value={fmtInt(stats.published)} />
+          <StatBox
+            plain
+            label="transport faults"
+            value={fmtInt(failed)}
+            accent={failed > 0 ? FAIL : undefined}
+          />
+          <StatBox plain label="cache served" value={fmtPct(stats.cacheShare, 0)} />
         </div>
       </div>
 
@@ -587,22 +654,12 @@ export function LatencyPanel({ payload }: { payload: AnalyticsPayload }) {
       style={{ animationDelay: "200ms" }}
     >
       <div className="grid grid-cols-3 gap-3">
-        <div className="border-thick p-3">
-          <div className="label-caps text-muted-foreground">p50</div>
-          <div className="font-display mt-1 text-2xl tabular-nums">{fmtMs(stats.p50)}</div>
-        </div>
-        <div className="border-thick p-3">
-          <div className="label-caps text-muted-foreground">p95</div>
-          <div className="font-display mt-1 text-2xl tabular-nums" style={{ color: WARN }}>
-            {fmtMs(stats.p95)}
-          </div>
-        </div>
-        <div className="border-thick p-3">
-          <div className="label-caps text-muted-foreground">tail ratio</div>
-          <div className="font-display mt-1 text-2xl tabular-nums">
-            {stats.spread > 0 ? `${stats.spread.toFixed(2)}×` : "—"}
-          </div>
-        </div>
+        <StatBox label="p50" value={fmtMs(stats.p50)} />
+        <StatBox label="p95" value={fmtMs(stats.p95)} accent={WARN} />
+        <StatBox
+          label="tail ratio"
+          value={stats.spread > 0 ? `${stats.spread.toFixed(2)}×` : "—"}
+        />
       </div>
 
       <div className="mt-4 space-y-3">
@@ -734,7 +791,7 @@ export function SeasonalityPanel({ payload }: { payload: AnalyticsPayload }) {
               ))}
             </div>
           </div>
-          <div className="label-caps mt-3 flex flex-wrap items-center justify-between gap-2 text-muted-foreground">
+          <div className="label-micro mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-muted-foreground">
             <span>
               Peak · {WEEKDAY_LABELS[peak.dow]} {String(peak.hour).padStart(2, "0")}:00 IST (
               {fmtInt(peak.v)})
@@ -816,29 +873,17 @@ export function BranchPanel({ payload }: { payload: AnalyticsPayload }) {
           </div>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <div className="border-thick p-3">
-              <div className="label-caps text-muted-foreground">HHI</div>
-              <div className="font-display mt-1 text-xl tabular-nums">{stats.hhi.toFixed(3)}</div>
-              <div className="font-mono text-[10px] text-muted-foreground">
-                even mix = {(1 / Math.max(1, stats.rows.length)).toFixed(3)}
-              </div>
-            </div>
-            <div className="border-thick p-3">
-              <div className="label-caps text-muted-foreground">Gini</div>
-              <div className="font-display mt-1 text-xl tabular-nums">{stats.gini.toFixed(3)}</div>
-              <div className="font-mono text-[10px] text-muted-foreground">
-                0 even → 1 one branch
-              </div>
-            </div>
-            <div className="border-thick p-3">
-              <div className="label-caps text-muted-foreground">Top 3 share</div>
-              <div className="font-display mt-1 text-xl tabular-nums">
-                {fmtPct(stats.top3Share, 0)}
-              </div>
-              <div className="font-mono text-[10px] text-muted-foreground">
-                leader {stats.leader ? stats.leader.branch : "—"}
-              </div>
-            </div>
+            <StatBox
+              label="HHI"
+              value={stats.hhi.toFixed(3)}
+              note={`even mix = ${(1 / Math.max(1, stats.rows.length)).toFixed(3)}`}
+            />
+            <StatBox label="Gini" value={stats.gini.toFixed(3)} note="0 even → 1 one branch" />
+            <StatBox
+              label="Top 3 share"
+              value={fmtPct(stats.top3Share, 0)}
+              note={`leader ${stats.leader ? stats.leader.branch : "—"}`}
+            />
           </div>
 
           {stats.rows.length >= 3 ? (
@@ -993,7 +1038,7 @@ export function YearPanel({ payload }: { payload: AnalyticsPayload }) {
               ))}
             </div>
           </div>
-          <div className="label-caps mt-2 flex flex-wrap gap-4 text-muted-foreground">
+          <div className="label-micro mt-2 flex flex-wrap gap-4 text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-4" style={{ background: ACCENT }} /> observed
             </span>
@@ -1221,9 +1266,11 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
 
 export function EmptyPanel({ headline, detail }: { headline: string; detail: string }) {
   return (
-    <div className="border-thin flex h-full min-h-24 flex-col justify-center gap-1 bg-muted/40 p-4">
-      <div className="label-caps font-bold">{headline}</div>
-      <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">{detail}</p>
+    <div className="border-thin flex h-full min-h-24 min-w-0 flex-col justify-center gap-1 bg-muted/40 p-4">
+      <div className="label-micro font-bold break-words">{headline}</div>
+      <p className="font-mono text-[11px] leading-relaxed break-words text-muted-foreground">
+        {detail}
+      </p>
     </div>
   );
 }

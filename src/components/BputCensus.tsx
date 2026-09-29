@@ -21,6 +21,7 @@ import {
 import { MEASURED_BLOCKS, MEASURED_SERIALS, MEASURED_STUDENTS } from "@/lib/census-blocks";
 import { SESSION_WATCH, SESSION_WATCH_CHECKED_AT } from "@/lib/census-session-watch";
 import { fmtAgo, fmtInt, fmtPct, wilson } from "@/lib/analytics-stats";
+import { figureStyle } from "@/components/analytics/figure";
 
 const ACCENT = "oklch(0.45 0.22 265)";
 const OK = "oklch(0.55 0.18 145)";
@@ -382,9 +383,16 @@ export function BputCensus() {
                       : "—",
                 },
               ].map((k) => (
-                <div key={k.label} className="border-thick p-4">
-                  <div className="label-caps text-muted-foreground">{k.label}</div>
-                  <div className="font-display mt-1 text-2xl tabular-nums">{k.value}</div>
+                <div key={k.label} className="@container border-thick min-w-0 overflow-hidden p-4">
+                  <div className="label-micro text-muted-foreground">{k.label}</div>
+                  {/* Sized from the tile: "2012–2025" is the widest of these and
+                      a two-up row on a phone leaves it ~123px. */}
+                  <div
+                    className="font-display mt-1 leading-none tabular-nums break-words"
+                    style={figureStyle(k.value.length, 1.9)}
+                  >
+                    {k.value}
+                  </div>
                 </div>
               ))}
             </div>
