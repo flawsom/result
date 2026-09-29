@@ -64,9 +64,9 @@ on:
         description: Optional single-range override — last registration number
         required: false
       seconds:
-        description: Wall-clock budget for this run, in seconds (max ~21000)
+        description: Wall-clock budget for this run, in seconds (job ceiling ~ 20000)
         required: false
-        default: "2400"
+        default: "19800"
       max_rps:
         description: Aggregate request ceiling in requests/second (measured safe >35)
         required: false
@@ -88,12 +88,16 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
-
-jobs:
-  tick:
-    runs-on: ubuntu-latest
-    timeout-minutes: 50
+  contents: read  jobs:
+    tick:
+      runs-on: ubuntu-latest
+      # A job may run for six hours. Since Actions minutes on a public repository
+      # are unmetered, and since this repository's cron has proved unreliable (one
+      # firing in its entire life), a scheduled run takes a long slice rather than
+      # a short one: if the schedule fires twice a day, that is still eleven hours
+      # of crawling. Anything killed by this ceiling loses at most the unflushed
+      # batch, because the cursor is written every 15 seconds.
+      timeout-minutes: 350
     steps:
       # Nothing below is needed to decide whether a crawl is configured, so this
       # runs first and a misconfigured hour costs seconds rather than a checkout.
@@ -129,9 +133,9 @@ jobs:
           CENSUS_YEARS: ${{ inputs.years || vars.CENSUS_YEARS }}
           CENSUS_RANGE_START: ${{ inputs.range_start }}
           CENSUS_RANGE_END: ${{ inputs.range_end }}
-          # A push is a smoke slice; the schedule and a manual dispatch get the
-          # full budget.
-          CENSUS_SECONDS: ${{ github.event_name == 'push' && 300 || inputs.seconds || 2400 }}
+          # A push verifies in five minutes; a scheduled run works for five and a
+          # half hours; a manual dispatch decides for itself.
+          CENSUS_SECONDS: ${{ github.event_name == 'push' && 300 || inputs.seconds || 19800 }}
           CENSUS_MAX_RPS: ${{ inputs.max_rps || '16' }}
           CENSUS_CONCURRENCY: ${{ inputs.concurrency || '8' }}
           CENSUS_ADAPTIVE: ${{ vars.CENSUS_ADAPTIVE || '1' }}
