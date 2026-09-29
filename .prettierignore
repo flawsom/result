@@ -1,3 +1,7 @@
+# The README is hand-composed: aligned tables, HTML blocks, dividers and diagrams.
+# Prettier reflows all of it (about 500 lines), so `bun run format` would quietly
+# undo the layout. Markdown is not linted by CI, so nothing here needs formatting.
+README.md
 node_modules
 dist
 .output
