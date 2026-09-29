@@ -4,13 +4,13 @@ import { HeadContent } from "@tanstack/react-router";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy, Disclaimer & FAQ — BPUT Result Fetcher" },
+      { title: "Privacy, Disclaimer & FAQ · BPUT Result Fetcher" },
       {
         name: "description",
         content:
           "How BPUT Result Fetcher handles your data: unofficial tool, no affiliation with BPUT, results fetched live and not stored, no data sold or shared. Plus FAQs on SGPA, CGPA, backlogs and revaluation.",
       },
-      { property: "og:title", content: "Privacy, Disclaimer & FAQ — BPUT Result Fetcher" },
+      { property: "og:title", content: "Privacy, Disclaimer & FAQ · BPUT Result Fetcher" },
       {
         property: "og:description",
         content:
@@ -39,7 +39,7 @@ const FAQS = [
   },
   {
     q: "Do you store my result or registration number?",
-    a: "Results are fetched live and returned to you. We do not persist your registration number or result on our servers after the response is served. We log only anonymous, aggregated counts (e.g. how many lookups happened) for operational monitoring — never individual-level student data.",
+    a: "Results are fetched live and returned to you. We do not persist your registration number or result on our servers after the response is served. We log only anonymous, aggregated counts (e.g. how many lookups happened) for operational monitoring, never individual-level student data.",
   },
   {
     q: "Do you sell or share my data?",
@@ -54,7 +54,7 @@ const FAQS = [
     a: "If BPUT has not yet published the result for that registration number and session, the tool shows an honest 'not published' state. It never shows a fabricated or stale result.",
   },
   {
-    q: "The source is slow or down — what happens?",
+    q: "What happens if the source is slow or down?",
     a: "If BPUT's portal is slow or unreachable, the tool shows a clear error and a retry option. It does not fall back to invented data.",
   },
 ];
@@ -81,7 +81,7 @@ function Privacy() {
         </p>
 
         <section className="mb-8">
-          <h2 className="mb-2 text-lg font-semibold">Unofficial — not affiliated with BPUT</h2>
+          <h2 className="mb-2 text-lg font-semibold">Unofficial, not affiliated with BPUT</h2>
           <p>
             BPUT Result Fetcher is an <strong>unofficial</strong> utility built to make checking
             your semester result and SGPA a little easier. It is{" "}

@@ -24,7 +24,7 @@ export function parseBatchYear(batch: string): number | null {
 }
 
 /**
- * `Odd-(2012-13)` — the label BPUT files a term under, and the term is half of an
+ * `Odd-(2012-13)`, the label BPUT files a term under, and the term is half of an
  * academic year that starts in the year named.
  *
  * Verified against real batches on 2026-09-29, because a derivation nobody has
@@ -56,7 +56,7 @@ export function getSemesterSessions(batchStartYear: number): SemPlan[] {
  * For each semester, return the primary exam session plus subsequent
  * sessions where BPUT commonly republishes results after back paper
  * (supplementary) exams. Capped at a reasonable window so we don't
- * hammer the upstream forever — typically the semester after and the
+ * hammer the upstream forever, typically the semester after and the
  * matching term of the next academic year are enough.
  */
 export function getSemesterAttempts(batchStartYear: number, windowSessions = 4): SemAttempts[] {

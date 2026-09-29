@@ -113,7 +113,7 @@ async function processJob(job: BulkJob, batch: BulkBatch): Promise<void> {
         }
 
         // Step 2: only probe back-paper republications if the primary
-        // was published — otherwise BPUT will never have re-published.
+        // was published, otherwise BPUT will never have re-published.
         // Fire probes in parallel; BPUT tolerates a handful.
         const collected: Array<{ session: string; data: SubjectsResponse }> = [];
         if (primary) collected.push(primary);
@@ -139,7 +139,7 @@ async function processJob(job: BulkJob, batch: BulkBatch): Promise<void> {
 
         if (collected.length > 0) {
           // Winning attempt (used for SGPA/CGPA) is the LAST published
-          // in chronological order — BPUT overwrites earlier grades.
+          // in chronological order, BPUT overwrites earlier grades.
           const winning = collected[collected.length - 1];
           const sgpa = calculateSGPA(
             winning.data.grades.map((g) => ({

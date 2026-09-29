@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-label="Desktop view of BPUT Result Fetcher: the home page showing the registration-number search form above the live BPUT Results Intelligence analytics dashboard">
-  <title>Desktop — home page with result lookup and the BPUT Results Intelligence dashboard</title>
+  <title>Desktop, home page with result lookup and the BPUT Results Intelligence dashboard</title>
   <defs>
     <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#1740cc" stop-opacity="0.38"/>
@@ -36,7 +36,7 @@
   <text class="s" x="86" y="216" font-size="56" font-weight="900" letter-spacing="-1.4" fill="#000000">FETCH YOUR</text>
   <text class="s" x="86" y="272" font-size="56" font-weight="900" letter-spacing="-1.4" fill="#000000">BPUT RESULT.</text>
   <text class="s" x="88" y="308" font-size="15" fill="#3a3a3a">Enter your registration number. We derive all 8 semester sessions from your batch year</text>
-  <text class="s" x="88" y="330" font-size="15" fill="#3a3a3a">and pull each published semester directly — no DOB or session input required.</text>
+  <text class="s" x="88" y="330" font-size="15" fill="#3a3a3a">and pull each published semester directly, no DOB or session input required.</text>
 
   <!-- search form -->
   <rect x="88" y="368" width="1024" height="226" fill="#ffffff" stroke="#000000" stroke-width="5"/>

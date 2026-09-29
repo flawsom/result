@@ -80,7 +80,7 @@ function logLine(line: string): void {
 
 export async function bputPost<T>(path: string, label: string): Promise<T> {
   const url = `${BPUT_BASE}${path}`;
-  // Never log query string — it may carry rollNo / dob. Log the label only.
+  // Never log query string, it may carry rollNo / dob. Log the label only.
   logLine(label);
 
   let lastErr: unknown;

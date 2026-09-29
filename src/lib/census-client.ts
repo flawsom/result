@@ -98,7 +98,7 @@ export interface CensusPayload {
  * batch year, a college that admitted more students, or a semester BPUT has only
  * now started serving all appear here as work, without anybody editing a number.
  *
- * Counts per batch year only — the ledger names blocks, and the public read
+ * Counts per batch year only, the ledger names blocks, and the public read
  * deliberately does not.
  */
 export interface CensusPlanYear {
@@ -109,7 +109,7 @@ export interface CensusPlanYear {
   serialsLeft: number;
   /** Block-and-semester units the portal now serves that were not captured. */
   pendingPasses: number;
-  /** Serial span those passes cover — the maintenance walk's cost basis. */
+  /** Serial span those passes cover, the maintenance walk's cost basis. */
   passSerialsPending: number;
   passesDone: number;
 }
@@ -249,7 +249,7 @@ export async function saveCursor(input: {
 /* ─────────────────────────────────────────────── ledger (write side) ─── */
 // Written by whichever crawl is running, page-driven or scheduled. A page-driven
 // block that did not report itself would be re-read by the next scheduled slice,
-// and re-reading means duplicating observations — so the ledger is written by
+// and re-reading means duplicating observations, so the ledger is written by
 // both runners rather than by the scheduler alone.
 
 /** Record what the measurement says each block holds. Idempotent. */
@@ -320,7 +320,7 @@ export async function noteCensusWalk(input: {
 /*
  * Maintenance passes are deliberately absent from this client.
  *
- * Claiming, sweeping and applying a pass is the scheduled crawl's job — it runs
+ * Claiming, sweeping and applying a pass is the scheduled crawl's job, it runs
  * with the service key over plain PostgREST in `census-headless.ts`, the same way
  * it writes cursors and observations. A browser tab can start a first pass, and it
  * reports what it read here, but re-reading a published semester is a job for the
@@ -332,7 +332,7 @@ export async function noteCensusWalk(input: {
 /**
  * Push updates straight from the crawl. The database maintains one aggregate
  * counter row and broadcasts every change to it, so a batch landing in the
- * portal reaches every open dashboard in about a second — no polling delay and
+ * portal reaches every open dashboard in about a second, no polling delay and
  * no cached figure. Readers get that one row and never the observation stream.
  *
  * Several sections on the landing page want this same row, and one socket per

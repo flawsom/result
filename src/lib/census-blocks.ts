@@ -1,4 +1,4 @@
-// The census grid — which registration numbers exist, measured rather than guessed.
+// The census grid, which registration numbers exist, measured rather than guessed.
 //
 // How BPUT numbers are laid out (derived from the portal, not from documentation,
 // because BPUT publishes none):
@@ -15,7 +15,7 @@
 //     `collegeCode: "429"` (NIIS, Bhubaneswar); `2301329052` returns `"329"`
 //     (KMBB, Khurda). Digits 5–7 of the number are that field exactly.
 //   • The serial is dense from 001. College 429, batch 2023: serials 001–078 all
-//     hit and 079+ miss, across five branches (16, 48, 18, 17, 7) interleaved —
+//     hit and 079+ miss, across five branches (16, 48, 18, 17, 7) interleaved,
 //     so the serial indexes the college's intake, not a branch block. College 329,
 //     same batch: 001–070 with three single-number gaps (12, 18, 32).
 //   • The serial does not reach 999, but it gets much closer than a small sample
@@ -34,17 +34,17 @@
 // The college lists below are a measured snapshot: for each batch year, every
 // code in 000–599 was probed at serial 001 (the first student a college admits,
 // so a code that hits is a college with a batch in that year). Colleges do open
-// and close — 2012 has codes 105, 202, 227, 313, 325, 367 that no recent year
-// has, and 2025 adds 440–450 — which is exactly why each year carries its own
+// and close, 2012 has codes 105, 202, 227, 313, 325, 367 that no recent year
+// has, and 2025 adds 440–450, which is exactly why each year carries its own
 // list rather than one shared union.
 //
 // Total: 1103 college-year blocks holding 160,609 registration numbers and about
-// 158,571 students — both measured rather than extrapolated, both in
+// 158,571 students, both measured rather than extrapolated, both in
 // `MEASURED_INTAKE` below, which the daily job regenerates.
 //
 // The lists in this file are the *declared* grid: a reviewed baseline. They are
 // not the whole grid, because a batch year that opens and a college that starts a
-// batch do not announce themselves — `scripts/census-intake.mjs --discover` sweeps
+// batch do not announce themselves, `scripts/census-intake.mjs --discover` sweeps
 // code space for the year the portal has just begun numbering, re-sweeps two
 // declared years a day on rotation, and appends the codes whose first student
 // answers to `census-discovered.ts`. `CENSUS_YEARS` and `CENSUS_COLLEGES` below
@@ -86,7 +86,7 @@ export const SKIP_AFTER_MISSES = 25;
 
 /**
  * The declared grid: what the API served when the lists below were last reviewed
- * by hand. 12 = 2012 is the first; 25 = 2025 the last *declared* year —
+ * by hand. 12 = 2012 is the first; 25 = 2025 the last *declared* year,
  * `CENSUS_YEARS` further down is this list plus whatever discovery has found.
  */
 const DECLARED_YEARS = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25] as const;
@@ -191,7 +191,7 @@ const DECLARED_COLLEGES: Record<number, readonly number[]> = {
  * The grid the app and the crawl both walk: the declared lists above, plus every
  * block discovery has appended since (`census-discovered.ts`).
  *
- * This union is the only definition of "what exists" — the walk, the measurement
+ * This union is the only definition of "what exists", the walk, the measurement
  * and the dashboard all read it, so a batch year that opens becomes work without
  * anyone editing a constant.
  */
@@ -253,7 +253,7 @@ export function gridSize(blocks: CensusBlock[] = censusBlocks()): number {
 export interface MeasuredIntake {
   /** Blocks measured for this year. */
   blocks: number;
-  /** Sum of the highest live serial in each block — an upper bound on students. */
+  /** Sum of the highest live serial in each block, an upper bound on students. */
   serials: number;
   /** Mean serials per block. */
   mean: number;
@@ -266,7 +266,7 @@ export interface MeasuredIntake {
 /**
  * Measured intake per batch year, not sampled.
  *
- * Every block in the grid was probed for its highest live serial on 2026-09-29 —
+ * Every block in the grid was probed for its highest live serial on 2026-09-29,
  * a binary search for the first miss boundary with gap arbitration above it,
  * about 17 requests per block. That retires the 15-block sample this
  * file used to carry, which said a block averages 145 students (the truth is
@@ -307,7 +307,7 @@ export const MEASURED_AT = "2026-09-29";
 export const MEASURED_CHECKED_AT = "2026-09-29";
 
 /**
- * The highest live serial in every block — the raw measurement behind
+ * The highest live serial in every block, the raw measurement behind
  * `MEASURED_INTAKE`, one value per block in `censusBlocks()` order (batch year
  * ascending, then college code ascending).
  *
@@ -408,7 +408,7 @@ export interface MeasuredBlock {
  * The measurement, block by block, in grid order.
  *
  * `MEASURED_BLOCK_SERIALS` is positional, so this is the only place the two
- * arrays are stitched together — every distribution, quantile and concentration
+ * arrays are stitched together, every distribution, quantile and concentration
  * figure in the dashboard is computed from this join rather than from a
  * pre-aggregated copy, which keeps one definition of "the measurement".
  */
@@ -416,7 +416,7 @@ export function measuredBlocks(): MeasuredBlock[] {
   const blocks = censusBlocks();
   if (MEASURED_BLOCK_SERIALS.length !== blocks.length) {
     console.warn(
-      `[census] ${MEASURED_BLOCK_SERIALS.length} measured blocks against ${blocks.length} in the grid — run scripts/census-intake.mjs`,
+      `[census] ${MEASURED_BLOCK_SERIALS.length} measured blocks against ${blocks.length} in the grid, run scripts/census-intake.mjs`,
     );
   }
   return blocks.map((block, i) => ({
@@ -428,7 +428,7 @@ export function measuredBlocks(): MeasuredBlock[] {
 }
 
 /**
- * Holes: serials below a block's maximum that answer for nobody — a dropout, a
+ * Holes: serials below a block's maximum that answer for nobody, a dropout, a
  * transfer, a withdrawn record. They are why the grid holds fewer students than
  * it declares serials.
  *
@@ -465,7 +465,7 @@ export const MEASURED_STUDENTS = Math.round(
   Object.keys(MEASURED_INTAKE).reduce((sum, year) => sum + measuredStudents(Number(year)), 0),
 );
 
-/** Blocks the measurement covers — the denominator of crawl progress. */
+/** Blocks the measurement covers, the denominator of crawl progress. */
 export const MEASURED_BLOCKS = Object.values(MEASURED_INTAKE).reduce(
   (sum, intake) => sum + intake.blocks,
   0,

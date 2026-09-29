@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  Census maintenance ledger — what makes the census keep itself true.
+--  Census maintenance ledger, what makes the census keep itself true.
 --
 --  Why this exists
 --  ---------------
@@ -18,17 +18,17 @@
 --
 --  What this adds
 --  --------------
---    • `census_block_walk` — one row per college-and-year block: the measured
+--    • `census_block_walk`, one row per college-and-year block: the measured
 --      upper bound, the offset the walk reached, the highest serial it actually
 --      resolved, and which semesters its first pass captured;
---    • `census_pass` — the unit of maintenance: one block, one semester. A
+--    • `census_pass`, the unit of maintenance: one block, one semester. A
 --      semester is claimed before it is read and marked done after, so a pass is
 --      never spent twice and a re-read cannot duplicate observations;
---    • `census_session_watch` — the sessions the portal last said it serves, per
+--    • `census_session_watch`, the sessions the portal last said it serves, per
 --      batch year. Written by the daily refresh, so the outstanding work is
 --      derived from the portal rather than from a constant compiled into a
 --      bundle;
---    • `census_work` + `census_plan()` — the derived work list and its counts.
+--    • `census_work` + `census_plan()`, the derived work list and its counts.
 --      Ranges stay server-side: the view is service-role only and the public
 --      function returns counts per batch year, never a block.
 --
@@ -72,7 +72,7 @@ CREATE INDEX IF NOT EXISTS census_block_walk_pending_idx
 -- ────────────────────────────────────── maintenance passes (per block, sem) ──
 -- The dedupe gate. `claim_pass` only succeeds for a semester that is not already
 -- captured and not already in flight, so two workers cannot read the same
--- semester of the same block — and a pass that finishes is never claimed again.
+-- semester of the same block, and a pass that finishes is never claimed again.
 
 CREATE TABLE IF NOT EXISTS public.census_pass (
   year          integer     NOT NULL CHECK (year BETWEEN 2000 AND 2100),
@@ -138,9 +138,9 @@ WITH watch AS (
 ),
 -- A first pass resumes at the right place for its state:
 --
---   • never finished — at the offset the last slice reached, which is where it
+--   • never finished, at the offset the last slice reached, which is where it
 --     stopped probing;
---   • finished, but the measurement has since moved past the frontier — at the
+--   • finished, but the measurement has since moved past the frontier, at the
 --     frontier, because everything above it missed when it was read, and a serial
 --     that answers now is a student who was not there before. That is what catches
 --     a college admitting late, and it cannot duplicate a row: a serial above the
@@ -171,7 +171,7 @@ first_pass AS (
 -- A block needs a semester re-read when the portal serves it and the block has
 -- not captured it. `first_pass_sessions` holds only semesters the portal actually
 -- published, so "the portal serves S7 for 2023 and no 2023 block has S7" arrives
--- here as work by itself — nobody has to notice that BPUT published something.
+-- here as work by itself, nobody has to notice that BPUT published something.
 --
 -- A pass that was closed is settled, but only for a while. Results are published
 -- in batches, so a semester can answer for none of a block's students today and
@@ -308,7 +308,7 @@ GRANT EXECUTE ON FUNCTION public.census_note_watch(jsonb) TO authenticated, serv
 
 -- ───────────────────────────────────────────────────────── walk reporting ──
 -- Called by the crawl at every flush. `_captured` is the set of semesters the
--- block's first pass actually read — a session whose every row came back
+-- block's first pass actually read, a session whose every row came back
 -- `unreachable` is not captured, so it stays outstanding instead of being
 -- mistaken for a hole in the portal.
 
@@ -392,7 +392,7 @@ BEGIN
   /*
    * The answer is yes or no, not "where to resume": a pass is applied as one
    * replacement at the end (`census_apply_pass`), so a pass that dies halfway has
-   * written nothing and starts again at the first serial. That is deliberate — a
+   * written nothing and starts again at the first serial. That is deliberate, a
    * partially applied pass would either double-count the students already read or
    * leave the semester half-populated, and both are worse than re-reading a block.
    */
@@ -416,13 +416,13 @@ $$;
 -- A maintenance pass re-reads a semester the portal has only now started
 -- serving, and the row it corrects is one the first pass stored as
 -- `not_published`. Appending a second row would count that student twice in every
--- total on the site, so a pass has to *replace* the rows it corrects — and to
+-- total on the site, so a pass has to *replace* the rows it corrects, and to
 -- replace a row you have to be able to find it. That is all this column is: which
 -- college-and-year block a row came from. It names a college, never a student,
 -- which is the same grain this table already publishes at (`college`).
 --
 -- Rows written before this migration carry 0, meaning "block not recorded". They
--- are never deleted — a pass only ever replaces rows that carry its own code — so
+-- are never deleted, a pass only ever replaces rows that carry its own code, so
 -- the census cannot lose history it collected earlier.
 
 ALTER TABLE public.bput_census_events
@@ -537,7 +537,7 @@ AS $$
 DECLARE
   /* 200 is `log_census_events`'s batch ceiling. The biggest measured block holds
      up to about 960 students, so the replacement is chunked rather than sent in
-     one call — and still inside this one transaction, so the semester is never
+     one call, and still inside this one transaction, so the semester is never
      left half-populated. */
   v_chunk  jsonb;
   v_stored integer := 0;
@@ -576,7 +576,7 @@ BEGIN
    */
   IF v_stored < v_total THEN
     RAISE EXCEPTION
-      'maintenance pass stored % of % rows for %/% semester % — rolled back',
+      'maintenance pass stored % of % rows for %/% semester %, rolled back',
       v_stored, v_total, _year, _code, _semester;
   END IF;
 

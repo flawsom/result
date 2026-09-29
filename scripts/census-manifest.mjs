@@ -3,8 +3,8 @@
 //
 // The committed lists in `src/lib/census-blocks.ts` are a measurement, and a
 // measurement you cannot repeat is a rumour. This is the repeat: for every batch
-// year it probes one registration number per college code — `YY01CCC001`, the
-// first student a college admits — and reports the codes that answered.
+// year it probes one registration number per college code, `YY01CCC001`, the
+// first student a college admits, and reports the codes that answered.
 //
 // Why serial 001 and not a random one: serials run densely from 001, so a code
 // that answers at 001 is a college with a batch in that year. The inverse is not

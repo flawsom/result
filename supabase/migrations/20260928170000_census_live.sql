@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  Census live counter — makes a running crawl watchable as it works.
+--  Census live counter, makes a running crawl watchable as it works.
 --
 --  Why this exists
 --  ---------------
@@ -12,7 +12,7 @@
 --  What it deliberately does NOT hold
 --  ----------------------------------
 --  Counts and a timestamp. Not "the newest observation", not the newest branch
---  or semester. This row is world-readable, and one row is not k-anonymous — so
+--  or semester. This row is world-readable, and one row is not k-anonymous, so
 --  the published cells stay pooled at 25 observations and this row says only how
 --  much has been collected, never where from.
 --

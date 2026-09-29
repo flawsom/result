@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 // ─────────────────────────────────────────────────────────────────────────────
-// Analytics store — is the live counter actually live?
+// Analytics store, is the live counter actually live?
 //
 // The live counter is one aggregate row that a database trigger maintains and
 // realtime pushes to every open page. Three different things make it read as
 // "stuck", and only one of them is a bug:
 //
-//   1. nobody has looked anything up. The number is real and simply unchanged —
+//   1. nobody has looked anything up. The number is real and simply unchanged,
 //      the honest state for a quiet site, and the one most likely to be mistaken
 //      for a failure.
 //   2. the write is being rejected. Lookups happen, rows are dropped, and the
@@ -16,7 +16,7 @@
 // This tells those apart. Read-only by default. With `--probe` it performs ONE
 // real lookup against the portal, logs it through the same RPC the browser uses,
 // and watches the counter move. The probe deliberately makes a real upstream
-// request and records its real outcome, latency and row count — a synthetic
+// request and records its real outcome, latency and row count, a synthetic
 // event would leave a number behind that describes nothing, which is the one
 // thing this dashboard must never show.
 //
@@ -24,7 +24,7 @@
 //   bun scripts/analytics-status.mjs --probe
 //
 // Credentials: SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY (falling back to the
-// VITE_ names). The publishable key is the browser's own credential — using the
+// VITE_ names). The publishable key is the browser's own credential, using the
 // service-role key here would bypass the grants this exists to test. No key is
 // ever printed.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ if (!url || !key) {
 
 /**
  * PostgREST with `apikey` alone. New-style publishable keys are opaque, not
- * JWTs, and the gateway rejects them when they are also sent as a bearer token —
+ * JWTs, and the gateway rejects them when they are also sent as a bearer token,
  * which is exactly why the app's own Supabase client strips that header. Sending
  * it here would test a path the browser never takes.
  */
@@ -101,7 +101,7 @@ const outcomes = payload.observed?.byOutcome ?? [];
 const total = counts.eventsTotal ?? 0;
 const unclassified = outcomes.find((o) => o.outcome === "unclassified")?.count ?? 0;
 
-console.log("BPUT analytics — telemetry store");
+console.log("BPUT analytics, telemetry store");
 const lastEventAt = payload.meta?.lastEventAt ?? null;
 // The v2 migration seeded the counter row from the event history, which stamps
 // the row's own updated_at as the moment of the migration. Reporting that as
@@ -113,11 +113,11 @@ console.log(
     (seeded ? " (written by the v2 migration, not by a lookup)" : ""),
 );
 console.log(
-  `  last attempt      ${row.last_year ?? "—"} · semester ${row.last_semester ?? "—"} · ` +
+  `  last attempt      ${row.last_year ?? "–"} · semester ${row.last_semester ?? "–"} · ` +
     `${row.last_outcome ?? "no classified outcome"}`,
 );
 console.log(`  recorded events   ${total} over ${payload.meta?.activeDays ?? 0} active day(s)`);
-console.log(`  first / last      ${payload.meta?.firstEventAt ?? "—"} → ${lastEventAt ?? "—"}`);
+console.log(`  first / last      ${payload.meta?.firstEventAt ?? "–"} → ${lastEventAt ?? "–"}`);
 console.log(`  quiet for         ${ago(lastEventAt)}`);
 console.log(`  classified        ${total - unclassified} of ${total} carried an outcome`);
 console.log(`  last 7 / 24h      ${counts.pulse7d ?? 0} / ${counts.pulse24h ?? 0}`);
@@ -205,14 +205,14 @@ const writeAt = Date.now();
 const write = await rest("rpc/log_result_events", { _events: [observation.event] });
 const accepted = write.ok && typeof write.data === "number" ? write.data : 0;
 
-console.log("\n[analytics] probe — one real lookup, logged through the browser's own RPC");
+console.log("\n[analytics] probe, one real lookup, logged through the browser's own RPC");
 console.log(
   `  observation       ${observation.event.year} · semester ${observation.event.semester} · ` +
     `${observation.event.branch} · ${observation.event.outcome} · ${observation.event.latencyMs} ms · ` +
     `${observation.event.subjects} subject row(s) (session ${observation.session}, ${observation.cost} ms)`,
 );
 console.log(
-  `  write             ${write.ok ? `accepted, ${accepted} row(s) stored` : `HTTP ${write.status} — ${JSON.stringify(write.data).slice(0, 200)}`}`,
+  `  write             ${write.ok ? `accepted, ${accepted} row(s) stored` : `HTTP ${write.status}, ${JSON.stringify(write.data).slice(0, 200)}`}`,
 );
 
 const deadline = Date.now() + 10_000;
@@ -223,7 +223,7 @@ const afterRow = Array.isArray(after.data) ? after.data[0] : after.data;
 console.log(`  realtime          channel ${pushStatus}`);
 if (pushed) {
   console.log(
-    `  push              arrived ${pushed.at - writeAt}ms after the write — counter ${pushed.events}`,
+    `  push              arrived ${pushed.at - writeAt}ms after the write, counter ${pushed.events}`,
   );
 } else {
   console.log("  push              no push within 10 s");
@@ -236,18 +236,18 @@ void channel.unsubscribe();
 
 const moved = afterRow && afterRow.events === row.events + accepted && accepted > 0;
 if (!write.ok || accepted === 0) {
-  console.error("\n[analytics] FAILED — the write path rejected a real observation.");
+  console.error("\n[analytics] FAILED, the write path rejected a real observation.");
   process.exit(1);
 }
 if (!moved) {
   console.error(
-    "\n[analytics] FAILED — the row was stored but the live counter did not follow it.",
+    "\n[analytics] FAILED, the row was stored but the live counter did not follow it.",
   );
   process.exit(1);
 }
 if (!pushed) {
   console.error(
-    "\n[analytics] PARTIAL — writes land and the counter follows, but no push was seen here.",
+    "\n[analytics] PARTIAL, writes land and the counter follows, but no push was seen here.",
   );
   process.exit(1);
 }

@@ -1,12 +1,12 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
-     BPUT Result Fetcher — README
+     BPUT Result Fetcher, README
      SGPA in seconds. Unofficial student tool. Not affiliated with BPUT.
      Every figure in this document is either a measured constant committed to the
      repository or a live value read from the database, with the date it was read.
      ═══════════════════════════════════════════════════════════════════════════ -->
 
 <p align="center">
-  <img src="docs/hero.svg" alt="BPUT Result Fetcher — live BPUT semester results, SGPA in seconds, PDF marksheets, no login, and a self-maintaining census of the university's numbering" width="100%" />
+  <img src="docs/hero.svg" alt="BPUT Result Fetcher, live BPUT semester results, SGPA in seconds, PDF marksheets, no login, and a self-maintaining census of the university's numbering" width="100%" />
 </p>
 
 <h1 align="center">BPUT&nbsp;Result&nbsp;Fetcher</h1>
@@ -14,7 +14,7 @@
 <p align="center">
   <strong>SGPA in seconds.</strong><br/>
   Live BPUT semester results, auto-computed SGPA&nbsp;/&nbsp;CGPA, a clean PDF marksheet and a
-  self-maintaining census of the university's own registration numbering — by registration number only.
+  self-maintaining census of the university's own registration numbering, by registration number only.
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@
 
 <p align="center">
   <a href="https://www.producthunt.com/products/bput-result-fetcher-sgpa-in-seconds?utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bput-result-fetcher-sgpa-in-seconds" target="_blank" rel="noopener noreferrer">
-    <img alt="BPUT Result Fetcher — SGPA in seconds | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1196678&theme=dark" />
+    <img alt="BPUT Result Fetcher, SGPA in seconds | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1196678&theme=dark" />
   </a>
 </p>
 
@@ -106,7 +106,7 @@
 <details>
 <summary><strong>What is new in this revision</strong></summary>
 
-- **Results Intelligence** is now three panels of *measured university data* plus eight of deployment telemetry — documented end to end in [Results Intelligence](#-results-intelligence).
+- **Results Intelligence** is now three panels of *measured university data* plus eight of deployment telemetry, documented end to end in [Results Intelligence](#-results-intelligence).
 - The **census maintains itself**: a daily job re-measures every recorded bound, discovers batch years and colleges the grid does not carry, watches which semesters the portal serves, and publishes all of it to a ledger. The dashboard's remaining-work figure is derived from that ledger instead of from a constant.
 - The [performance scoreboard](#scoreboard) now carries **real measured numbers** (bundle sizes, transport, timing) instead of an empty table, and still says plainly which rows have not been measured.
 - New invariants, each of which can fail a build or a job: no semester read twice, no walk past a measured bound, no finished block without a read position, no served semester stranded with nothing queued to read it.
@@ -123,13 +123,13 @@
 
 Every BPUT semester, hundreds of thousands of students refresh an ageing portal to find out whether they passed, what their SGPA is, and whether a backlog followed them into the next session. The data is public. The experience is not.
 
-**BPUT Result Fetcher** turns that raw public data into a fast, legible, shareable result page — and then keeps measuring the university behind it, because a result tool is only as good as its knowledge of which results exist.
+**BPUT Result Fetcher** turns that raw public data into a fast, legible, shareable result page, and then keeps measuring the university behind it, because a result tool is only as good as its knowledge of which results exist.
 
 - **One input.** Type a registration number. Exam sessions are derived from the batch year, so there is no date of birth, no session dropdown and no login.
 - **All eight semesters at once.** Each semester is fetched in parallel, with automatic probing for back-paper republications.
 - **Real math, shown.** SGPA and CGPA are recomputed locally and cross-checked against BPUT's own numbers, with the formula rendered on screen.
 - **A PDF you can keep.** A multi-semester marksheet with a QR code back to the official portal.
-- **An answer to "how many students are there?"** — the Results Intelligence dashboard draws a measured population: 1,103 college-and-year ranges, probed one registration number at a time, never sampled or extrapolated.
+- **An answer to "how many students are there?"**, the Results Intelligence dashboard draws a measured population: 1,103 college-and-year ranges, probed one registration number at a time, never sampled or extrapolated.
 - **Privacy as a design constraint.** No accounts for students, no persisted registration numbers, and analytics that only ever store anonymous year/semester/branch counters.
 
 ```mermaid
@@ -144,7 +144,7 @@ flowchart LR
   class A,B,C,D,E,F step
 ```
 
-**What this project is not:** an official source, a scraping service, a model that guesses missing marks, or a place where a student identifier is stored. Where a number is unknown it says so — the one state it will never render is a plausible-looking invention.
+**What this project is not:** an official source, a scraping service, a model that guesses missing marks, or a place where a student identifier is stored. Where a number is unknown it says so, the one state it will never render is a plausible-looking invention.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -200,11 +200,11 @@ flowchart LR
   <tr>
     <td width="33%" valign="top">
       <h3>🏛 College shape, not just totals</h3>
-      A median college of 91 against a mean of 145.6, a Gini of 0.53, a top decile holding 36% of the population, a Lorenz curve and a histogram of college sizes — every one computed from the 1,103 per-block readings.
+      A median college of 91 against a mean of 145.6, a Gini of 0.53, a top decile holding 36% of the population, a Lorenz curve and a histogram of college sizes, every one computed from the 1,103 per-block readings.
     </td>
     <td width="33%" valign="top">
       <h3>🤖 A census that keeps itself true</h3>
-      A daily job re-checks every recorded reading, discovers batch years and colleges the grid does not carry, watches which semesters the portal serves, and turns anything new into work — with no human editing a number.
+      A daily job re-checks every recorded reading, discovers batch years and colleges the grid does not carry, watches which semesters the portal serves, and turns anything new into work, with no human editing a number.
     </td>
     <td width="33%" valign="top">
       <h3>♻️ Never reads the same thing twice</h3>
@@ -228,11 +228,11 @@ flowchart LR
   <tr>
     <td width="33%" valign="top">
       <h3>🙈 Honest failure states</h3>
-      Every upstream outcome is classified — not published, timeout, rate limited, unreachable, malformed — and rendered as its own actionable state. It never shows stale or invented data.
+      Every upstream outcome is classified, not published, timeout, rate limited, unreachable, malformed, and rendered as its own actionable state. It never shows stale or invented data.
     </td>
     <td width="33%" valign="top">
       <h3>🧩 Legible at every width</h3>
-      Figures are sized from their own container (<code>clamp()</code> over container query units), so a four-digit count in a narrow tile is smaller than the same count in a wide one and never crosses its border — verified by arithmetic over 320 px to 1440 px layouts.
+      Figures are sized from their own container (<code>clamp()</code> over container query units), so a four-digit count in a narrow tile is smaller than the same count in a wide one and never crosses its border, verified by arithmetic over 320 px to 1440 px layouts.
     </td>
     <td width="33%" valign="top">
       <h3>🔎 Ships SEO-ready</h3>
@@ -249,7 +249,7 @@ flowchart LR
 
 ## 📸 Screenshots
 
-Every tile below is a **vector recreation of the live interface** — drawn from the components, design tokens and copy that actually ship in `src/`, so each stays razor-sharp at any zoom and costs a few kilobytes instead of megabytes. Prefer a real capture? The swap instructions sit under the gallery.
+Every tile below is a **vector recreation of the live interface**, drawn from the components, design tokens and copy that actually ship in `src/`, so each stays razor-sharp at any zoom and costs a few kilobytes instead of megabytes. Prefer a real capture? The swap instructions sit under the gallery.
 
 <table>
   <tr>
@@ -296,7 +296,7 @@ Every tile below is a **vector recreation of the live interface** — drawn from
 1. Capture at the size noted on the tile and export a PNG (keep it under ~500 KB).
 2. Save it beside the vector art as `docs/screenshots/desktop.png`, `mobile.png`, `dashboard.png`, `settings.png`, `auth.png`, `analytics.png`.
 3. Point that tile at the PNG instead: `<img src="docs/screenshots/desktop.png" alt="…" width="100%" />`.
-4. Keep the `alt` text — it is what screen-reader users receive.
+4. Keep the `alt` text, it is what screen-reader users receive.
 
 ```html
 <table>
@@ -349,9 +349,9 @@ Try it with any 8–12 digit registration number belonging to a BPUT batch whose
 <details>
 <summary><strong>🎬 Embedding a GIF / MP4 / YouTube walkthrough</strong></summary>
 
-No recording is committed to this repository yet, and the README does not pretend otherwise — the block below is the exact markup to drop in once there is one.
+No recording is committed to this repository yet, and the README does not pretend otherwise, the block below is the exact markup to drop in once there is one.
 
-**GIF** — record with [Kap](https://getkap.co) or [ScreenToGif](https://www.screentogif.com), keep it under 5 MB, and place it at `docs/demo.gif`:
+**GIF**, record with [Kap](https://getkap.co) or [ScreenToGif](https://www.screentogif.com), keep it under 5 MB, and place it at `docs/demo.gif`:
 
 ```html
 <p align="center">
@@ -359,13 +359,13 @@ No recording is committed to this repository yet, and the README does not preten
 </p>
 ```
 
-**MP4** — GitHub renders `<video>` in Markdown; host the file in the repo or on a CDN:
+**MP4**, GitHub renders `<video>` in Markdown; host the file in the repo or on a CDN:
 
 ```html
 <video src="docs/demo.mp4" controls muted playsinline width="720"></video>
 ```
 
-**YouTube** — link the thumbnail to the video, never autoplay:
+**YouTube**, link the thumbnail to the video, never autoplay:
 
 ```html
 <p align="center">
@@ -483,11 +483,11 @@ sequenceDiagram
 
   B->>B: Recompute SGPA locally · credit-weighted CGPA
   B->>DB: log_result_events([{ year, semester, branch }])
-  DB-->>B: void — fire and forget
+  DB-->>B: void, fire and forget
   B-->>S: SGPA blocks · trend chart · PDF marksheet
 ```
 
-### Census flow — the part that maintains itself
+### Census flow, the part that maintains itself
 
 ```mermaid
 sequenceDiagram
@@ -595,10 +595,10 @@ erDiagram
 | `public.get_results_analytics()`       | function · `STABLE`, `SECURITY DEFINER`  | Returns the single JSON payload the deployment-telemetry panels consume, applying k = 25 to branch buckets.               |
 | `public.bput_census_events`            | table (RLS, service-role writes)         | One anonymous row per student-semester the census read: batch year, semester, branch, credits and grade totals. No roll number, no name, no date of birth. |
 | `public.census_block_walk`             | table (RLS, service-role only)           | Per-block state: measured bound, walk offset, the highest serial that answered (`frontier`), and which semesters the first pass captured. |
-| `public.census_pass`                   | table (RLS, service-role only)           | One block and one semester — claimed before it is read, closed after. This is what makes a re-read impossible to double-count. |
+| `public.census_pass`                   | table (RLS, service-role only)           | One block and one semester, claimed before it is read, closed after. This is what makes a re-read impossible to double-count. |
 | `public.census_session_watch`          | table (RLS, service-role only)           | Which semester sessions the portal last answered for, per batch year. Written by the daily job, not by a constant.        |
 | `public.census_work`                   | view (service-role only)                 | Outstanding work, derived: blocks with serials left, plus block-and-semester passes for sessions the portal serves.       |
-| `public.census_plan()`                 | function · `SECURITY DEFINER` (anon read) | Counts only — blocks, blocks done, serials left, passes pending, when the portal was last asked. The dashboard's source.  |
+| `public.census_plan()`                 | function · `SECURITY DEFINER` (anon read) | Counts only, blocks, blocks done, serials left, passes pending, when the portal was last asked. The dashboard's source.  |
 
 ### Deployment topology
 
@@ -640,7 +640,7 @@ flowchart LR
 
 ## 📈 Results Intelligence
 
-The dashboard is deliberately split in two, and every panel says which side it is on. **Panels 01–03 describe the university** — properties of BPUT's own registration numbering. **Panels 04–11 describe this deployment** — traffic this site actually served. Blending the two would let a figure about a university read as a figure about a website, which is the mistake this split exists to prevent.
+The dashboard is deliberately split in two, and every panel says which side it is on. **Panels 01–03 describe the university**, properties of BPUT's own registration numbering. **Panels 04–11 describe this deployment**, traffic this site actually served. Blending the two would let a figure about a university read as a figure about a website, which is the mistake this split exists to prevent.
 
 ### The measured universe
 
@@ -662,11 +662,11 @@ BPUT publishes no documentation of its numbering, so this project derived it by 
 | 2023       | 71                | 8,974                | 77             | 590             |
 | 2024       | 73                | 10,874               | 83             | 686             |
 | 2025       | 80                | 12,645               | 90             | 714             |
-| **Total**  | **1,103**         | **160,609**          | —              | —               |
+| **Total**  | **1,103**         | **160,609**          |,              |,               |
 
 Measured 2026-09-29, block by block, by binary-searching each range for its last live serial (about 17 requests per block). Holes were quantified by walking 22 ranges serial by serial: **3.4%** of serials below the maximum are missing in the 2012–2014 batches and **0.42%** from 2015 on, which puts the grid at about **158,571 students** rather than the 160,609 numbers it declares. Full evidence, including the audits and their drift, is committed at `docs/census-intake.json`.
 
-What the measurement says is unflattering and is printed anyway: intake peaks at 17,589 students in 2012, troughs at 7,201 in 2020, has recovered 74.9% since, and is still **−28.4%** across the whole span — a Theil–Sen median slope of **−462.5 students a year** (least-squares −458.1, R² 0.38). Intake figures are the portal's numbering standing in for cohort size, which makes every student count here an upper bound, and the panels say so.
+What the measurement says is unflattering and is printed anyway: intake peaks at 17,589 students in 2012, troughs at 7,201 in 2020, has recovered 74.9% since, and is still **−28.4%** across the whole span, a Theil–Sen median slope of **−462.5 students a year** (least-squares −458.1, R² 0.38). Intake figures are the portal's numbering standing in for cohort size, which makes every student count here an upper bound, and the panels say so.
 
 ### The census does not end
 
@@ -686,16 +686,16 @@ A one-off measurement becomes a stale claim the moment BPUT publishes anything. 
 - no finished block without a read position;
 - no served semester stranded with nothing queued to read it.
 
-The dashboard's "reads left" is the sum of what is spent and what is outstanding, both read from the ledger — so it **rises** on the day the portal publishes something new, instead of counting down to zero and staying there. Where the ledger is not available the panel falls back to the baseline measurement and labels itself as doing so.
+The dashboard's "reads left" is the sum of what is spent and what is outstanding, both read from the ledger, so it **rises** on the day the portal publishes something new, instead of counting down to zero and staying there. Where the ledger is not available the panel falls back to the baseline measurement and labels itself as doing so.
 
 ### Where the numbers come from
 
 | Layer                      | Source                                                                                          |
 | -------------------------- | ----------------------------------------------------------------------------------------------- |
-| University figures (01–03) | `src/lib/census-blocks.ts` — constants re-derived daily from `docs/census-intake.json`            |
+| University figures (01–03) | `src/lib/census-blocks.ts`, constants re-derived daily from `docs/census-intake.json`            |
 | Deployment figures (04–11) | `analytics_events` / `analytics_live` via `get_results_analytics()`, k = 25 floor applied          |
 | Live counters              | A realtime subscription to `analytics_live` and the census status channel                          |
-| Coverage and remaining work | `census_plan()` — derived from the ledger, never from a compiled constant                          |
+| Coverage and remaining work | `census_plan()`, derived from the ledger, never from a compiled constant                          |
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -709,7 +709,7 @@ The dashboard's "reads left" is the sum of what is spent and what is outstanding
 
 ## 🛠 Tech Stack
 
-Every entry below is verified against `package.json`, `vite.config.ts` and the source tree — no aspirational logos.
+Every entry below is verified against `package.json`, `vite.config.ts` and the source tree, no aspirational logos.
 
 **Frontend**
 
@@ -778,7 +778,7 @@ Every entry below is verified against `package.json`, `vite.config.ts` and the s
 </p>
 
 > [!TIP]
-> **AI/ML:** there is intentionally none. Every number in this app is deterministic arithmetic on published grades — SGPA is credit-weighted grade points, CGPA the same weighted across semesters — or a count of things that were actually fetched. No model, no inference, nothing to hallucinate. If that changes, it will be documented here rather than implied with a badge.
+> **AI/ML:** there is intentionally none. Every number in this app is deterministic arithmetic on published grades, SGPA is credit-weighted grade points, CGPA the same weighted across semesters, or a count of things that were actually fetched. No model, no inference, nothing to hallucinate. If that changes, it will be documented here rather than implied with a badge.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -793,27 +793,27 @@ Every entry below is verified against `package.json`, `vite.config.ts` and the s
 | Requirement                                                                    | Why                                                                              |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | [Node.js](https://nodejs.org) **20+** (CI uses 22)                              | TanStack Start, Vite 8 and the Cloudflare Workers target all expect ≥ 20.         |
-| [Bun](https://bun.sh) **1.x** or **npm**                                        | Both `bun.lock` and `package-lock.json` are committed — pick one and stay on it.  |
+| [Bun](https://bun.sh) **1.x** or **npm**                                        | Both `bun.lock` and `package-lock.json` are committed, pick one and stay on it.  |
 | [Supabase](https://supabase.com) project **or** Supabase CLI + Docker           | Only for analytics, `/admin` and the census ledger. The public flow needs neither. |
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) *(optional)*   | Only if you want a fully local Supabase stack instead of a hosted project.         |
 
 ### Installation
 
 ```bash
-# 1 — clone
+# 1, clone
 git clone https://github.com/flawsom/result.git
 cd result
 
-# 2 — install (bun recommended; npm works identically)
+# 2, install (bun recommended; npm works identically)
 bun install
 # npm install
 
-# 3 — run
+# 3, run
 bun run dev
 # → http://localhost:5173
 ```
 
-The homepage, live result lookup, trend charts and PDF export work with an **empty `.env`**. Only the "BPUT Results Intelligence" section needs Supabase, and it degrades to a clear "Analytics unavailable" message — never a broken page.
+The homepage, live result lookup, trend charts and PDF export work with an **empty `.env`**. Only the "BPUT Results Intelligence" section needs Supabase, and it degrades to a clear "Analytics unavailable" message, never a broken page.
 
 ### Environment variables
 
@@ -829,12 +829,12 @@ The public student flow needs **nothing**. To enable analytics, `/admin` and the
 | --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `dev`                 | `vite dev`                                  | Dev server on `http://localhost:5173` with HMR                                                      |
 | `build`               | `vite build`                                | Production build; Nitro picks the preset from the deploying platform                                |
-| `build:dev`           | `vite build --mode development`             | Development-mode build including the SSR prerender pass — useful for reproducing SSR errors locally |
+| `build:dev`           | `vite build --mode development`             | Development-mode build including the SSR prerender pass, useful for reproducing SSR errors locally |
 | `preview`             | `vite preview`                              | Serves the build output. For Nitro output use `npx nitro preview`                                   |
 | `lint`                | `eslint .`                                  | Lint the whole repository                                                                           |
 | `format`              | `prettier --write .`                        | Format every file with the project's Prettier config                                                |
 | `census:intake`       | `bun scripts/census-intake.mjs`             | Measure every block's highest live serial, and record the evidence                                  |
-| `census:discover`     | `bun scripts/census-intake.mjs --discover`  | Ask the portal what the grid is missing — a new batch year, a college that opened a batch           |
+| `census:discover`     | `bun scripts/census-intake.mjs --discover`  | Ask the portal what the grid is missing, a new batch year, a college that opened a batch           |
 | `census:refresh`      | `bun scripts/census-intake.mjs --refresh --write-constants` | Re-check every recorded reading and re-derive the constants the dashboard imports   |
 | `census:sessions`     | `bun scripts/census-sessions.mjs`           | Ask which semester sessions the portal answers for, per batch year                                   |
 | `census:ledger`       | `bun scripts/census-ledger.mjs --verify`    | Publish the measurement to the ledger and check its invariants                                       |
@@ -949,12 +949,12 @@ result/
 │   │   ├── bput-upstream.ts         # the only module that talks to results.bput.ac.in
 │   │   ├── bput.functions.ts        # server functions + the error taxonomy
 │   │   ├── census-blocks.ts         # the measured grid: declared lists + the discovered overlay
-│   │   ├── census-discovered.ts     # generated — blocks discovery found on its own
+│   │   ├── census-discovered.ts     # generated, blocks discovery found on its own
 │   │   ├── census-core.ts           # observation model, rate governor, semester readers
 │   │   ├── census-headless.ts       # the crawl: first pass + maintenance passes
 │   │   ├── census-runner.ts         # the same work, driven from a page
 │   │   ├── census-client.ts         # census RPCs + the shared realtime channel
-│   │   ├── census-session-watch.ts  # generated — sessions the portal serves
+│   │   ├── census-session-watch.ts  # generated, sessions the portal serves
 │   │   ├── intake-stats.ts          # panels 01-03 math, including the ledger-aware acquisition
 │   │   ├── analytics-client.ts · analytics-stats.ts
 │   │   ├── sgpa.ts · formulas.ts    # the single source of truth for the math
@@ -969,7 +969,7 @@ result/
 │   │   ├── privacy.tsx              # privacy, disclaimer and FAQ (with FAQPage JSON-LD)
 │   │   ├── auth.tsx · auth.callback.tsx
 │   │   └── _authenticated/          # role-gated /admin layout, batches and analytics
-│   ├── routeTree.gen.ts             # auto-generated — never edit by hand
+│   ├── routeTree.gen.ts             # auto-generated, never edit by hand
 │   ├── server.ts · start.ts         # SSR entry and server-function middleware
 │   └── styles.css                   # Tailwind v4 entry, design tokens, dark mode
 ├── supabase/migrations/             # append-only, timestamped SQL
@@ -985,7 +985,7 @@ result/
 
 ## 🔐 Environment Variables
 
-The public lookup flow reads **no** environment variables at all. The values below are required for the analytics dashboard, for `/admin`, and for the census tooling. Nothing here is ever needed by a student's browser, and no key is ever committed — this repository's `.env` is ignored.
+The public lookup flow reads **no** environment variables at all. The values below are required for the analytics dashboard, for `/admin`, and for the census tooling. Nothing here is ever needed by a student's browser, and no key is ever committed, this repository's `.env` is ignored.
 
 | Variable                        | Scope            | Required                      | Description                                                                                                          |
 | ------------------------------- | ---------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -1000,10 +1000,10 @@ The public lookup flow reads **no** environment variables at all. The values bel
 <details>
 <summary><strong>⚠️ Things that bite people</strong></summary>
 
-- **Server and client values must match** — same project, same key. Vite only exposes `VITE_`-prefixed variables to the browser bundle, so both sets exist on purpose.
+- **Server and client values must match**, same project, same key. Vite only exposes `VITE_`-prefixed variables to the browser bundle, so both sets exist on purpose.
 - **Never** name the service-role key `VITE_SUPABASE_SERVICE_ROLE_KEY`. That ships a privileged key to every visitor.
 - New-style `sb_publishable_…` keys are opaque, not JWTs. Always import the provided clients (`@/integrations/supabase/client` for the browser, `@/integrations/supabase/auth-middleware` on the server) rather than calling `createClient` by hand, or PostgREST rejects the request with `Expected 3 parts in JWT; got 1`.
-- An opaque key must be sent as `apikey` **only** — sending it as `Authorization: Bearer` makes the gateway reject it. Every script here does this for you.
+- An opaque key must be sent as `apikey` **only**, sending it as `Authorization: Bearer` makes the gateway reject it. Every script here does this for you.
 - The census crawls from GitHub Actions, so the two repository secrets are `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Settings → Secrets and variables → Actions). Without them the crawl logs a notice and does nothing, rather than failing in a confusing way.
 
 </details>
@@ -1051,10 +1051,10 @@ supabase stop         # data persists; add --no-backup to wipe
 
 ### Google OAuth
 
-The "Continue with Google" button calls Supabase's Google provider directly — there is no third-party OAuth broker and **no** `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in this repository. All Google configuration lives in the Supabase dashboard.
+The "Continue with Google" button calls Supabase's Google provider directly, there is no third-party OAuth broker and **no** `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in this repository. All Google configuration lives in the Supabase dashboard.
 
 1. Google Cloud Console → **Credentials → OAuth client ID → Web application**. Add your origins (`http://localhost:5173`, your production domain).
-2. Add exactly one authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback` — Supabase's callback, not your app's.
+2. Add exactly one authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`, Supabase's callback, not your app's.
 3. Supabase → **Authentication → Providers → Google**: paste the client ID and secret.
 4. Supabase → **Authentication → URL Configuration**: set the site URL and allowlist every `${origin}/auth/callback` you sign in from.
 
@@ -1066,8 +1066,8 @@ The "Continue with Google" button calls Supabase's Google provider directly — 
 | `redirect_uri_mismatch` from Google             | The exact `https://<ref>.supabase.co/auth/v1/callback` URL is missing from the Google OAuth client.   |
 | Landed back on `/auth` after Google             | Your `${origin}/auth/callback` is missing from Supabase's redirect allowlist.                          |
 | `Unsupported provider: provider is not enabled` | The Google provider is not enabled in Supabase → Authentication → Providers.                           |
-| Signed in, but `/admin` shows "Not authorized"  | Expected — insert a `user_roles` row for that user with `role = 'admin'`.                             |
-| `404` on an `/~oauth/*` path                    | You are on an old build that used an OAuth broker. Pull latest — the app talks to Supabase directly.   |
+| Signed in, but `/admin` shows "Not authorized"  | Expected, insert a `user_roles` row for that user with `role = 'admin'`.                             |
+| `404` on an `/~oauth/*` path                    | You are on an old build that used an OAuth broker. Pull latest, the app talks to Supabase directly.   |
 
 </details>
 
@@ -1081,17 +1081,17 @@ The "Continue with Google" button calls Supabase's Google provider directly — 
 
 | Topic                          | Where                                                                                                    |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Route conventions              | [`src/routes/README.md`](src/routes/README.md) — TanStack file-based routing rules                        |
+| Route conventions              | [`src/routes/README.md`](src/routes/README.md), TanStack file-based routing rules                        |
 | Server functions & error codes | [`src/lib/bput.functions.ts`](src/lib/bput.functions.ts)                                                 |
-| The census grid                | [`src/lib/census-blocks.ts`](src/lib/census-blocks.ts) — the numbering rules, with the evidence beside them |
-| The census design              | [`supabase/migrations/`](supabase/migrations) — the ledger, the view, and why each rule exists             |
-| Measurement evidence           | [`docs/census-intake.json`](docs/census-intake.json) — every reading, plus 22 full-walk audits             |
+| The census grid                | [`src/lib/census-blocks.ts`](src/lib/census-blocks.ts), the numbering rules, with the evidence beside them |
+| The census design              | [`supabase/migrations/`](supabase/migrations), the ledger, the view, and why each rule exists             |
+| Measurement evidence           | [`docs/census-intake.json`](docs/census-intake.json), every reading, plus 22 full-walk audits             |
 | Grade points & SGPA math       | [`src/lib/sgpa.ts`](src/lib/sgpa.ts) · [`src/lib/formulas.ts`](src/lib/formulas.ts)                        |
 | PDF marksheet layout           | [`src/lib/pdf.ts`](src/lib/pdf.ts)                                                                        |
 | Analytics RPC schema           | [`supabase/migrations/`](supabase/migrations)                                                             |
 | Bulk engine                    | [`src/lib/bulk/`](src/lib/bulk)                                                                           |
 | Environment template           | [`.env.example`](.env.example)                                                                            |
-| Contributing guardrails        | `main` must always stay deployable — it deploys on every push                                             |
+| Contributing guardrails        | `main` must always stay deployable, it deploys on every push                                             |
 | Privacy & FAQ (user-facing)    | [`/privacy`](https://result.unifies.codes/privacy)                                                        |
 
 $$ \text{SGPA} = \frac{\sum_{i=1}^{n} C_i \times G_i}{\sum_{i=1}^{n} C_i} \qquad\qquad \text{CGPA} = \frac{\sum_{n=1}^{k} \text{SGPA}_n \times C_n}{\sum_{n=1}^{k} C_n} $$
@@ -1127,10 +1127,10 @@ Every upstream failure is re-thrown with a stable prefix so the UI can branch on
 
 | Function              | Method | Input                        | Returns                                                  |
 | --------------------- | ------ | ---------------------------- | -------------------------------------------------------- |
-| `fetchStudentDetails` | POST   | `{ rollNo: string }`          | `StudentDetails` — name, batch, branch, college           |
-| `fetchSubjects`       | POST   | `{ rollNo, semId, session }`  | `SubjectsResponse` — `grades[]` + `sgpadetails`            |
-| `fetchResultList`     | POST   | `{ rollNo, dob, session }`    | `ResultListItem[]` — published semesters for a session    |
-| `getMyRoles`          | GET    | — (requires a session)        | `string[]` of roles for the signed-in user                 |
+| `fetchStudentDetails` | POST   | `{ rollNo: string }`          | `StudentDetails`, name, batch, branch, college           |
+| `fetchSubjects`       | POST   | `{ rollNo, semId, session }`  | `SubjectsResponse`, `grades[]` + `sgpadetails`            |
+| `fetchResultList`     | POST   | `{ rollNo, dob, session }`    | `ResultListItem[]`, published semesters for a session    |
+| `getMyRoles`          | GET    |, (requires a session)        | `string[]` of roles for the signed-in user                 |
 
 ```ts
 import { useServerFn } from "@tanstack/react-start";
@@ -1174,12 +1174,12 @@ Example response (abridged):
 
 ### Supabase RPCs
 
-**Analytics — anonymous, `anon`-callable, clamped and validated server-side**
+**Analytics, anonymous, `anon`-callable, clamped and validated server-side**
 
 | RPC                                       | Body                              | Returns                                       |
 | ----------------------------------------- | --------------------------------- | --------------------------------------------- |
-| `POST /rest/v1/rpc/log_result_events`     | `{ _events: [{ year, semester, branch }] }` | `integer` — rows stored, invalid ones dropped |
-| `POST /rest/v1/rpc/get_results_analytics` | —                                 | `jsonb` aggregate payload                      |
+| `POST /rest/v1/rpc/log_result_events`     | `{ _events: [{ year, semester, branch }] }` | `integer`, rows stored, invalid ones dropped |
+| `POST /rest/v1/rpc/get_results_analytics` |,                                 | `jsonb` aggregate payload                      |
 
 ```bash
 curl -s "https://$SUPABASE_PROJECT_ID.supabase.co/rest/v1/rpc/get_results_analytics" \
@@ -1211,26 +1211,26 @@ curl -s "https://$SUPABASE_PROJECT_ID.supabase.co/rest/v1/rpc/get_results_analyt
 
 </details>
 
-**Census — the crawl's own surface. Reads are `anon` where they are counts only; every write needs the service role.**
+**Census, the crawl's own surface. Reads are `anon` where they are counts only; every write needs the service role.**
 
 | RPC                                       | Auth        | Body                                                     | Returns                                                     |
 | ----------------------------------------- | ----------- | -------------------------------------------------------- | ----------------------------------------------------------- |
-| `POST /rest/v1/rpc/get_bput_census`       | `anon`      | —                                                        | `jsonb` — published coverage cells, k ≥ 25                   |
-| `POST /rest/v1/rpc/census_plan`           | `anon`      | —                                                        | `jsonb` — blocks, blocks done, serials left, passes pending, when the portal was last asked |
-| `POST /rest/v1/rpc/census_progress`       | `anon`      | —                                                        | `jsonb` — the crawl's own progress counters                  |
-| `POST /rest/v1/rpc/census_next_work`      | service     | `{ _limit }`                                             | `jsonb` — maintenance passes first, then the oldest batch year |
-| `POST /rest/v1/rpc/log_census_events`     | service     | `{ _rows: [{ … observation }] }`                          | `integer` — rows stored                                      |
-| `POST /rest/v1/rpc/census_note_blocks`    | service     | `{ _rows: [{ year, code, max }] }`                        | `integer` — measured bounds published                        |
-| `POST /rest/v1/rpc/census_note_watch`     | service     | `{ _rows: [{ year, semesters }] }`                        | `integer` — session-watch rows published                     |
-| `POST /rest/v1/rpc/census_note_walk`      | service     | `{ _year, _code, _offset, _frontier, _captured, _completed }` | `void` — the walk's read position, with its frontier      |
-| `POST /rest/v1/rpc/census_claim_pass`     | service     | `{ _year, _code, _semester }`                             | `boolean` — false if that semester was already captured       |
-| `POST /rest/v1/rpc/census_apply_pass`     | service     | `{ _year, _code, _semester, _rows }`                      | `integer` — rows replaced atomically, or an error             |
-| `POST /rest/v1/rpc/census_report_pass`    | service     | `{ _year, _code, _semester, _status, _subjects }`          | `void` — closes the pass as done, empty or failed             |
+| `POST /rest/v1/rpc/get_bput_census`       | `anon`      |,                                                        | `jsonb`, published coverage cells, k ≥ 25                   |
+| `POST /rest/v1/rpc/census_plan`           | `anon`      |,                                                        | `jsonb`, blocks, blocks done, serials left, passes pending, when the portal was last asked |
+| `POST /rest/v1/rpc/census_progress`       | `anon`      |,                                                        | `jsonb`, the crawl's own progress counters                  |
+| `POST /rest/v1/rpc/census_next_work`      | service     | `{ _limit }`                                             | `jsonb`, maintenance passes first, then the oldest batch year |
+| `POST /rest/v1/rpc/log_census_events`     | service     | `{ _rows: [{ … observation }] }`                          | `integer`, rows stored                                      |
+| `POST /rest/v1/rpc/census_note_blocks`    | service     | `{ _rows: [{ year, code, max }] }`                        | `integer`, measured bounds published                        |
+| `POST /rest/v1/rpc/census_note_watch`     | service     | `{ _rows: [{ year, semesters }] }`                        | `integer`, session-watch rows published                     |
+| `POST /rest/v1/rpc/census_note_walk`      | service     | `{ _year, _code, _offset, _frontier, _captured, _completed }` | `void`, the walk's read position, with its frontier      |
+| `POST /rest/v1/rpc/census_claim_pass`     | service     | `{ _year, _code, _semester }`                             | `boolean`, false if that semester was already captured       |
+| `POST /rest/v1/rpc/census_apply_pass`     | service     | `{ _year, _code, _semester, _rows }`                      | `integer`, rows replaced atomically, or an error             |
+| `POST /rest/v1/rpc/census_report_pass`    | service     | `{ _year, _code, _semester, _status, _subjects }`          | `void`, closes the pass as done, empty or failed             |
 
 <details>
 <summary><strong>Why <code>census_apply_pass</code> replaces instead of inserting</strong></summary>
 
-Observations are append-only facts about student-semesters, and the table has no uniqueness constraint by design — the same fact served twice is not something Postgres can call a duplicate. A maintenance pass therefore deletes that block's rows for that one semester and rewrites the whole set inside a single transaction, raising if fewer rows landed than were sent (a short write would otherwise commit the delete). A corrected census stays a census; it never becomes a doubled one.
+Observations are append-only facts about student-semesters, and the table has no uniqueness constraint by design, the same fact served twice is not something Postgres can call a duplicate. A maintenance pass therefore deletes that block's rows for that one semester and rewrites the whole set inside a single transaction, raising if fewer rows landed than were sent (a short write would otherwise commit the delete). A corrected census stays a census; it never becomes a doubled one.
 
 </details>
 
@@ -1244,7 +1244,7 @@ These are BPUT's own public endpoints. They are consumed only by the server func
 | `/student-results-subjects-list` | `semid`, `rollNo`, `session`  | lookup + census              |
 | `/student-results-list`          | `rollNo`, `dob`, `session`    | lookup                       |
 
-Base: `https://results.bput.ac.in` · timeout 7,000 ms · one retry with a fixed 400 ms backoff. Note the typo in `detsils` — that is the upstream path, not ours.
+Base: `https://results.bput.ac.in` · timeout 7,000 ms · one retry with a fixed 400 ms backoff. Note the typo in `detsils`, that is the upstream path, not ours.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1277,7 +1277,7 @@ const sgpa = calculateSGPA([
 
 // (3×8 + 4×10 + 2×7) / 9 = 8.0
 console.log(sgpa); // 8
-console.log(GRADE_POINTS.F); // 0 — a backlog carries no credit points
+console.log(GRADE_POINTS.F); // 0, a backlog carries no credit points
 ```
 
 ### Compute CGPA across published semesters
@@ -1312,7 +1312,7 @@ import { createResultPDFBlob, getResultPdfFilename } from "@/lib/pdf";
 
 const { blob, filename } = await createResultPDFBlob({
   student,                     // StudentDetails
-  semesters,                   // PdfSemester[] — primary attempt plus any republications
+  semesters,                   // PdfSemester[], primary attempt plus any republications
   cgpa: 8.04,
 });
 
@@ -1344,7 +1344,7 @@ await runBatch(batchId);   // pause() / resume() / cancel() / retryFailed(batchI
 ### Ask the census what is left
 
 ```bash
-# what the dashboard reads — counts only, anonymous, safe to run anywhere
+# what the dashboard reads, counts only, anonymous, safe to run anywhere
 curl -s "https://$SUPABASE_PROJECT_ID.supabase.co/rest/v1/rpc/census_plan" \
   -X POST -H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H "Content-Type: application/json" -d '{}' |
   jq '{blocks, blocksDone, serialsRemaining, passesPending, watchCheckedAt}'
@@ -1379,7 +1379,7 @@ bun scripts/census-intake.mjs --discover --seconds 120     # ask what the grid i
 
 ## 📊 Performance
 
-This project optimises for **perceived speed on a poor connection** — the realistic environment for a student checking results on a phone — and for **not being a burden** on a university server that was never built for this traffic.
+This project optimises for **perceived speed on a poor connection**, the realistic environment for a student checking results on a phone, and for **not being a burden** on a university server that was never built for this traffic.
 
 ### Engineering decisions that matter
 
@@ -1400,7 +1400,7 @@ This project optimises for **perceived speed on a poor connection** — the real
 
 ### Scoreboard
 
-Measured on 2026-09-29. Rows that say _not measured_ are exactly that — this project does not publish numbers it has not taken.
+Measured on 2026-09-29. Rows that say _not measured_ are exactly that, this project does not publish numbers it has not taken.
 
 | Metric                                              | Measured                    | How it was measured                                                        |
 | --------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------- |
@@ -1414,14 +1414,14 @@ Measured on 2026-09-29. Rows that say _not measured_ are exactly that — this p
 | Everything the home document references             | **451 kB gz** / 1.55 MB raw | sum of every `/assets/*.js` and `*.css` in the served HTML                   |
 | First byte (TTFB, ASCII sandbox)                    | **0.43 – 0.52 s**           | `curl -w '%{time_starttransfer}'`                                            |
 | Upstream latency, per request                       | **p50 291 ms · p95 1,074 ms** | 45 s of paced probing against `results.bput.ac.in`, recorded in `census.yml` |
-| Upstream throughput, 12 workers, no delay            | **35.6 req/s, zero 429s**   | same run — the reason the default ceiling is a conservative 16/s             |
+| Upstream throughput, 12 workers, no delay            | **35.6 req/s, zero 429s**   | same run, the reason the default ceiling is a conservative 16/s             |
 | Semester read (`student-results-subjects-list`)      | **~797 ms**                 | the same measurement, per endpoint                                            |
 | Census cost per full lookup                          | **9 requests** (1 record + 8 semesters) | counted by the crawl, and the basis of the read budget              |
-| Lighthouse — Performance / Accessibility             | _not measured_              | `npx lighthouse https://result.unifies.codes --preset=desktop --view`        |
+| Lighthouse, Performance / Accessibility             | _not measured_              | `npx lighthouse https://result.unifies.codes --preset=desktop --view`        |
 | Largest Contentful Paint / CLS                       | _not measured_              | Chrome DevTools performance panel                                            |
 
 > [!NOTE]
-> **A known, tracked cost:** the home document module-preloads the PDF engine and the chart bundle, so **255 kB gz of the 451 kB** is code that the first paint does not need. Trimming that preload is on the [roadmap](#-roadmap) — it is listed here rather than quietly omitted, because a performance section that only reports wins is marketing.
+> **A known, tracked cost:** the home document module-preloads the PDF engine and the chart bundle, so **255 kB gz of the 451 kB** is code that the first paint does not need. Trimming that preload is on the [roadmap](#-roadmap), it is listed here rather than quietly omitted, because a performance section that only reports wins is marketing.
 
 <details>
 <summary><strong>Reproduce every number above</strong></summary>
@@ -1453,7 +1453,7 @@ bun scripts/census-verify.mjs https://result.unifies.codes
 ## 🧪 Testing & Quality
 
 > [!IMPORTANT]
-> **There is still no unit-test runner in this repository.** Nothing below pretends to be one: the project ships static analysis plus six purpose-built verifiers that check real external state — a database, a portal, a deployment — and a documented manual QA matrix. A Vitest + Playwright harness is the top item on the [roadmap](#-roadmap).
+> **There is still no unit-test runner in this repository.** Nothing below pretends to be one: the project ships static analysis plus six purpose-built verifiers that check real external state, a database, a portal, a deployment, and a documented manual QA matrix. A Vitest + Playwright harness is the top item on the [roadmap](#-roadmap).
 
 ### What runs today
 
@@ -1461,10 +1461,10 @@ bun scripts/census-verify.mjs https://result.unifies.codes
 bun run lint                     # ESLint 9 (flat config) across the repo
 bun tsc -b --noEmit              # TypeScript strict, no emit
 bun x prettier --check src scripts  # formatting (write with: bun run format)
-bun run build                    # full production build — the strongest local signal
+bun run build                    # full production build, the strongest local signal
 ```
 
-### Verifiers — these fail on real disagreement, not on lint style
+### Verifiers, these fail on real disagreement, not on lint style
 
 | Command                            | What it proves                                                                                                  | Fails when                                                            |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -1475,13 +1475,13 @@ bun run build                    # full production build — the strongest local
 | `bun scripts/check-credentials.mjs` | Names a Supabase key and proves the project accepts it, without printing it                                     | The pasted key is the wrong kind (JWT secret, anon key, truncated)     |
 | `bun scripts/analytics-status.mjs`  | Tells a quiet live counter from a broken one; `--probe` performs one real lookup and watches the counter move     | The write is rejected, or the row moves while the push never arrives   |
 
-The sentinel is worth a sentence of its own: "a semester the portal serves, that no block has captured, and that nothing is queued to read" is the one failure the dashboard cannot show you — coverage would look complete while a semester of results sat unread. A check that can never fail is decoration, so its test case list includes the exact ledger shape that produced a real defect (a finished block with no recorded read position) and the 30-day staleness rule that makes an old pass work again.
+The sentinel is worth a sentence of its own: "a semester the portal serves, that no block has captured, and that nothing is queued to read" is the one failure the dashboard cannot show you, coverage would look complete while a semester of results sat unread. A check that can never fail is decoration, so its test case list includes the exact ledger shape that produced a real defect (a finished block with no recorded read position) and the 30-day staleness rule that makes an old pass work again.
 
 ### Continuous integration
 
 | Workflow              | Trigger                                     | What it does                                                                                                    |
 | --------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main`             | Install, lint, build (Node 22). A red build is a hard block — `main` is expected to be deployable at all times. |
+| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main`             | Install, lint, build (Node 22). A red build is a hard block, `main` is expected to be deployable at all times. |
 | [`census.yml`](.github/workflows/census.yml) | Schedule (5 min), push to crawler files, manual dispatch | One crawl slice: fetch the work list, read it, publish progress. Resumes from the ledger, so a lost run costs progress, never correctness. |
 | [`census-refresh.yml`](.github/workflows/census-refresh.yml) | Daily 02:20 UTC + manual | Re-check every recorded reading, discover what the grid lacks, watch the portal's sessions, publish the ledger, dispatch a slice, verify the regenerated tree, commit a heartbeat. |
 
@@ -1495,7 +1495,7 @@ Run this before any release; each row maps to a real user-visible state.
 | #  | Scenario                         | Steps                                                  | Expected                                                                |
 | -- | -------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
 | 1  | Public lookup, published result   | Enter a valid reg no on `/`                            | Master record, then per-semester SGPA blocks render                      |
-| 2  | Result not yet published          | Enter a reg no for a future session                    | "Not published" state — never an empty or fabricated result              |
+| 2  | Result not yet published          | Enter a reg no for a future session                    | "Not published" state, never an empty or fabricated result              |
 | 3  | Back-paper republication          | Use a reg no with a supplementary attempt              | Primary result plus a labelled `Back paper republication #n` block       |
 | 4  | Invalid input                     | Submit 3 digits, or letters                            | Inline validation blocks submit; the API rejects with `BPUT_BAD_INPUT`   |
 | 5  | Upstream down / slow              | Throttle to offline in DevTools, then retry            | Classified error state with a working retry, no crash                    |
@@ -1526,10 +1526,10 @@ bun run build
 
 ### ▲ Vercel
 
-Deploy-ready — no `vercel.json` required.
+Deploy-ready, no `vercel.json` required.
 
 1. Import the repository at [vercel.com/new](https://vercel.com/new).
-2. Framework preset: **Other**. Build command: `bun run build`. Leave the output directory at its default — the `vercel` preset writes the correct `.vercel/output/` structure.
+2. Framework preset: **Other**. Build command: `bun run build`. Leave the output directory at its default, the `vercel` preset writes the correct `.vercel/output/` structure.
 3. Add environment variables under **Project Settings → Environment Variables** (analytics, `/admin`; the service-role key is only needed if something server-side calls it):
 
    | Key                             | Notes                            |
@@ -1549,7 +1549,7 @@ Deploy-ready — no `vercel.json` required.
 Also deploy-ready with no `netlify.toml`.
 
 1. Import the repository at [app.netlify.com](https://app.netlify.com).
-2. Build command: `bun run build`. Leave the publish directory default — the `netlify` preset writes to `.netlify/`.
+2. Build command: `bun run build`. Leave the publish directory default, the `netlify` preset writes to `.netlify/`.
 3. Add the same environment variables under **Site settings → Environment variables**.
 4. To pin: `NITRO_PRESET=netlify` or `netlify-edge`.
 
@@ -1564,7 +1564,7 @@ Set the Supabase variables in **Workers & Pages → your project → Settings �
 
 ### 🐳 Docker
 
-See the [Dockerfile in Quick Start](#docker-setup) — the `node` preset produces a single self-contained server at `.output/server/index.mjs`.
+See the [Dockerfile in Quick Start](#docker-setup), the `node` preset produces a single self-contained server at `.output/server/index.mjs`.
 
 ```bash
 NITRO_PRESET=node bun run build
@@ -1576,15 +1576,15 @@ docker run -p 3000:3000 --env-file .env bput-result-fetcher
 
 Two sensible routes:
 
-- **Lambda + API Gateway** — `NITRO_PRESET=aws-lambda bun run build`, then deploy the generated handler with the AWS CLI, SAM or CDK.
-- **App Runner / ECS Fargate** — build the Docker image above, push it to ECR, and point App Runner at it. Set the Supabase variables in the service configuration, not in the image.
+- **Lambda + API Gateway**, `NITRO_PRESET=aws-lambda bun run build`, then deploy the generated handler with the AWS CLI, SAM or CDK.
+- **App Runner / ECS Fargate**, build the Docker image above, push it to ECR, and point App Runner at it. Set the Supabase variables in the service configuration, not in the image.
 
 Either way, put CloudFront in front of it and keep `SUPABASE_SERVICE_ROLE_KEY` in Secrets Manager rather than plain environment variables.
 
 ### 🌊 DigitalOcean
 
-- **App Platform** — create an app from the GitHub repo, choose Dockerfile as the build type, expose port 3000, and add the environment variables as encrypted app-level secrets.
-- **Droplet** — run the same image behind Caddy or Nginx for TLS:
+- **App Platform**, create an app from the GitHub repo, choose Dockerfile as the build type, expose port 3000, and add the environment variables as encrypted app-level secrets.
+- **Droplet**, run the same image behind Caddy or Nginx for TLS:
 
   ```bash
   docker run -d --name bput --restart unless-stopped \
@@ -1602,7 +1602,7 @@ gh workflow run census-refresh.yml --ref main
 ```
 
 > [!CAUTION]
-> `SUPABASE_SERVICE_ROLE_KEY` bypasses row-level security. Never expose it to the browser, never prefix it with `VITE_`, and never commit a filled `.env` — only `.env.example` belongs in the repository.
+> `SUPABASE_SERVICE_ROLE_KEY` bypasses row-level security. Never expose it to the browser, never prefix it with `VITE_`, and never commit a filled `.env`, only `.env.example` belongs in the repository.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1612,7 +1612,7 @@ gh workflow run census-refresh.yml --ref main
 
 ## 🤝 Contributing
 
-Contributions are genuinely welcome — especially anything that makes results faster, clearer or safer to read, or that makes the measurement more honest.
+Contributions are genuinely welcome, especially anything that makes results faster, clearer or safer to read, or that makes the measurement more honest.
 
 > [!IMPORTANT]
 > Keep `main` in a working state. Pushes to `main` sync to the live deployment, so a broken build is a broken product for real students. Open a pull request instead of pushing straight to `main`.
@@ -1631,7 +1631,7 @@ bun run dev
 1. **Fork** the repository (or branch off `main` if you have write access).
 2. **Branch** with a descriptive, prefixed name.
 3. **Commit** using Conventional Commits.
-4. **Verify locally** before pushing — CI repeats the first three:
+4. **Verify locally** before pushing, CI repeats the first three:
 
    ```bash
    bun run lint
@@ -1656,7 +1656,7 @@ bun run dev
 
 ### Commit conventions
 
-[Conventional Commits](https://www.conventionalcommits.org) — `type(scope): subject`, imperative mood, ≤ 72 characters, with a body that explains **why** when the change is not obvious.
+[Conventional Commits](https://www.conventionalcommits.org), `type(scope): subject`, imperative mood, ≤ 72 characters, with a body that explains **why** when the change is not obvious.
 
 ```text
 feat(analytics): fold small branch buckets into Other using k=25
@@ -1668,7 +1668,7 @@ useful without exposing a small cohort.
 
 ### Pull request process
 
-1. One logical change per pull request — split unrelated work out.
+1. One logical change per pull request, split unrelated work out.
 2. Run the full local verification block above.
 3. Describe **what changed, why, and how you verified it**, with screenshots for UI work.
 4. Link the issue it closes (`Closes #123`) where one exists.
@@ -1678,13 +1678,13 @@ useful without exposing a small cohort.
 
 - **Never log or persist student identifiers.** No registration numbers, names, dates of birth, grades or IPs in logs, analytics or the database. The only analytics payload allowed is `{ year, semester, branch }`, and census observations drop the roll number before anything is written.
 - **Migrations are append-only.** Add a new timestamped file under `supabase/migrations/`; never edit an applied one.
-- **One source of truth for math.** SGPA/CGPA logic lives in `src/lib/sgpa.ts` and `src/lib/formulas.ts` — the UI, the PDF and any tests must import from there.
+- **One source of truth for math.** SGPA/CGPA logic lives in `src/lib/sgpa.ts` and `src/lib/formulas.ts`, the UI, the PDF and any tests must import from there.
 - **One source of truth for the grid.** The walk, the measurement and the dashboard all read `censusBlocks()` in `src/lib/census-blocks.ts`. Never re-declare a count.
 - **A finished block needs a read position.** `frontier` is what tells growth from noise; a finished block without one is either re-read from the start or stops being watched, so `census-ledger.mjs --verify` fails on it.
 - **Never read a semester twice.** Claim a pass before reading it, apply it atomically, and let a re-read *replace* rows rather than append them.
 - **Keep the bulk runner single in-flight.** BPUT is fragile; concurrency is a correctness and courtesy problem, not a performance win.
 - **Fail loudly, never fabricate.** A missing result must render as "not published", and a figure with no source must render as unmeasured.
-- **Match the house style** — Prettier (`printWidth: 100`, double quotes, trailing commas), TypeScript strict, Tailwind tokens instead of ad-hoc colours.
+- **Match the house style**, Prettier (`printWidth: 100`, double quotes, trailing commas), TypeScript strict, Tailwind tokens instead of ad-hoc colours.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1739,7 +1739,7 @@ useful without exposing a small cohort.
 - [ ] OCR-assisted upload for students holding only a printed marksheet
 - [ ] Historical result archive opt-in, stored locally in the browser only
 
-Have a better idea? [Open an issue](https://github.com/flawsom/result/issues) — roadmap items that protect student privacy and reduce upstream load are prioritised.
+Have a better idea? [Open an issue](https://github.com/flawsom/result/issues), roadmap items that protect student privacy and reduce upstream load are prioritised.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1759,14 +1759,14 @@ No. BPUT Result Fetcher is an independent, unofficial utility. It is not affilia
 <details>
 <summary><strong>Do I need an account, a password, or my date of birth?</strong></summary>
 
-For the public flow, no. Registration number only — all eight semester sessions are derived from your batch year. No BPUT credentials are ever requested, stored or proxied, and the app never impersonates you. Accounts exist solely for the separate `/admin` bulk tool, and sign-up there is disabled.
+For the public flow, no. Registration number only, all eight semester sessions are derived from your batch year. No BPUT credentials are ever requested, stored or proxied, and the app never impersonates you. Accounts exist solely for the separate `/admin` bulk tool, and sign-up there is disabled.
 
 </details>
 
 <details>
 <summary><strong>Do you store my registration number or my result?</strong></summary>
 
-No. Results are fetched live, server-side, and returned to you. Registration numbers are never persisted — the only client-side cache is an in-memory `Map` that is cleared when the tab closes. Server logs deliberately omit roll numbers, dates of birth and query strings. The server-side stores hold anonymous counters (year, semester, branch, timestamp) and anonymous census observations (batch year, semester, branch, credits, grade totals) — the census drops the registration number and the student's name before anything is written, one row per student-semester.
+No. Results are fetched live, server-side, and returned to you. Registration numbers are never persisted, the only client-side cache is an in-memory `Map` that is cleared when the tab closes. Server logs deliberately omit roll numbers, dates of birth and query strings. The server-side stores hold anonymous counters (year, semester, branch, timestamp) and anonymous census observations (batch year, semester, branch, credits, grade totals), the census drops the registration number and the student's name before anything is written, one row per student-semester.
 
 </details>
 
@@ -1780,14 +1780,14 @@ Two places, and the page labels which is which. Panels 01–03 describe the **un
 <details>
 <summary><strong>How do you know how many students are in a batch?</strong></summary>
 
-By asking. For every college code and batch year, the census binary-searches the registration range for its last number that answers for a student (about 17 requests per range), which measures an upper bound: the serial the portal still answers for. Holes below that bound — dropouts, transfers, withdrawn records — were quantified by walking 22 ranges serial by serial, giving 3.4% for 2012–2014 and 0.42% for 2015 onward. It is a measured snapshot of the records the portal answers for, never an admission roll, and the panels say so.
+By asking. For every college code and batch year, the census binary-searches the registration range for its last number that answers for a student (about 17 requests per range), which measures an upper bound: the serial the portal still answers for. Holes below that bound, dropouts, transfers, withdrawn records, were quantified by walking 22 ranges serial by serial, giving 3.4% for 2012–2014 and 0.42% for 2015 onward. It is a measured snapshot of the records the portal answers for, never an admission roll, and the panels say so.
 
 </details>
 
 <details>
 <summary><strong>What happens when BPUT publishes something new, or opens a new batch year?</strong></summary>
 
-The census notices on its own. A daily job asks the portal which semester sessions each batch year answers for and sweeps code space for a batch year the grid does not carry — plus two declared years a day in rotation, in case a college opens a batch it never had. Anything it finds is measured and appended to the grid, so the walk, the counts and the dashboard all pick it up without anyone editing a number. A newly served semester is re-checked monthly rather than assumed, because BPUT publishes results in batches.
+The census notices on its own. A daily job asks the portal which semester sessions each batch year answers for and sweeps code space for a batch year the grid does not carry, plus two declared years a day in rotation, in case a college opens a batch it never had. Anything it finds is measured and appended to the grid, so the walk, the counts and the dashboard all pick it up without anyone editing a number. A newly served semester is re-checked monthly rather than assumed, because BPUT publishes results in batches.
 
 </details>
 
@@ -1812,21 +1812,21 @@ Grade points: `O 10`, `E 9`, `A 8`, `B 7`, `C 6`, `D 5`, and `F` (fail), `M` (ma
 <details>
 <summary><strong>What are "back paper republications"?</strong></summary>
 
-After supplementary exams, BPUT republishes a whole semester under a later session label rather than patching the original. This tool probes the following sessions for each semester and, when it finds one, shows it as an additional attempt block — so an improved result after a back paper is visible instead of being lost behind the original publication.
+After supplementary exams, BPUT republishes a whole semester under a later session label rather than patching the original. This tool probes the following sessions for each semester and, when it finds one, shows it as an additional attempt block, so an improved result after a back paper is visible instead of being lost behind the original publication.
 
 </details>
 
 <details>
 <summary><strong>My result isn't showing. What now?</strong></summary>
 
-Three possibilities, each with its own state in the UI: the result genuinely isn't published yet ("not published" — the tool never invents data), the upstream portal is slow or unreachable (a classified error with a retry), or the registration number doesn't match the expected 8–12 digit format. If BPUT's own portal shows it and this doesn't, [open an issue](https://github.com/flawsom/result/issues) with the semester and session label — but never post a real registration number.
+Three possibilities, each with its own state in the UI: the result genuinely isn't published yet ("not published", the tool never invents data), the upstream portal is slow or unreachable (a classified error with a retry), or the registration number doesn't match the expected 8–12 digit format. If BPUT's own portal shows it and this doesn't, [open an issue](https://github.com/flawsom/result/issues) with the semester and session label, but never post a real registration number.
 
 </details>
 
 <details>
 <summary><strong>Can I trust the exported PDF?</strong></summary>
 
-Treat it as a convenience copy, not a certificate. Every page is stamped "Unofficial copy — regenerated from BPUT's public result portal", carries BPUT's own provisional-result notes, and embeds a QR code back to the official portal so anyone can verify it independently. Always confirm important decisions — revaluation, eligibility, placement documentation — against the official marksheet.
+Treat it as a convenience copy, not a certificate. Every page is stamped "Unofficial copy, regenerated from BPUT's public result portal", carries BPUT's own provisional-result notes, and embeds a QR code back to the official portal so anyone can verify it independently. Always confirm important decisions, revaluation, eligibility, placement documentation, against the official marksheet.
 
 </details>
 
@@ -1840,7 +1840,7 @@ Because querying thousands of registration numbers is a very different act from 
 <details>
 <summary><strong>Does it work on mobile?</strong></summary>
 
-Yes — the layout is responsive from 320 px up, figures are sized from their own container so nothing overflows, result tables scroll horizontally on narrow screens, and PDF generation runs entirely in the browser so it works on a phone without a server round-trip. Downloads on iOS Safari may open in a new tab rather than the Files app; the UI shows a fallback link when that happens.
+Yes, the layout is responsive from 320 px up, figures are sized from their own container so nothing overflows, result tables scroll horizontally on narrow screens, and PDF generation runs entirely in the browser so it works on a phone without a server round-trip. Downloads on iOS Safari may open in a new tab rather than the Files app; the UI shows a fallback link when that happens.
 
 </details>
 
@@ -1861,15 +1861,15 @@ Absolutely. The public flow runs with an empty `.env`, and there is no vendor lo
 
 Built on the work of a lot of people who gave their time away for free:
 
-- **[TanStack](https://tanstack.com)** — Start, Router, Query and Table set the standard for typed, full-stack React that stays out of your way.
-- **[Vite](https://vite.dev)** and **[Nitro](https://nitro.build)** — a build tool and server engine that make multi-platform deployment a build flag instead of a rewrite.
-- **[Tailwind CSS](https://tailwindcss.com)**, **[shadcn/ui](https://ui.shadcn.com)** and **[Radix UI](https://www.radix-ui.com)** — the tokens and accessible primitives this interface is composed from.
-- **[Supabase](https://supabase.com)** — auth, roles, realtime and a Postgres surface that let a small tool have honest aggregate analytics with real row-level security.
-- **[KaTeX](https://katex.org)** and **[MathJax](https://www.mathjax.org)** — typeset formulas on screen and rasterised into the exported PDF.
-- **[jsPDF](https://github.com/parallax/jsPDF)** + **[AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable)**, **[JSZip](https://stuk.github.io/jszip/)** and **[node-qrcode](https://github.com/soldair/node-qrcode)** — the marksheet and batch-export pipeline.
-- **[Recharts](https://recharts.org)**, **[Dexie.js](https://dexie.org)**, **[Lucide](https://lucide.dev)** and **[Sonner](https://sonner.emilkowal.ski)** — charts, the offline bulk queue, and the iconography and toasts.
-- **[shields.io](https://shields.io)** — the badges in this README.
-- **The BPUT student community** — for the semester-after-semester feedback that shaped what this tool actually needed to do, and for being patient while it learned to respect the upstream server.
+- **[TanStack](https://tanstack.com)**, Start, Router, Query and Table set the standard for typed, full-stack React that stays out of your way.
+- **[Vite](https://vite.dev)** and **[Nitro](https://nitro.build)**, a build tool and server engine that make multi-platform deployment a build flag instead of a rewrite.
+- **[Tailwind CSS](https://tailwindcss.com)**, **[shadcn/ui](https://ui.shadcn.com)** and **[Radix UI](https://www.radix-ui.com)**, the tokens and accessible primitives this interface is composed from.
+- **[Supabase](https://supabase.com)**, auth, roles, realtime and a Postgres surface that let a small tool have honest aggregate analytics with real row-level security.
+- **[KaTeX](https://katex.org)** and **[MathJax](https://www.mathjax.org)**, typeset formulas on screen and rasterised into the exported PDF.
+- **[jsPDF](https://github.com/parallax/jsPDF)** + **[AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable)**, **[JSZip](https://stuk.github.io/jszip/)** and **[node-qrcode](https://github.com/soldair/node-qrcode)**, the marksheet and batch-export pipeline.
+- **[Recharts](https://recharts.org)**, **[Dexie.js](https://dexie.org)**, **[Lucide](https://lucide.dev)** and **[Sonner](https://sonner.emilkowal.ski)**, charts, the offline bulk queue, and the iconography and toasts.
+- **[shields.io](https://shields.io)**, the badges in this README.
+- **The BPUT student community**, for the semester-after-semester feedback that shaped what this tool actually needed to do, and for being patient while it learned to respect the upstream server.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1880,7 +1880,7 @@ Built on the work of a lot of people who gave their time away for free:
 ## 📜 License
 
 > [!WARNING]
-> **No `LICENSE` file exists in this repository yet.** In its absence the default position is *all rights reserved* — the code is publicly readable, but no licence is granted for reuse, modification or redistribution.
+> **No `LICENSE` file exists in this repository yet.** In its absence the default position is *all rights reserved*, the code is publicly readable, but no licence is granted for reuse, modification or redistribution.
 
 This is a deliberate, tracked gap rather than a licence choice, and it is the first item under [In progress](#-roadmap). Adding one takes a minute:
 
@@ -1903,7 +1903,7 @@ This is a deliberate, tracked gap rather than a licence choice, and it is the fi
 
 ### ⭐ Star the repository
 
-If this saved you a bad afternoon refreshing an overloaded portal, a star is the cheapest way to say thanks — and it is how other students find the tool.
+If this saved you a bad afternoon refreshing an overloaded portal, a star is the cheapest way to say thanks, and it is how other students find the tool.
 
 <p align="center">
   <a href="https://github.com/flawsom/result/stargazers">
@@ -1927,10 +1927,10 @@ Hosting, Supabase, and the hours spent keeping up with upstream changes are all 
 | [GitHub Issues](https://github.com/flawsom/result/issues)             | Bugs, incorrect results, feature requests, roadmap discussion              |
 | [GitHub Discussions](https://github.com/flawsom/result/discussions)   | Questions that aren't bugs                                                |
 | [@vibes.him on Instagram](https://www.instagram.com/vibes.him)         | Bulk/admin access requests and quick questions                            |
-| [result.unifies.codes](https://result.unifies.codes)                   | The live app — and its [privacy & FAQ page](https://result.unifies.codes/privacy) |
+| [result.unifies.codes](https://result.unifies.codes)                   | The live app, and its [privacy & FAQ page](https://result.unifies.codes/privacy) |
 
 > [!CAUTION]
-> Never post a registration number, name, date of birth, marksheet image or any other student-identifying detail in a public issue. Describe the problem with a session label and semester only — the maintainer will ask for a safe reproduction if one is needed.
+> Never post a registration number, name, date of birth, marksheet image or any other student-identifying detail in a public issue. Describe the problem with a session label and semester only, the maintainer will ask for a safe reproduction if one is needed.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1950,7 +1950,7 @@ The full, user-facing version of this section lives at [`/privacy`](https://resu
 | Anonymous analytics only      | `log_result_events([{ year, semester, branch }])` accepts nothing else; branch is trimmed to 80 characters                 |
 | Small cohorts protected       | `get_results_analytics()` folds any branch under 25 total records into `Other`                                             |
 | Census drops the identity     | An observation is one student-semester: batch year, semester, branch, credits and grade totals. The registration number and the name are never sent to the database |
-| Admin data stays client-side  | Bulk results live only in the admin's own IndexedDB (`bput-admin-bulk`, via Dexie) — never on a shared server              |
+| Admin data stays client-side  | Bulk results live only in the admin's own IndexedDB (`bput-admin-bulk`, via Dexie), never on a shared server              |
 | Honest failure states         | Every upstream outcome is classified (`BPUT_NOT_PUBLISHED`, `BPUT_TIMEOUT`, …) and rendered explicitly                     |
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
@@ -1982,7 +1982,7 @@ The full, user-facing version of this section lives at [`/privacy`](https://resu
 | Grid totals (1,103 blocks · 160,609 numbers · ~158,571 students) | `src/lib/census-blocks.ts` constants               | `bun run census:refresh`, daily in Actions |
 | Per-batch-year intake table                 | `MEASURED_INTAKE` in the same module               | same                                      |
 | Bundle sizes and transport timings          | the live deployment                                | re-measure with the commands in [Performance](#performance) |
-| Serial numbers remaining, passes pending    | `census_plan()` — a live read                      | every crawl slice                         |
+| Serial numbers remaining, passes pending    | `census_plan()`, a live read                      | every crawl slice                         |
 | Read budget reasoning                       | `src/lib/intake-stats.ts`, documented in code      | when the read cost changes                |
 
 Every one of these can be re-derived from the repository alone, which is the point: nothing in this README is a number only a human remembers.
@@ -1996,7 +1996,7 @@ Every one of these can be re-derived from the repository alone, which is the poi
 <p align="center">
   <img src="https://img.shields.io/badge/Built%20with-React%2019%20·%20TanStack%20Start%20·%20Tailwind%204%20·%20Supabase-0f172a?style=for-the-badge" alt="Built with React 19, TanStack Start, Tailwind 4 and Supabase" />
   <br/><br/>
-  <strong>BPUT Result Fetcher</strong> — SGPA in seconds.<br/>
+  <strong>BPUT Result Fetcher</strong>, SGPA in seconds.<br/>
   <sub>Unofficial and independent. Not affiliated with BPUT. Always verify against <a href="https://results.bput.ac.in">results.bput.ac.in</a>.</sub>
   <br/><br/>
   <a href="https://github.com/flawsom/result/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/flawsom/result?style=social" /></a>

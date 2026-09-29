@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// University panels — the half of the BPUT Results Intelligence dashboard that
+// University panels, the half of the BPUT Results Intelligence dashboard that
 // describes the university rather than this website.
 //
 // These three panels draw on the measured census grid (`@/lib/intake-stats` over
@@ -266,7 +266,7 @@ export function IntakePanel({ series }: { series: IntakeSeries }) {
                     color: row.yoy === null ? undefined : row.yoy >= 0 ? OK : FAIL,
                   }}
                 >
-                  {row.yoy === null ? "—" : fmtSignedPct(row.yoy * 100)}
+                  {row.yoy === null ? "–" : fmtSignedPct(row.yoy * 100)}
                 </td>
               </tr>
             ))}
@@ -278,7 +278,7 @@ export function IntakePanel({ series }: { series: IntakeSeries }) {
               <td className="px-3 py-2 text-right tabular-nums">
                 {(series.totalStudents / MEASURED_BLOCKS).toFixed(1)}
               </td>
-              <td className="px-3 py-2 text-right tabular-nums">—</td>
+              <td className="px-3 py-2 text-right tabular-nums">–</td>
               <td className="px-3 py-2 text-right tabular-nums">{fmtInt(largestCollege)}</td>
               <td className="px-3 py-2 text-right tabular-nums">
                 {fmtSignedPct(series.netChange * 100)}
@@ -290,7 +290,7 @@ export function IntakePanel({ series }: { series: IntakeSeries }) {
 
       <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
         Method. Every one of the {fmtInt(MEASURED_BLOCKS)} college-and-year ranges was probed for
-        its highest live registration number on {MEASURED_AT} — a binary search for the first miss,
+        its highest live registration number on {MEASURED_AT}: a binary search for the first miss,
         with a gap-arbitration window above it, about 17 requests per range. Numbers are what the
         grid declares; students remove the holes found by walking 22 of those ranges serial by
         serial ({fmtPct(MEASURED_HOLE_RATE.before2015, 1)} of serials below the maximum in
@@ -355,7 +355,7 @@ export function BlockDistributionPanel({ dist }: { dist: BlockDistribution }) {
       style={{ animationDelay: "60ms" }}
     >
       {/* Two across, never four: this panel is half the page, so a four-up row
-          would leave each tile ~78px of usable width — narrower than the
+          would leave each tile ~78px of usable width, narrower than the
           figures it has to hold. */}
       <div className="grid grid-cols-2 gap-3">
         <StatBox
@@ -447,7 +447,7 @@ export function BlockDistributionPanel({ dist }: { dist: BlockDistribution }) {
 
       <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
         A college's value here is the highest serial the portal answered for in that batch year, so
-        it is an upper bound on what the college admitted — deliberately so, because the serial is
+        it is an upper bound on what the college admitted, deliberately so, because the serial is
         the only intake signal the portal exposes. Colleges that never got past ten serials (
         {fmtInt(dist.tiny)} of {fmtInt(dist.n)}) are drawn where they fall rather than filtered out;
         several of them are codes that opened in one batch year and never ran again.
@@ -475,7 +475,7 @@ export function CensusAcquisitionPanel({
   link: AcquisitionLink;
 }) {
   // Share of the live budget spent. The budget is spent + outstanding, so this
-  // rises as the crawl works and falls back when a new publication adds work —
+  // rises as the crawl works and falls back when a new publication adds work,
   // which is the truthful shape of "how far through are we".
   const budgetShare = a.budget > 0 ? a.readsSpent / a.budget : 0;
 
@@ -489,7 +489,7 @@ export function CensusAcquisitionPanel({
       {!a.reported ? (
         <EmptyPanel
           headline="No census counters yet"
-          detail="The crawl has not stored a batch and has not probed a number, so there is nothing measured here to draw. This panel fills from the first flush — it is not waiting on a seed or a model."
+          detail="The crawl has not stored a batch and has not probed a number, so there is nothing measured here to draw. This panel fills from the first flush, and it is not waiting on a seed or a model."
         />
       ) : (
         <>
@@ -548,7 +548,7 @@ export function CensusAcquisitionPanel({
             What the one number above is made of. The census does not finish: a
             batch year that answered for six semesters will answer for seven, and
             that seventh term has to be read. Splitting the total says so, and says
-            why keeping the record current is cheap — a maintenance pass reads the
+            why keeping the record current is cheap, a maintenance pass reads the
             record and the one new term, never the terms already captured.
           */}
           <div className="mt-3 grid gap-3 min-[420px]:grid-cols-2">
@@ -597,8 +597,8 @@ export function CensusAcquisitionPanel({
           <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
             Coverage has a real denominator because the universe was measured:{" "}
             {fmtInt(MEASURED_SERIALS)} registration numbers across {fmtInt(MEASURED_BLOCKS)}{" "}
-            college-and-year ranges. Reads spent is arithmetic rather than a model — one details
-            probe per number plus one read per stored semester row — and it reproduces the request
+            college-and-year ranges. Reads spent is arithmetic rather than a model: one details
+            probe per number plus one read per stored semester row, and it reproduces the request
             count of the last recorded crawl slice exactly. An observation is one student-semester
             and never a person: the registration number is dropped before anything is written, and
             published cells are pooled at 25.
@@ -606,9 +606,9 @@ export function CensusAcquisitionPanel({
 
           {/*
             The part a reader is right to ask about: this is not a one-off. A block
-            that has been read is not finished with — BPUT publishes on a rolling
+            that has been read is not finished with, BPUT publishes on a rolling
             window, so 2023 will answer for semester 7 after it has answered for six
-            — and the number above has to move when that happens rather than
+           , and the number above has to move when that happens rather than
             counting down to zero and staying there.
           */}
           <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
@@ -616,8 +616,8 @@ export function CensusAcquisitionPanel({
             current measurement and re-asks the portal which sessions each batch year answers for
             {a.watchCheckedAt ? ` (last checked ${fmtDayStr(a.watchCheckedAt)})` : ""}; a session a
             block has not captured becomes work by itself, and the budget is spent plus outstanding,
-            so it rises on the day the portal publishes something new. Only the new term is read —
-            two requests per student, the record and that one semester — and a semester the portal
+            so it rises on the day the portal publishes something new. Only the new term is read
+            (two requests per student, the record and that one semester), and a semester the portal
             has already published is never read twice, because the pass that read it is recorded
             before it is repeated. A semester the portal serves but nobody has passed yet is
             re-checked monthly rather than assumed, because results are published in batches. The

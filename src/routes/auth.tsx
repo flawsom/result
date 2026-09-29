@@ -17,7 +17,7 @@ export const Route = createFileRoute("/auth")({
   }),
   head: () => ({
     meta: [
-      { title: "Sign in — BPUT Result Fetcher Admin" },
+      { title: "Sign in · BPUT Result Fetcher Admin" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -68,7 +68,7 @@ function AuthPage() {
     } catch {
       /* ignore */
     }
-    // Direct Supabase OAuth (self-hosted friendly — no third-party OAuth broker).
+    // Direct Supabase OAuth (self-hosted friendly, no third-party OAuth broker).
     // Google redirects to Supabase's callback, which then returns here.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

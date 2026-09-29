@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-label="BPUT Results Intelligence dashboard: all-time total with year-over-year change, a 24 hour live pulse, a year-wise volume area chart with a peak annotation, k-anonymised branch distribution lollipops, a year selector and per-semester density sparklines">
-  <title>Analytics — BPUT Results Intelligence</title>
+  <title>Analytics, BPUT Results Intelligence</title>
   <defs>
     <linearGradient id="volFill" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#1740cc" stop-opacity="0.4"/>
@@ -67,7 +67,7 @@
   <!-- row 2: volume density -->
   <text class="m caps" x="88" y="450" font-size="11" fill="#000000">VOLUME DENSITY / 2019–2026</text>
   <text class="m caps" x="452" y="450" font-size="10" fill="#3a3a3a">■ VOLUME</text>
-  <text class="m caps" x="540" y="450" font-size="10" fill="#3a3a3a">— TREND</text>
+  <text class="m caps" x="540" y="450" font-size="10" fill="#3a3a3a">TREND</text>
   <rect x="88" y="458" width="660" height="200" fill="#f7f8fb" stroke="#000000" stroke-width="3"/>
   <rect x="91" y="461" width="654" height="194" fill="url(#vgrid)"/>
   <ellipse cx="430" cy="560" rx="220" ry="120" fill="url(#spot)"/>

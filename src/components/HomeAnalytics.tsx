@@ -13,7 +13,7 @@
 //     actionable state instead of an endless skeleton.
 //  3. "Live" means live. A single aggregate counter row is subscribed through
 //     Realtime, so a lookup anywhere in the world increments the ticker here
-//     within a second — no polling illusion.
+//     within a second, no polling illusion.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -180,7 +180,7 @@ const ERROR_COPY: Record<TelemetryErrorKind, { title: string; detail: ReactNode 
     detail: (
       <span>
         This build has no Supabase URL or publishable key, so there is nothing to read from. Set
-        VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Settings then reload — the dashboard
+        VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Settings then reload. The dashboard
         reads straight from the database and keeps no fallback copy of its own.
       </span>
     ),
@@ -212,7 +212,7 @@ const ERROR_COPY: Record<TelemetryErrorKind, { title: string; detail: ReactNode 
     detail: (
       <>
         The RPCs are <code>SECURITY DEFINER</code> and granted to <code>anon</code>. If a read is
-        refused, the grants from the migration did not apply — re-run it, then reload.
+        refused, the grants from the migration did not apply. Re-run it, then reload.
       </>
     ),
   },
@@ -256,7 +256,7 @@ function ErrorState({
       <p className="mt-3 max-w-3xl font-mono text-[11px] text-muted-foreground">
         This build was compiled against <span className="font-bold">{compiledSupabaseHost()}</span>.
         If that is not the project you expect, the environment variables the site was built with are
-        wrong — a Vite build bakes them in, so changing them requires a rebuild.
+        wrong: a Vite build bakes them in, so changing them requires a rebuild.
       </p>
       <button
         type="button"
@@ -291,7 +291,7 @@ export function HomeAnalytics() {
   // Realtime: subscribe immediately rather than waiting for the first read, so
   // the ticker starts moving the moment the database is written to. The counter
   // row is painted straight from the pushed payload, and the aggregate is
-  // re-read a beat later — coalesced, so a busy evening cannot become a request
+  // re-read a beat later, coalesced, so a busy evening cannot become a request
   // storm.
   useEffect(() => {
     let timer: number | null = null;
@@ -312,7 +312,7 @@ export function HomeAnalytics() {
   // The census is the second live stream, and it is the one that lets this
   // section say something about the university instead of about the site. Same
   // query key as the census section further down the page, so the two share a
-  // single read and — through the shared subscription in census-client — a
+  // single read and, through the shared subscription in census-client, a
   // single Realtime channel.
   const [censusLive, setCensusLive] = useState<CensusLiveCounters | null>(null);
   const [censusLink, setCensusLink] = useState<AcquisitionLink>("connecting");
@@ -392,7 +392,7 @@ export function HomeAnalytics() {
         1,103 college-and-year ranges on the public result portal were probed for their last live
         registration number, and the census is walking those ranges now, storing one anonymous row
         per student-semester. Panels 04–11 describe this deployment: one anonymous row per upstream
-        attempt it served — batch year, semester, branch, outcome and measured duration — and never
+        attempt it served (batch year, semester, branch, outcome and measured duration), and never
         a roll number, name, grade or any other identifying detail. Branches with fewer than 25
         observations are pooled into <em>Other</em>, and the time series is gap-filled with real
         zeros so an idle day never looks like missing data.
@@ -429,7 +429,7 @@ export function HomeAnalytics() {
           The telemetry table stores only counters and operational facts about anonymous requests:
           batch year, semester, branch, outcome, attempt index, measured duration and how many
           subject rows came back. No registration numbers, names, dates of birth, marks, grades, IP
-          addresses or session identifiers are ever written — the writer function rejects any field
+          addresses or session identifiers are ever written; the writer function rejects any field
           outside that list, and cohorts under 25 observations are always pooled before they are
           shown.
         </span>
@@ -441,7 +441,7 @@ export function HomeAnalytics() {
 /* ─────────────────────────────────────────────────────────────────── body ── */
 
 /**
- * Panels 01–03 — the university, from the measured grid.
+ * Panels 01–03, the university, from the measured grid.
  *
  * Mounted deliberately outside the telemetry read. The intake measurement is
  * static data compiled into this bundle, so the first two panels render even
@@ -459,7 +459,7 @@ function UniversityBlock({
   censusLink: AcquisitionLink;
   plan: CensusPlan | null;
 }) {
-  // The measurement is fixed — one probe per block on 2026-09-29 — so it derives
+  // The measurement is fixed, one probe per block on 2026-09-29, so it derives
   // once per mount. Only the acquisition figures move, with the live census row and
   // the ledger: what is left to read is a property of the work, not of the sample.
   const intake = useMemo(() => intakeSeries(), []);
@@ -575,7 +575,7 @@ function AnalyticsBody({
             sub={
               <span className="text-muted-foreground">
                 p50 {fmtMs(latency.p50)} · tail{" "}
-                {latency.spread > 0 ? `${latency.spread.toFixed(2)}×` : "—"}
+                {latency.spread > 0 ? `${latency.spread.toFixed(2)}×` : "–"}
               </span>
             }
             sample={`n = ${fmtInt(latency.n)} measured attempts`}
@@ -666,7 +666,7 @@ function LiveTicker({
       {/*
         Stacked until `lg`, then two blocks side by side. The headline caption is
         a long line at `label-caps` tracking, and letting it set the width of the
-        left block left the counters fighting it for the remaining pixels —
+        left block left the counters fighting it for the remaining pixels,
         wrapping in a capped column is what stops the row from reading as one
         crowded line of text.
       */}
@@ -693,7 +693,7 @@ function LiveTicker({
           */}
           {quietSince ? (
             <p className="mt-3 max-w-sm font-mono text-[11px] leading-relaxed text-muted-foreground">
-              Nothing recorded since {fmtDayShort(quietSince)}. Idle, not stalled — this counts
+              Nothing recorded since {fmtDayShort(quietSince)}. Idle, not stalled: this counts
               attempts on this site, and each one reaches an open page within a second of landing.
             </p>
           ) : null}
@@ -713,7 +713,7 @@ function LiveTicker({
               ) : data.meta.lastEventAt ? (
                 <Freshness iso={data.meta.lastEventAt} />
               ) : (
-                "—"
+                "–"
               )}
             </div>
             <div className="label-micro mt-1 text-muted-foreground">
@@ -778,8 +778,8 @@ function ColdStart() {
   const rows: Array<[string, string]> = [
     ["Live counter", "increments on the first lookup anywhere in the world"],
     ["Volume, trend & forecast", "needs a few days of daily buckets before a trend is meaningful"],
-    ["Outcome mix & success rate", "fills immediately — every attempt is classified"],
-    ["Latency by semester", "fills immediately — duration is measured per attempt"],
+    ["Outcome mix & success rate", "fills immediately, since every attempt is classified"],
+    ["Latency by semester", "fills immediately, since duration is measured per attempt"],
     ["When lookups happen", "needs events across several days to show a rhythm"],
     ["Branch structure", "needs 25+ observations per branch to clear the anonymity floor"],
     ["Publication matrix", "stamps each semester the first time it is seen published"],
@@ -791,7 +791,7 @@ function ColdStart() {
       </div>
       <h3 className="font-display mt-2 text-3xl">No observations recorded yet.</h3>
       <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">
-        The telemetry store answered, and it is genuinely empty — the dashboard is not degraded, and
+        The telemetry store answered, and it is genuinely empty. The dashboard is not degraded, and
         no fallback data is being substituted. Every panel below populates from real recorded
         activity, so here is exactly what fills and what it waits for.
       </p>

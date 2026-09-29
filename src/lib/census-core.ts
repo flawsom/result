@@ -1,4 +1,4 @@
-// Census reduction — the part that turns a student record into anonymous
+// Census reduction, the part that turns a student record into anonymous
 // observations. Pure, framework-free, and identical whether the crawl is driven
 // from a browser tab or from the scheduled headless tick, so a figure on the
 // landing page cannot depend on which runner happened to collect it.
@@ -15,8 +15,8 @@ export interface CensusObservation {
   /**
    * College code of the block this row was read from, stamped by the walk.
    *
-   * It names a college, never a student — the same grain the census already
-   * publishes at (`college`) — and it exists so a maintenance pass can find the
+   * It names a college, never a student, the same grain the census already
+   * publishes at (`college`), and it exists so a maintenance pass can find the
    * rows it is correcting and replace them, instead of appending a second copy of
    * a semester that has already been counted.
    */
@@ -67,7 +67,7 @@ export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
  * The original crawl paced itself with a fixed sleep per request, which makes
  * throughput an accident of latency: with 12 workers and a 291 ms median round
  * trip the real rate was never the one the config implied. This governs the
- * *aggregate* instead — N workers all call `acquire()` and the governor hands
+ * *aggregate* instead, N workers all call `acquire()` and the governor hands
  * out evenly spaced slots, so "how fast are we hitting somebody else's server"
  * is a number we choose rather than a number we discover.
  *
@@ -309,7 +309,7 @@ export interface StudentSnapshot {
  * This is narrower than "every semester the walk asked about", and the difference
  * is the whole reason the census is maintainable. A first pass asks for all eight
  * of a batch year's semesters; the ones BPUT has not declared yet answer
- * `not_published`, and that answer expires — the semester gets published weeks or
+ * `not_published`, and that answer expires, the semester gets published weeks or
  * months later, usually for the whole cohort at once. Counting a provisional
  * `not_published` as captured would mark the work finished exactly where it is
  * about to become wrong, and nothing afterwards would notice.
@@ -369,12 +369,12 @@ export async function observeStudent(
 }
 
 /**
- * One semester of one student — the maintenance read.
+ * One semester of one student, the maintenance read.
  *
  * A first pass reads a record's whole history, because it does not know what the
  * portal will answer for. A maintenance pass knows exactly what is missing: one
  * semester the portal has only now started serving, for a block that was read
- * before it existed. So it reads that semester and nothing else — two requests
+ * before it existed. So it reads that semester and nothing else, two requests
  * per student, the record and the term, instead of nine. That is the difference
  * between keeping the census current and re-running it: 2023 gaining semester 7
  * costs about 18,000 reads for that whole batch year, not another 1.4 million,

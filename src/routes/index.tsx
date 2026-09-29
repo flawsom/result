@@ -164,7 +164,7 @@ function Index() {
   // Try a semester's primary session then its back-paper republications.
   // Fires the primary first; only probes back-paper candidates in parallel
   // if the primary published. Returns EVERY non-empty attempt so the UI
-  // (and PDF) can show both the primary and any republications — plus one
+  // (and PDF) can show both the primary and any republications, plus one
   // anonymous telemetry row per attempt (outcome, latency, attempt index).
   const fetchSemesterWithBackPapers = async (
     studentRoll: string,
@@ -322,7 +322,7 @@ function Index() {
     }
     setSemStates(initial);
 
-    // All 8 semesters in parallel — this is a single user's own lookup,
+    // All 8 semesters in parallel, this is a single user's own lookup,
     // no cross-user rate limiting to respect. Back-paper probes inside
     // each semester also run in parallel (see fetchSemesterWithBackPapers).
     const outcomes = await Promise.all(
@@ -337,7 +337,7 @@ function Index() {
     // Privacy-safe telemetry: one anonymous row per upstream attempt
     // (year, semester, branch + outcome / measured latency / attempt index /
     // live vs cache), written as ONE batched request. The roll number is
-    // never part of the payload — not even hashed.
+    // never part of the payload, not even hashed.
     const telemetry = outcomes.flatMap((o) => o.telemetry);
     if (telemetry.length > 0) logResultEvents(telemetry);
   };
@@ -445,7 +445,7 @@ function Index() {
             </h1>
             <p className="mt-6 max-w-2xl text-base">
               Enter your registration number. We derive all 8 semester sessions from your batch year
-              and pull each published semester directly — no DOB or session input required.
+              and pull each published semester directly, with no DOB or session input required.
             </p>
 
             <form
@@ -516,7 +516,7 @@ function Index() {
                 BPUT Result Fetcher is an unofficial tool that looks up your BPUT semester result by
                 registration number and shows an auto-calculated SGPA and CGPA. Enter your
                 registration number and we derive all eight semester sessions from your batch year,
-                then fetch each published semester directly from the public BPUT result endpoint —
+                then fetch each published semester directly from the public BPUT result endpoint,
                 server-side, with no account and no password.
               </p>
               <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
@@ -596,7 +596,7 @@ function Index() {
 
               {plan.length === 0 && (
                 <div className="border-thick mt-6 p-6 font-mono text-sm">
-                  Could not parse batch year from student record — cannot compute semester sessions.
+                  Could not parse batch year from student record, so semester sessions cannot be computed.
                 </div>
               )}
             </div>
@@ -914,7 +914,7 @@ function FooterNote() {
           rel="noopener noreferrer"
         >
           <img
-            alt="BPUT Result Fetcher — SGPA in seconds - Live BPUT results, SGPA/CGPA, and PDF marksheets. No login. | Product Hunt"
+            alt="BPUT Result Fetcher · SGPA in seconds - Live BPUT results, SGPA/CGPA, and PDF marksheets. No login. | Product Hunt"
             width="250"
             height="54"
             src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1196678&theme=dark&t=1784064523865"
@@ -922,7 +922,7 @@ function FooterNote() {
         </a>
       </div>
       Unofficial. This tool proxies public BPUT result endpoints server-side and displays what BPUT
-      returns. No account, no DOB, no bulk lookups — one registration number per request, as typed.{" "}
+      returns. No account, no DOB, no bulk lookups: one registration number per request, as typed.{" "}
       <Link to="/privacy" className="underline">
         Privacy &amp; FAQ
       </Link>

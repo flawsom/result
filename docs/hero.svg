@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="BPUT Result Fetcher — live BPUT semester results, SGPA in seconds, PDF marksheets, no login">
-  <title>BPUT Result Fetcher — SGPA in seconds</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="BPUT Result Fetcher, live BPUT semester results, SGPA in seconds, PDF marksheets, no login">
+  <title>BPUT Result Fetcher, SGPA in seconds</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#08090d"/>
@@ -57,7 +57,7 @@
   <text class="s" x="78" y="252" font-size="86" font-weight="900" letter-spacing="-2.5" fill="#ffffff">SGPA in</text>
   <text class="s" x="78" y="344" font-size="86" font-weight="900" letter-spacing="-2.5" fill="#ffffff">seconds.</text>
   <text class="s" x="80" y="400" font-size="21" fill="#9aa0ae">Live BPUT semester results, auto-computed SGPA / CGPA</text>
-  <text class="s" x="80" y="430" font-size="21" fill="#9aa0ae">and a clean PDF marksheet — registration number only.</text>
+  <text class="s" x="80" y="430" font-size="21" fill="#9aa0ae">and a clean PDF marksheet, registration number only.</text>
 
   <!-- feature chips -->
   <g class="m caps" font-size="12" fill="#ffffff">

@@ -6,7 +6,7 @@
 //
 //   1. the published measurement is re-checked against the portal, daily;
 //   2. the repository keeps receiving commits, because GitHub disables a
-//      scheduled workflow after sixty days of repository inactivity — which is
+//      scheduled workflow after sixty days of repository inactivity, which is
 //      exactly what had happened to the crawl's schedule before this existed;
 //   3. there is somewhere to look that says the above actually happened, rather
 //      than a workflow that claims it in a log nobody reads twice.
@@ -92,7 +92,7 @@ mkdirSync(dirname(FILE), { recursive: true });
 writeFileSync(FILE, `${JSON.stringify(record, null, 2)}\n`);
 
 console.log(
-  `[heartbeat] check ${record.checks} recorded at ${now} — published ` +
+  `[heartbeat] check ${record.checks} recorded at ${now}, published ` +
     `${record.published.blocks.toLocaleString("en-US")} blocks, ` +
     `${record.published.serials.toLocaleString("en-US")} numbers, ` +
     `${record.published.students.toLocaleString("en-US")} students ` +

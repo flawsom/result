@@ -1,7 +1,7 @@
 // Headless census tick.
 //
 // The in-page runner in `census-runner.ts` can only work while somebody has a
-// tab open, which is not a census — it is a chore with a progress bar. This is
+// tab open, which is not a census, it is a chore with a progress bar. This is
 // the same walk with no browser, driven by a scheduler, resumable from the
 // offset the last tick persisted, and pointed at the measured grid in
 // `census-blocks.ts` rather than at one hand-typed range.
@@ -314,7 +314,7 @@ export interface CensusWorkList {
  * unless the two agree the page and the crawl are describing different
  * universes. This is what makes them agree, and it is why a slice never needs a
  * human: every slice publishes the measurement it is about to walk, and the daily
- * refresh keeps that measurement true. Nothing here invents a number — each bound
+ * refresh keeps that measurement true. Nothing here invents a number, each bound
  * was measured against the portal, and the watch is what the portal itself
  * answered.
  */
@@ -339,7 +339,7 @@ export async function pushUniverse(
 /**
  * The outstanding work, straight from the ledger.
  *
- * A ledger that cannot be read is not an error worth failing a slice over — it
+ * A ledger that cannot be read is not an error worth failing a slice over, it
  * means the migration has not been applied yet, and the crawl then behaves as it
  * did before: walk the grid, report nothing. The caller is told which happened so
  * the log says so rather than implying the ledger was consulted.
@@ -406,7 +406,7 @@ export interface CensusTickSummary {
   blocksTotal: number;
   /** Blocks that made progress. */
   blocksVisited: number;
-  /** Blocks finished — either walked, or given up on after consecutive misses. */
+  /** Blocks finished, either walked, or given up on after consecutive misses. */
   blocksDone: number;
   /** Blocks finished early because consecutive misses hit the threshold. */
   blocksSkipped: number;
@@ -525,7 +525,7 @@ interface SliceResult {
  * serials go quiet.
  *
  * The skip rule is the important part. Serials are dense from 001, so a run of
- * misses means the intake ended — but single-number gaps are real (college 329
+ * misses means the intake ended, but single-number gaps are real (college 329
  * batch 2023 is missing serials 12, 18 and 32), which is why the threshold is
  * `skipMisses` rather than one. A *transient* upstream failure never counts as a
  * miss: the block is parked at the same serial and retried next tick, because
@@ -551,7 +551,7 @@ async function walkRange(
    * cursor can never see a college that admitted more students afterwards. The
    * ledger knows the highest serial that actually resolved, which is where the
    * re-read has to start. The cursor is still written (it is what the progress
-   * panel counts) and still read when the ledger has nothing to say — an explicit
+   * panel counts) and still read when the ledger has nothing to say, an explicit
    * range run, or a deployment without the maintenance migration.
    */
   const cursor =
@@ -672,7 +672,7 @@ async function walkRange(
         consecutiveMisses = 0;
         res.students += 1;
         // Index 0 is serial 001, so the serial this student answered for is
-        // `index + 1` — the frontier a maintenance pass will re-read.
+        // `index + 1`, the frontier a maintenance pass will re-read.
         if (index + 1 > res.frontier) res.frontier = index + 1;
         const observations = await observeStudent(fetchers, student, rollNo, runtime);
         res.observations += observations.length;
@@ -822,7 +822,7 @@ export async function runCensusTick(
  * Walk the measured grid: every batch year × every college code that has one,
  * `concurrency` blocks at a time, resuming each block from its own persisted
  * offset. A tick that runs out of budget leaves the rest of the grid untouched
- * for the next one — the schedule, not this function, decides how long the
+ * for the next one, the schedule, not this function, decides how long the
  * census takes.
  */
 export async function runCensusGrid(
@@ -849,7 +849,7 @@ export async function runCensusGrid(
   if (pending) {
     const grown = [...pending.values()].filter((offset) => offset > 0).length;
     console.log(
-      `[census] ledger knows what is left — ${pending.size} of ${all.length} selected block(s) still have serials to read ` +
+      `[census] ledger knows what is left, ${pending.size} of ${all.length} selected block(s) still have serials to read ` +
         `(${grown} resuming past a measured frontier)`,
     );
   }
@@ -944,7 +944,7 @@ function blockStart(year: number, code: number): string {
 }
 
 /**
- * Re-read one semester of one block — the read that keeps a published figure true.
+ * Re-read one semester of one block, the read that keeps a published figure true.
  *
  * Deliberately the cheapest read that can do the job: one record and one term per
  * student, for the serials the first pass already resolved, and nothing else. The
@@ -956,7 +956,7 @@ function blockStart(year: number, code: number): string {
  * makes it safe to re-read a semester at all. Nothing is written until the block
  * has been read through; then `census_apply_pass` deletes this block's rows for
  * that semester and stores what the re-read found. Either the corrected
- * population is in place or nothing changed — never a half-populated semester
+ * population is in place or nothing changed, never a half-populated semester
  * sitting beside the rows it was meant to replace, and never a student counted
  * twice. A pass that dies halfway has written nothing, so it starts again from the
  * first serial rather than trying to resume into a replacement it cannot
@@ -1212,7 +1212,7 @@ export async function preflightCensus(config: CensusTickConfig): Promise<void> {
     if (invalidKey) {
       throw new Error(
         `Census credentials rejected: the value in SUPABASE_SERVICE_ROLE_KEY is not a valid API key for ${project}. ` +
-          `Supabase answers with this for a legacy JWT that no longer belongs to the project — for example a key saved ` +
+          `Supabase answers with this for a legacy JWT that no longer belongs to the project, for example a key saved ` +
           `before the project was deleted and recreated. Take the current service_role secret (Project Settings → API ` +
           `keys) or create an sb_secret_… secret key, paste it with no quotes and no trailing newline, and re-run. ` +
           `Upstream said: ${detail}`,
@@ -1221,7 +1221,7 @@ export async function preflightCensus(config: CensusTickConfig): Promise<void> {
     if (noWritePermission) {
       throw new Error(
         `Census credentials are valid but have no write permission on ${project}: the key is not the service_role key. ` +
-          `An anon/publishable key is refused here on purpose — census_cursor_state is gated by census_can_write(), which ` +
+          `An anon/publishable key is refused here on purpose, census_cursor_state is gated by census_can_write(), which ` +
           `accepts only service_role or an admin session. Upstream said: ${detail}`,
       );
     }
@@ -1257,7 +1257,7 @@ async function reportProgress(config: CensusTickConfig, summary: CensusTickSumma
     const etaHours = rps > 0 ? (requests * (remaining / totalBlocks)) / rps / 3600 : 0;
 
     console.log(
-      `[census] progress (whole grid) — blocks ${done}/${totalBlocks} finished, ` +
+      `[census] progress (whole grid), blocks ${done}/${totalBlocks} finished, ` +
         `${(progress?.observations ?? 0).toLocaleString()} observations, ` +
         `${(progress?.visited ?? 0).toLocaleString()} numbers probed, ` +
         `${(progress?.notFound ?? 0).toLocaleString()} genuinely absent`,
@@ -1288,7 +1288,7 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
 
   const startRps = config.adaptive ? Math.max(0.5, config.maxRps / 4) : config.maxRps;
   console.log(
-    `[census] tick starting — ${scope}, budget ${config.seconds}s, ` +
+    `[census] tick starting, ${scope}, budget ${config.seconds}s, ` +
       `${config.concurrency} worker(s), rate ${startRps.toFixed(1)}` +
       `${config.adaptive ? `→${config.maxRps}` : ""} req/s aggregate` +
       `${config.maxBlocks > 0 ? `, max ${config.maxBlocks} blocks` : ""}`,
@@ -1296,14 +1296,14 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
 
   // Fail with a diagnosis, not with a 401 halfway through a slice.
   await preflightCensus(config);
-  console.log("[census] preflight ok — service role accepted, cursor state readable");
+  console.log("[census] preflight ok, service role accepted, cursor state readable");
 
   /*
    * Publish the universe before walking it. The crawl walks the compiled grid and
    * the dashboard reads the database, so this is the step that stops the two from
    * describing different populations: the measurement goes in, the portal's
    * session window goes in, and the work list that comes back is what still needs
-   * reading — including any semester that appeared since the last slice.
+   * reading, including any semester that appeared since the last slice.
    */
   let work: CensusWorkList | null = null;
   if (grid) {
@@ -1311,14 +1311,14 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
       const pushed = await pushUniverse(config);
       work = await fetchWork(config);
       console.log(
-        `[census] universe published — ${pushed.blocks} measured bound(s), ${pushed.years} year(s) of session watch · ` +
+        `[census] universe published, ${pushed.blocks} measured bound(s), ${pushed.years} year(s) of session watch · ` +
           `${work.firstPass.length} block(s) with serials left, ${work.maintenance.length} maintenance pass(es) pending`,
       );
     } catch (e) {
       // Walking blind is the old behaviour, and it is better than a slice that
       // does nothing because a migration has not been applied yet.
       console.log(
-        `[census] ledger unavailable (${(e as Error)?.message ?? "unknown"}) — walking the grid without a maintenance record`,
+        `[census] ledger unavailable (${(e as Error)?.message ?? "unknown"}), walking the grid without a maintenance record`,
       );
     }
   }
@@ -1355,7 +1355,7 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
  *
  * Reported separately from the tick's own counters because they answer different
  * questions: the tick says what this slice did, the plan says how much of the
- * census remains — including the maintenance passes that a completed block does
+ * census remains, including the maintenance passes that a completed block does
  * not have.
  */
 async function reportPlan(config: CensusTickConfig): Promise<void> {
@@ -1369,7 +1369,7 @@ async function reportPlan(config: CensusTickConfig): Promise<void> {
     }>(config, "census_plan", {});
 
     console.log(
-      `[census] ledger — ${plan.blocksDone}/${plan.blocks} block(s) read through, ` +
+      `[census] ledger, ${plan.blocksDone}/${plan.blocks} block(s) read through, ` +
         `${Math.round(plan.serialsRemaining).toLocaleString()} serial(s) left to read, ` +
         `${plan.passesPending} maintenance pass(es) pending ` +
         `(${Math.round(plan.passSerialsPending).toLocaleString()} serials to sweep) · ` +

@@ -1,6 +1,6 @@
 // Server functions for admin-role-gated logic. The role check uses the
 // user's own Supabase client (via requireSupabaseAuth), which respects RLS
-// — a user can read their own user_roles rows and nothing else.
+//, a user can read their own user_roles rows and nothing else.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 

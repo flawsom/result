@@ -1,20 +1,20 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  Census ledger repair — the frontier of a block that has already been read.
+--  Census ledger repair, the frontier of a block that has already been read.
 --
 --  Why this exists
 --  ---------------
 --  `20260929193000_census_maintenance.sql` seeds `census_block_walk` from the
 --  cursors the first pass left behind. It copies each block's measured bound, its
---  offset and the semesters it captured, but `frontier` — "the highest serial that
---  answered for a student" — has no source in a cursor, so it kept its default of
+--  offset and the semesters it captured, but `frontier`, "the highest serial that
+--  answered for a student", has no source in a cursor, so it kept its default of
 --  zero.
 --
 --  That is not a cosmetic gap. `census_work` reads a finished block as outstanding
 --  work whenever `max_serial > frontier`, so a frontier of zero makes every
 --  finished block look like it grew out of nothing: the walk resumes at serial 001
 --  and re-reads the whole block. And the observations table has no uniqueness
---  constraint, by design — an observation is a fact about a student-semester, and
---  the same fact served twice is not something the database can call a duplicate —
+--  constraint, by design, an observation is a fact about a student-semester, and
+--  the same fact served twice is not something the database can call a duplicate,
 --  so a re-read appends a second copy of rows the census has already counted. That
 --  is the single failure mode this whole design exists to prevent.
 --
@@ -48,14 +48,14 @@ WITH watch AS (
 ),
 -- A first pass resumes at the right place for its state:
 --
---   • never finished — at the offset the last slice reached, which is where it
+--   • never finished, at the offset the last slice reached, which is where it
 --     stopped probing;
---   • finished, but the measurement has since moved past the frontier — at the
+--   • finished, but the measurement has since moved past the frontier, at the
 --     frontier, because everything above it missed when it was read, and a serial
 --     that answers now is a student who was not there before. That is what catches
 --     a college admitting late, and it cannot duplicate a row: a serial above the
 --     frontier has never produced one;
---   • finished with no frontier recorded — not work. There is no read position to
+--   • finished with no frontier recorded, not work. There is no read position to
 --     resume from, and starting at 001 would append a second copy of observations
 --     this table cannot deduplicate. `20260929223000` repairs the rows that were
 --     in that state; this arm keeps a future one from being walked.
@@ -88,7 +88,7 @@ first_pass AS (
 -- A block needs a semester re-read when the portal serves it and the block has
 -- not captured it. `first_pass_sessions` holds only semesters the portal actually
 -- published, so "the portal serves S7 for 2023 and no 2023 block has S7" arrives
--- here as work by itself — nobody has to notice that BPUT published something.
+-- here as work by itself, nobody has to notice that BPUT published something.
 --
 -- A pass that was closed is settled, but only for a while. Results are published
 -- in batches, so a semester can answer for none of a block's students today and

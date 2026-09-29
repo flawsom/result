@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Analysis panels — the quantitative half of the BPUT Results Intelligence
+// Analysis panels, the quantitative half of the BPUT Results Intelligence
 // dashboard. Every figure here is derived from the aggregate payload by
 // `@/lib/analytics-stats`; no component invents a number, and each panel
 // states the sample it rests on so a small n is never mistaken for a finding.
@@ -169,7 +169,7 @@ export function StatBox({
   value: string;
   note?: ReactNode;
   accent?: string;
-  /** Ceiling for the figure, in rem — a row of small stats does not want 38px digits. */
+  /** Ceiling for the figure, in rem, a row of small stats does not want 38px digits. */
   maxRem?: number;
   /** Drop the border, for a stat that already sits inside a bordered box. */
   plain?: boolean;
@@ -515,7 +515,7 @@ export function VolumePanel({ payload }: { payload: AnalyticsPayload }) {
         ) : (
           <EmptyPanel
             headline="No observations in the last 90 days"
-            detail="Daily buckets are gap-filled server-side, so empty days are real zeros — not missing data. This chart fills as soon as results are fetched through the site."
+            detail="Daily buckets are gap-filled server-side, so empty days are real zeros, not missing data. This chart fills as soon as results are fetched through the site."
           />
         )}
       </div>
@@ -658,7 +658,7 @@ export function LatencyPanel({ payload }: { payload: AnalyticsPayload }) {
         <StatBox label="p95" value={fmtMs(stats.p95)} accent={WARN} />
         <StatBox
           label="tail ratio"
-          value={stats.spread > 0 ? `${stats.spread.toFixed(2)}×` : "—"}
+          value={stats.spread > 0 ? `${stats.spread.toFixed(2)}×` : "–"}
         />
       </div>
 
@@ -710,7 +710,7 @@ export function LatencyPanel({ payload }: { payload: AnalyticsPayload }) {
 
       <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
         Bars run p50 → p95; the red tick marks the observed maximum, the blue tick the median. The
-        tail ratio is p95 ÷ p50 — above ~3× the upstream is the bottleneck, not the network.
+        tail ratio is p95 ÷ p50; above ~3× the upstream is the bottleneck, not the network.
       </p>
     </PanelCard>
   );
@@ -882,7 +882,7 @@ export function BranchPanel({ payload }: { payload: AnalyticsPayload }) {
             <StatBox
               label="Top 3 share"
               value={fmtPct(stats.top3Share, 0)}
-              note={`leader ${stats.leader ? stats.leader.branch : "—"}`}
+              note={`leader ${stats.leader ? stats.leader.branch : "–"}`}
             />
           </div>
 
@@ -989,7 +989,7 @@ export function PublicationPanel({ payload }: { payload: AnalyticsPayload }) {
           </div>
           <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
             Green intensity is the number of successful fetches observed for that year/semester
-            pair. Blank cells are genuinely unobserved — not zero traffic, and not a claim that BPUT
+            pair. Blank cells are genuinely unobserved: not zero traffic, and not a claim that BPUT
             has not published.
           </p>
         </>
@@ -1072,7 +1072,7 @@ export function FunnelPanel({ payload }: { payload: AnalyticsPayload }) {
       {totalAttempts === 0 ? (
         <EmptyPanel
           headline="No primary attempt recorded yet"
-          detail="Coverage counts the first session tried for each semester, so it needs lookups served after the v2 migration. Rows already in the table were written before outcome and attempt index existed, and carry no semester coverage to draw — an empty panel here means no eligible attempts, not a broken read."
+          detail="Coverage counts the first session tried for each semester, so it needs lookups served after the v2 migration. Rows already in the table were written before outcome and attempt index existed, and carry no semester coverage to draw, so an empty panel here means no eligible attempts, not a broken read."
         />
       ) : (
         <>
@@ -1095,7 +1095,7 @@ export function FunnelPanel({ payload }: { payload: AnalyticsPayload }) {
                     />
                   </span>
                   <span className="text-right font-mono text-[10px] whitespace-nowrap tabular-nums">
-                    {r.attempts === 0 ? "—" : `${fmtPct(ci.p, 0)} · ${fmtInt(r.attempts)}`}
+                    {r.attempts === 0 ? "–" : `${fmtPct(ci.p, 0)} · ${fmtInt(r.attempts)}`}
                   </span>
                 </div>
               );
@@ -1128,7 +1128,7 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
     ],
     [
       "Primary attempt",
-      "The first session tried for a semester — exactly one per semester per lookup.",
+      "The first session tried for a semester: exactly one per semester per lookup.",
       `${fmtInt(payload.counts.primaries)} recorded`,
     ],
     [
@@ -1153,7 +1153,7 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
     ],
     [
       "Trend & forecast",
-      "Ordinary least squares on the 90-day daily series, with a 95% prediction interval — not a confidence interval on the mean.",
+      "Ordinary least squares on the 90-day daily series, with a 95% prediction interval, not a confidence interval on the mean.",
       "panel 04",
     ],
     ["Anomaly", "Robust z-score (median/MAD) ≥ 2.5 on the daily series.", "panel 04"],
@@ -1174,7 +1174,7 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
     ],
     [
       "Hole",
-      "A registration number below a college's maximum that answers for nobody — a dropout, a transfer or a withdrawn record.",
+      "A registration number below a college's maximum that answers for nobody: a dropout, a transfer or a withdrawn record.",
       "panel 01",
     ],
     [
@@ -1184,7 +1184,7 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
     ],
     [
       "Gini / top decile",
-      "Concentration of intake across the 1,103 measured colleges — a description of the university's numbering, not of its admissions policy.",
+      "Concentration of intake across the 1,103 measured colleges, a description of the university's numbering, not of its admissions policy.",
       "panel 02",
     ],
     [
@@ -1240,8 +1240,8 @@ export function DefinitionsPanel({ payload }: { payload: AnalyticsPayload }) {
           use.
         </li>
         <li>
-          Latency is measured in the browser and therefore includes the visitor's own network — it
-          is a user-perceived figure, not an upstream-only measurement.
+          Latency is measured in the browser and therefore includes the visitor's own network, so
+          it is a user-perceived figure, not an upstream-only measurement.
         </li>
         <li>
           Panels 01–03 describe the university and come from the census measurement; panels 04–11

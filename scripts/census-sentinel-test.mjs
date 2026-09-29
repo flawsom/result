@@ -3,8 +3,8 @@
 //
 // `scripts/census-ledger.mjs --verify` fails when the portal serves a semester
 // that no block of that year has captured and nothing is queued to read it. That
-// is the failure the dashboard cannot show you: coverage would look complete —
-// every block finished, no work pending — while a semester of results sat unread
+// is the failure the dashboard cannot show you: coverage would look complete,
+// every block finished, no work pending, while a semester of results sat unread
 // and the counts stopped moving.
 //
 // A check that can never fail is decoration, and this one is unreachable through
@@ -66,7 +66,7 @@ const planFor = (year, pendingPasses) => ({ years: [{ year, pendingPasses }] });
 
 const cases = [
   {
-    name: "healthy — the finished blocks captured every served semester",
+    name: "healthy, the finished blocks captured every served semester",
     input: {
       watch: { 2012: [7, 8] },
       walk: [block(2012, [1, 2, 3, 4, 5, 6, 7, 8])],
@@ -76,7 +76,7 @@ const cases = [
     expect: 0,
   },
   {
-    name: "the gap — S7 is served, no block has it, nothing is queued",
+    name: "the gap, S7 is served, no block has it, nothing is queued",
     input: {
       watch: { 2012: [7, 8] },
       walk: [block(2012, [1, 2, 3, 4, 5, 6])],
@@ -86,7 +86,7 @@ const cases = [
     expect: 1,
   },
   {
-    name: "queued — the same gap, but the plan reports the pass",
+    name: "queued, the same gap, but the plan reports the pass",
     input: {
       watch: { 2012: [7, 8] },
       walk: [block(2012, [1, 2, 3, 4, 5, 6])],
@@ -96,7 +96,7 @@ const cases = [
     expect: 0,
   },
   {
-    name: "claimed — a pass closed yesterday covers it",
+    name: "claimed, a pass closed yesterday covers it",
     input: {
       watch: { 2012: [7, 8] },
       walk: [block(2012, [1, 2, 3, 4, 5, 6])],
@@ -106,7 +106,7 @@ const cases = [
     expect: 0,
   },
   {
-    name: "stale claim — a pass closed 35 days ago is work again, so the gap must fire",
+    name: "stale claim, a pass closed 35 days ago is work again, so the gap must fire",
     input: {
       watch: { 2012: [7, 8] },
       walk: [block(2012, [1, 2, 3, 4, 5, 6])],
@@ -116,7 +116,7 @@ const cases = [
     expect: 1,
   },
   {
-    name: "not yet — the year has no finished block, so the first pass still owns it",
+    name: "not yet, the year has no finished block, so the first pass still owns it",
     input: {
       watch: { 2025: [1, 2] },
       walk: [block(2025, [], false)],
@@ -142,6 +142,6 @@ for (const test of cases) {
 console.log(
   failed === 0
     ? "\n[sentinel] ✓ fires on a stranded semester, and stays quiet on every legitimate state"
-    : `\n[sentinel] ✗ ${failed} case(s) failed — the ledger would not catch a semester left unread`,
+    : `\n[sentinel] ✗ ${failed} case(s) failed, the ledger would not catch a semester left unread`,
 );
 process.exit(failed === 0 ? 0 : 1);

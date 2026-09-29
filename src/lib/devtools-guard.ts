@@ -1,4 +1,4 @@
-// ⚠️ DETERRENT ONLY — NOT REAL SECURITY.
+// ⚠️ DETERRENT ONLY, NOT REAL SECURITY.
 // This module discourages casual snooping. It does NOT protect anything:
 //   • Users can disable JS, use "Disable JavaScript" in DevTools, or view-source: / curl the HTML.
 //   • Remote debugging, browser extensions, or DevTools opened before page load bypass it.

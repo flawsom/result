@@ -81,7 +81,7 @@ console.log(`Type    : ${kind}${role ? ` · role ${role}` : ""}${ref ? ` · ref 
 if (kind === "not-an-api-key") {
   console.error(
     "\n✗ That is not an API key.\n" +
-      "  A JWT secret, a database password, or a truncated copy all look like this —\n" +
+      "  A JWT secret, a database password, or a truncated copy all look like this,\n" +
       "  no dots, no `sb_` prefix. Nothing accepts it as a credential, which is exactly\n" +
       '  why the project answers "Invalid API key".\n\n' +
       "  Where to get the right one:\n" +
@@ -103,7 +103,7 @@ if (kind === "publishable" || role === "anon") {
 
 if (kind === "malformed-jwt") {
   console.error(
-    "\n✗ This looks like a JWT but its payload does not decode — almost certainly truncated.",
+    "\n✗ This looks like a JWT but its payload does not decode, almost certainly truncated.",
   );
   process.exit(1);
 }
@@ -133,7 +133,7 @@ const res = await fetch(`${url}/rest/v1/rpc/census_cursor_state`, {
 const body = (await res.text()).slice(0, 200);
 
 if (res.ok) {
-  console.log(`\n✓ Accepted (HTTP ${res.status}) — ${body}`);
+  console.log(`\n✓ Accepted (HTTP ${res.status}), ${body}`);
   console.log(
     "  This key can write census data. Put it in the GitHub secret SUPABASE_SERVICE_ROLE_KEY.",
   );
@@ -144,8 +144,8 @@ const invalid = /invalid api key/i.test(body);
 console.log(`\n✗ Rejected (HTTP ${res.status}): ${body}`);
 console.log(
   invalid
-    ? "  The gateway does not recognise this key for this project — the value is wrong,\n" +
+    ? "  The gateway does not recognise this key for this project, the value is wrong,\n" +
         "  not merely under-privileged."
-    : "  The key is recognised but not allowed here — check that it is the service_role key.",
+    : "  The key is recognised but not allowed here, check that it is the service_role key.",
 );
 process.exit(1);

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Analytics client — the only place the app talks to the telemetry store.
+// Analytics client, the only place the app talks to the telemetry store.
 //
 // Privacy contract (unchanged from v1, and enforced again by the RPC itself):
 // the wire format carries year, semester, branch and *operational* facts about
@@ -166,7 +166,7 @@ function classify(message: string, code?: string): TelemetryError {
   if (isNetworkFailure(message)) {
     return new TelemetryError(
       "unreachable",
-      "Telemetry store unreachable — the configured Supabase host did not answer.",
+      "Telemetry store unreachable: the configured Supabase host did not answer.",
     );
   }
   if (/permission denied|jwt|401|403/i.test(message)) {
@@ -253,7 +253,7 @@ function readV2() {
  *
  * Previously each successful semester fired its own request (8 per lookup,
  * failures never recorded at all). Batching means we can afford to record
- * every attempt — including the ones that failed — which is what makes the
+ * every attempt, including the ones that failed, which is what makes the
  * success-rate and latency panels meaningful.
  *
  * Never throws, never blocks the result flow.
@@ -285,7 +285,7 @@ export interface LiveSubscription {
 /**
  * Genuine push updates: the database maintains a single aggregate counter row
  * and broadcasts every change to it. The browser never gets read access to the
- * event stream itself — only to that one aggregate row.
+ * event stream itself, only to that one aggregate row.
  */
 export function subscribeLiveCounters(
   onRow: (row: LiveCounters) => void,

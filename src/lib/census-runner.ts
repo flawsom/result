@@ -1,14 +1,14 @@
 // Paced BPUT census runner, driven from a page.
 //
 // Two modes, one reduction. `runCensus` walks a single declared range;
-// `runCensusGrid` walks the measured grid in `census-blocks.ts` — every batch
-// year × every college code that has one — which is the same population the
+// `runCensusGrid` walks the measured grid in `census-blocks.ts`, every batch
+// year × every college code that has one, which is the same population the
 // scheduled tick covers. Both reduce each student through `census-core.ts`, so a
 // figure collected in a tab and a figure collected by CI mean exactly the same
 // thing.
 //
 // A registration number exists only for the duration of the requests that read
-// it — the offset is the only thing written down, so a run that dies mid-block
+// it, the offset is the only thing written down, so a run that dies mid-block
 // resumes without knowing who it met.
 //
 // Pacing is the shared `RateGovernor`: an aggregate requests-per-second ceiling
@@ -60,7 +60,7 @@ export interface CensusRunnerState {
   mode: "range" | "grid";
   rangeStart: string | null;
   rangeEnd: string | null;
-  /** Offset into the range — a position, never a student. */
+  /** Offset into the range, a position, never a student. */
   index: number;
   total: number;
   /** Registration numbers probed. */
@@ -196,7 +196,7 @@ export interface RunCensusInput {
 
 /**
  * Run (or resume) a census range. Resolves when the range completes, is
- * cancelled, or a persistence failure stops the run — never throws for
+ * cancelled, or a persistence failure stops the run, never throws for
  * upstream problems, which are recorded as observations instead.
  */
 export async function runCensus(input: RunCensusInput): Promise<void> {
@@ -279,7 +279,7 @@ export async function runCensus(input: RunCensusInput): Promise<void> {
         state.notFound += 1;
         winNotFound += 1;
       } else if (student === undefined) {
-        state.lastError = "Upstream unavailable — this number was skipped, not counted as missing.";
+        state.lastError = "Upstream unavailable: this number was skipped, not counted as missing.";
       } else {
         state.students += 1;
         const observations = await observeStudent(fetchers, student, rollNo, runtime);
@@ -335,7 +335,7 @@ function selectBlocks(years: number[] | undefined, maxBlocks: number): CensusBlo
 /**
  * Walk the measured grid. Each worker owns one block, reads its own persisted
  * offset, walks its serials in order, and gives up on the block after
- * `SKIP_AFTER_MISSES` consecutive misses — so a block costs its intake rather
+ * `SKIP_AFTER_MISSES` consecutive misses, so a block costs its intake rather
  * than its declared bound.
  *
  * A transient upstream failure never counts as a miss: the block is parked at the
@@ -478,7 +478,7 @@ export async function runCensusGrid(input: RunCensusGridInput = {}): Promise<voi
 
           if (student === undefined) {
             // Upstream trouble, not an empty serial: park the block here.
-            state.lastError = `Upstream unavailable — ${block.label} parked at serial ${rollNo.slice(-3)}.`;
+            state.lastError = `Upstream unavailable, so ${block.label} parked at serial ${rollNo.slice(-3)}.`;
             break;
           }
 
@@ -489,7 +489,7 @@ export async function runCensusGrid(input: RunCensusGridInput = {}): Promise<voi
           } else {
             misses = 0;
             state.students += 1;
-            // Index 0 is serial 001, so this is the serial that answered — the
+            // Index 0 is serial 001, so this is the serial that answered, the
             // frontier a later maintenance pass re-reads and never passes.
             if (index + 1 > frontier) frontier = index + 1;
             const observations = await observeStudent(fetchers, student, rollNo, runtime);

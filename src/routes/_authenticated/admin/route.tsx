@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
-    meta: [{ title: "Admin — BPUT Result Fetcher" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Admin · BPUT Result Fetcher" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminLayout,
 });

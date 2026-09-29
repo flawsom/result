@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="700" viewBox="0 0 1100 700" role="img" aria-label="Authentication screen: Admin sign in with a Continue with Google button, an email and password form, and a note that sign-up is disabled">
-  <title>Authentication — /auth, admin sign-in with Google and email/password</title>
+  <title>Authentication, /auth, admin sign-in with Google and email/password</title>
   <defs>
     <pattern id="agrid" width="28" height="28" patternUnits="userSpaceOnUse">
       <path d="M28 0H0V28" fill="none" stroke="#000000" stroke-opacity="0.045" stroke-width="1"/>

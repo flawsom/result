@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Analytics statistics — pure functions, zero side effects, no dependencies.
+// Analytics statistics, pure functions, zero side effects, no dependencies.
 //
 // Why this file exists: the dashboard must never show a number it cannot
 // defend. The Postgres layer returns only raw aggregates; every derived
@@ -9,7 +9,7 @@
 // in isolation.
 //
 // Conventions
-//  * A "sample" is a plain number[]. Empty input never throws — estimators
+//  * A "sample" is a plain number[]. Empty input never throws, estimators
 //    return NaN-free sentinels (0 / null) so the UI can branch cleanly.
 //  * Intervals are two-sided at 95% unless a z is passed explicitly.
 //  * Nothing here knows about React, the network, or the database.
@@ -145,7 +145,7 @@ export function describe(xs: readonly number[]): Distribution {
 /* ─────────────────────────────────────────────── proportion intervals ─── */
 
 /**
- * Wilson score interval — the correct interval for a binomial proportion at
+ * Wilson score interval, the correct interval for a binomial proportion at
  * small n, where the textbook normal ("Wald") interval collapses to zero
  * width at p̂ = 0 or 1 and can extend outside [0, 1]. We use it for every
  * percentage shown next to a count so a reader can tell a real 96% from a
@@ -627,7 +627,7 @@ export interface BranchStats {
   gini: number;
   lorenz: Array<{ x: number; y: number }>;
   leader: BranchRow | null;
-  /** Share held by the top three branches — the practical concentration readout. */
+  /** Share held by the top three branches, the practical concentration readout. */
   top3Share: number;
 }
 
@@ -659,7 +659,7 @@ export interface LatencyStats {
   p95: number;
   max: number;
   n: number;
-  /** p95/p50 — how heavy the tail is relative to the typical request. */
+  /** p95/p50, how heavy the tail is relative to the typical request. */
   spread: number;
 }
 
@@ -726,7 +726,7 @@ export interface YearRow {
 }
 
 /**
- * Observed lookups by batch year. Only measured traffic reaches this function —
+ * Observed lookups by batch year. Only measured traffic reaches this function,
  * there is no modelled series to blend in, so a year with no lookups is absent
  * rather than filled with a reference number.
  */

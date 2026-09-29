@@ -5,7 +5,7 @@ name: BPUT measurement refresh
 # figure true. This job is the other half of the census, and it is what makes the
 # numbers on the page look after themselves:
 #
-#   1. re-check every recorded reading against the portal — two requests per block
+#   1. re-check every recorded reading against the portal, two requests per block
 #      to confirm the recorded bound still holds, and a full re-measure only where
 #      the portal has moved (a college that admitted more students, or closed);
 #   2. re-derive the constants the dashboard imports from that evidence file, so
@@ -13,8 +13,8 @@ name: BPUT measurement refresh
 #   3. ask the portal which of the eight derived semester sessions every batch year
 #      answers for. A session declared after a block was read is invisible to the
 #      crawl, and this is the only thing that notices it;
-#   4. ask the portal what the grid itself is missing — a batch year that has just
-#      opened and a college that started a batch — and append it to
+#   4. ask the portal what the grid itself is missing, a batch year that has just
+#      opened and a college that started a batch, and append it to
 #      `census-discovered.ts`, which the grid imports. Nothing about the population
 #      is edited by hand, so a whole new cohort becomes walkable, measurable and
 #      visible without anybody noticing it arrived;
@@ -31,8 +31,8 @@ name: BPUT measurement refresh
 # must not need a healthy upstream in order to keep itself from being disabled.
 #
 # Required repository configuration (the same two secrets census.yml uses):
-#   Secret: SUPABASE_URL              — only needed to dispatch a crawl slice
-#   Secret: SUPABASE_SERVICE_ROLE_KEY — only needed to dispatch a crawl slice
+#   Secret: SUPABASE_URL             , only needed to dispatch a crawl slice
+#   Secret: SUPABASE_SERVICE_ROLE_KEY, only needed to dispatch a crawl slice
 #
 # The measurement itself reads the public result portal and needs no credentials.
 
@@ -94,7 +94,7 @@ jobs:
 
       # Before the constants are re-derived, not after: a year discovery has just
       # added has readings of its own by then, and the rewrite below is what puts
-      # it in `MEASURED_INTAKE` — the number the dashboard divides by.
+      # it in `MEASURED_INTAKE`, the number the dashboard divides by.
       - name: Discover what the grid does not carry
         id: discovery
         continue-on-error: true
@@ -111,8 +111,8 @@ jobs:
         run: bun scripts/census-sessions.mjs
 
       # Publish the measurement and that window into the ledger, so the dashboard
-      # knows what is left — including a semester the portal has only now started
-      # serving — without waiting for the next crawl slice to announce it.
+      # knows what is left, including a semester the portal has only now started
+      # serving, without waiting for the next crawl slice to announce it.
       - name: Publish the universe to the ledger
         id: ledger
         if: steps.config.outputs.configured == 'true'

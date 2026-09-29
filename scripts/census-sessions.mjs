@@ -5,7 +5,7 @@
 // the moment it reads them, which is the right way to measure a population and
 // the wrong way to notice a declaration: once a block has been read, the crawl
 // moves on, and a semester declared afterwards is invisible to it. This is the
-// other half of the census — a small, daily, explicit question.
+// other half of the census, a small, daily, explicit question.
 //
 //   For every batch year: take one registration number from a college with a
 //   batch that year, and ask the portal for each of the eight sessions the app
@@ -14,7 +14,7 @@
 // That is about 120 requests. What it produces is a dated statement of fact: on
 // 2026-09-29, the portal served 2012's semesters 7 and 8, and everything from
 // 2015 on. A session that flips from "not served" to "served" is a declaration,
-// and the record keeps the date it was first seen — which is the one thing a
+// and the record keeps the date it was first seen, which is the one thing a
 // crawl that reads each serial once can never tell you.
 //
 // The registration number is never written anywhere. The evidence file records

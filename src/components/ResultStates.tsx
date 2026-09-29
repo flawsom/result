@@ -51,7 +51,7 @@ export function NotPublishedState({ label }: { label?: string }) {
       title={label ? `${label} isn't published yet.` : "This semester isn't published yet."}
     >
       <p>
-        BPUT hasn't released this result. The fetch itself succeeded — there just isn't a result to
+        BPUT hasn't released this result. The fetch itself succeeded; there just isn't a result to
         show.
       </p>
     </Frame>
@@ -70,7 +70,7 @@ export function UpstreamUnreachableState({
   return (
     <Frame tone="danger" tag="Upstream · Unreachable" title="Couldn't reach results.bput.ac.in.">
       <p>
-        The upstream portal didn't respond in time. This is on their side —{" "}
+        The upstream portal didn't respond in time. This is on their side:{" "}
         {detail ?? "network timeout"}.
       </p>
       {onRetry && (

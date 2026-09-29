@@ -2,7 +2,7 @@
 // source/subjects, the analytics_live counter row, get_results_analytics_v2 and
 // log_result_events) are declared by hand here because the project has no
 // linked Supabase instance to run `supabase gen types` against. Regenerate this
-// file from the dashboard once the project is reachable — the shapes match the
+// file from the dashboard once the project is reachable, the shapes match the
 // migration in supabase/migrations/20260928120000_analytics_v2.sql exactly.
 export type Json =
   | string

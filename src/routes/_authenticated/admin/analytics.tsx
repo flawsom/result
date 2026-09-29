@@ -1,5 +1,5 @@
 // Analytics dashboard over cached bulk results. All computation runs
-// client-side against IndexedDB — no server aggregation, no PII leaves the
+// client-side against IndexedDB, no server aggregation, no PII leaves the
 // admin's browser. Filter by batch (or across all batches).
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -42,7 +42,7 @@ import { type Grade } from "@/lib/sgpa";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
   head: () => ({
-    meta: [{ title: "Analytics — BPUT Admin" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Analytics · BPUT Admin" }, { name: "robots", content: "noindex" }],
   }),
   component: AnalyticsPage,
 });
@@ -173,15 +173,15 @@ function SummaryCards({ stats }: { stats: NonNullable<ReturnType<typeof computeJ
     { label: "Queued/total jobs", value: stats.total.toLocaleString() },
     {
       label: "Average CGPA",
-      value: stats.avgCgpa !== null ? stats.avgCgpa.toFixed(2) : "—",
+      value: stats.avgCgpa !== null ? stats.avgCgpa.toFixed(2) : "–",
     },
     {
       label: "Median CGPA",
-      value: stats.medianCgpa !== null ? stats.medianCgpa.toFixed(2) : "—",
+      value: stats.medianCgpa !== null ? stats.medianCgpa.toFixed(2) : "–",
     },
     {
       label: "Average SGPA",
-      value: stats.avgSgpa !== null ? stats.avgSgpa.toFixed(2) : "—",
+      value: stats.avgSgpa !== null ? stats.avgSgpa.toFixed(2) : "–",
     },
     {
       label: "Subject pass rate",
@@ -386,12 +386,12 @@ function TopStudentsTable({ rows }: { rows: BulkJob[] }) {
                 <tr key={j.id} className="border-t">
                   <td className="px-3 py-1.5 tabular-nums text-muted-foreground">{i + 1}</td>
                   <td className="px-3 py-1.5 font-mono">{j.rollNo}</td>
-                  <td className="px-3 py-1.5">{j.student?.studentName ?? "—"}</td>
+                  <td className="px-3 py-1.5">{j.student?.studentName ?? "–"}</td>
                   <td className="px-3 py-1.5 text-muted-foreground">
-                    {j.student?.branchName ?? "—"}
+                    {j.student?.branchName ?? "–"}
                   </td>
                   <td className="px-3 py-1.5 text-right font-semibold tabular-nums">
-                    {j.cgpa?.toFixed(2) ?? "—"}
+                    {j.cgpa?.toFixed(2) ?? "–"}
                   </td>
                 </tr>
               ))}

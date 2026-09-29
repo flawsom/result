@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BPUT Result Fetcher — SGPA in seconds" },
+      { title: "BPUT Result Fetcher · SGPA in seconds" },
       {
         name: "description",
         content:
           "Fetch your official BPUT semester result and auto-calculated SGPA by registration number. Live BPUT results, SGPA/CGPA, and downloadable PDF marksheets.",
       },
-      { property: "og:title", content: "BPUT Result Fetcher — SGPA in seconds" },
+      { property: "og:title", content: "BPUT Result Fetcher · SGPA in seconds" },
       {
         property: "og:description",
         content:
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "https://result.unifies.codes/og-image.png" },
       { property: "og:site_name", content: "BPUT Result Fetcher" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "BPUT Result Fetcher — SGPA in seconds" },
+      { name: "twitter:title", content: "BPUT Result Fetcher · SGPA in seconds" },
       {
         name: "twitter:description",
         content:

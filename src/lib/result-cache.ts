@@ -2,7 +2,7 @@
 // (no localStorage, no cookies) so registration numbers never sit at rest.
 // Only successful, non-empty real fetches are stored. The cache exists so
 // that the dev-only HUD can distinguish LIVE re-fetches from CACHE hits
-// during a demo — audience-facing UI never sees this data.
+// during a demo, audience-facing UI never sees this data.
 import type { SubjectsResponse } from "./sgpa";
 
 type Source = "LIVE" | "CACHE";
@@ -14,7 +14,7 @@ interface Entry {
 
 const memory = new Map<string, Entry>();
 
-// Ephemeral log of every observed fetch outcome — powers the dev HUD.
+// Ephemeral log of every observed fetch outcome, powers the dev HUD.
 export interface CacheEvent {
   rollNo: string;
   semId: string;

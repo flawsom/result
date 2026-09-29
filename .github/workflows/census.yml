@@ -1,33 +1,33 @@
 name: BPUT census
 
 # The crawl runs here instead of in somebody's browser tab. Each run walks a slice
-# of the measured registration-number grid in src/lib/census-blocks.ts — every
+# of the measured registration-number grid in src/lib/census-blocks.ts, every
 # batch year (2012–2025) × every college code that has one, which is 1,103 blocks
-# — and resumes each block from the offset the previous run persisted. A missed
+#, and resumes each block from the offset the previous run persisted. A missed
 # run therefore costs progress, never correctness, and no run depends on a tab
 # staying open.
 #
 # Required repository configuration (Settings → Secrets and variables → Actions):
-#   Secret: SUPABASE_URL              — project URL (or a variable of the same name)
-#   Secret: SUPABASE_SERVICE_ROLE_KEY — writes need the service role; the census
+#   Secret: SUPABASE_URL             , project URL (or a variable of the same name)
+#   Secret: SUPABASE_SERVICE_ROLE_KEY, writes need the service role; the census
 #                                       RPCs deliberately refuse an anonymous caller
 #
 # Nothing else is required: the grid is committed, not configured. To crawl a
 # subset, set CENSUS_YEARS (e.g. `23,24,25`) as a repository variable.
 #
-# TRIGGERS — why there are three
+# TRIGGERS, why there are three
 # ------------------------------
 # `schedule` is the driver. It fired exactly once in this workflow's life
 # (2026-09-29T01:11Z) while reporting itself `active`, and the repository had no
-# commit for the 71 days before that — past GitHub's sixty-day threshold for
+# commit for the 71 days before that, past GitHub's sixty-day threshold for
 # automatically disabling scheduled workflows. That is the whole cause, and it is
 # fixed from the other side: census-refresh.yml runs daily and commits, so the
 # repository is never inactive long enough for the schedule to be disabled again,
 # and it dispatches a slice directly as a second path in case it ever is.
 #
 # So the schedule is not the only trigger:
-#   push   — a change to the crawler verifies itself on real data in five minutes
-#   dispatch — a human, or the daily refresh job, can start a slice at any time
+#   push  , a change to the crawler verifies itself on real data in five minutes
+#   dispatch, a human, or the daily refresh job, can start a slice at any time
 #
 # And since a job may run for six hours while public-repository minutes are
 # unmetered, a *scheduled* run takes a five-and-a-half-hour slice rather than a
@@ -37,7 +37,7 @@ name: BPUT census
 # two days. A run killed by the ceiling loses at most the unflushed batch, because
 # the cursor is written every fifteen seconds.
 #
-# PACING — the number that decides how long the whole thing takes
+# PACING, the number that decides how long the whole thing takes
 # --------------------------------------------------------------
 # Pacing is an aggregate requests-per-second ceiling (`CENSUS_MAX_RPS`), not a
 # per-request sleep, because with several workers a sleep makes the real rate an
@@ -57,7 +57,7 @@ name: BPUT census
 # mostly a safety rail. Against the live portal, zero 429s throughout:
 #     8 workers → 3.8 req/s      24 workers → 7.4 req/s
 # A student costs 9 requests (1 record + 8 semesters) and `subjects` answers in
-# ~797 ms, so more workers is the only real lever — up to a point, since the portal
+# ~797 ms, so more workers is the only real lever, up to a point, since the portal
 # queues under parallelism. At the measured 7.4 req/s the 1.45 M requests the grid
 # is measured to need (158,571 students across 1,103 blocks, ~17 probes per block
 # already spent to weigh them) take roughly two days.
@@ -80,10 +80,10 @@ on:
         description: Batch years to crawl, e.g. "23,24,25". Empty means all 14.
         required: false
       range_start:
-        description: Optional single-range override — first registration number
+        description: Optional single-range override, first registration number
         required: false
       range_end:
-        description: Optional single-range override — last registration number
+        description: Optional single-range override, last registration number
         required: false
       seconds:
         description: Wall-clock budget for this run, in seconds (job ceiling ~20000)

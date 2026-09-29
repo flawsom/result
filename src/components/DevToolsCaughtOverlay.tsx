@@ -39,7 +39,7 @@ export function DevToolsCaughtOverlay({ active }: Props) {
     };
   }, [active]);
 
-  // Typewriter effect — respects reduced motion (fills instantly).
+  // Typewriter effect, respects reduced motion (fills instantly).
   useEffect(() => {
     if (!active) {
       setTyped("");

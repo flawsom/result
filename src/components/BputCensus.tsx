@@ -1,4 +1,4 @@
-// BPUT population census — the one part of the analytics surface that describes
+// BPUT population census, the one part of the analytics surface that describes
 // the university rather than this website's own visitors.
 //
 // Everything here comes from the paced census: anonymous student-semester
@@ -133,7 +133,7 @@ function Block({ title, meta, children }: { title: string; meta?: string; childr
   );
 }
 
-/** Which channel is actually feeding this section — stated, not implied. */
+/** Which channel is actually feeding this section, stated, not implied. */
 function LinkChip({ link }: { link: LinkState }) {
   const text =
     link === "live" ? "Live push" : link === "connecting" ? "Connecting" : "Polling · 15s";
@@ -363,7 +363,7 @@ export function BputCensus() {
               The crawl has started but stored nothing.
             </h3>
             <p className="mt-3 max-w-3xl font-mono text-xs leading-relaxed">
-              Numbers have been probed, so the ranges are being read — but no student record has
+              Numbers have been probed, so the ranges are being read, but no student record has
               come back yet. Panels appear the moment the first observation is written; nothing is
               filled in ahead of that.
             </p>
@@ -380,7 +380,7 @@ export function BputCensus() {
                   value:
                     data.meta.minBatchYear && data.meta.maxBatchYear
                       ? `${data.meta.minBatchYear}–${data.meta.maxBatchYear}`
-                      : "—",
+                      : "–",
                 },
               ].map((k) => (
                 <div key={k.label} className="@container border-thick min-w-0 overflow-hidden p-4">
@@ -431,7 +431,7 @@ export function BputCensus() {
                           max={maxSem}
                           right={
                             r.observations === 0
-                              ? "—"
+                              ? "–"
                               : `${fmtPct(ci.p, 0)} [${fmtPct(ci.low, 0)}–${fmtPct(ci.high, 0)}]`
                           }
                           title={`${fmtInt(r.published)} of ${fmtInt(r.observations)} published`}
@@ -443,15 +443,15 @@ export function BputCensus() {
                     An early semester reading near 0% looks like a failed read and is not
                     one: the portal stops serving old sessions. The sentence below is
                     generated from the daily session watch rather than written by hand,
-                    because it is a statement about today — see
+                    because it is a statement about today, see
                     `src/lib/census-session-watch.ts`.
                   */}
                   <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
                     An early semester near 0% here is usually the portal having aged that session
                     out, not a failed read. An automated check asks the portal for all eight derived
                     sessions of one student in every batch year; on {SESSION_WATCH_CHECKED_AT} it
-                    answered {describeSessionWatch()}. Nothing in the numbering derivation is wrong
-                    — the university keeps a rolling window of what it serves, and a session appears
+                    answered {describeSessionWatch()}. Nothing in the numbering derivation is wrong:
+                    the university keeps a rolling window of what it serves, and a session appears
                     only once its exams have been held, which is why the newest batches are still
                     partway down the list.
                   </p>
@@ -486,7 +486,7 @@ export function BputCensus() {
                   <div className="border-thick space-y-3 p-4">
                     {grades.length === 0 ? (
                       <p className="font-mono text-[11px] text-muted-foreground">
-                        No grade rows yet — they appear with the first published semester.
+                        No grade rows yet; they appear with the first published semester.
                       </p>
                     ) : (
                       grades.map((g) => (
@@ -521,7 +521,7 @@ export function BputCensus() {
                           max={maxSem}
                           right={
                             r.published === 0
-                              ? "—"
+                              ? "–"
                               : `${Math.round(Number(r.subjectsP50 ?? 0))} subj · ${Math.round(
                                   Number(r.pointsP50 ?? 0),
                                 )} pts`

@@ -163,7 +163,7 @@ function NewBatchForm() {
           <span className="text-destructive">{preview.error}</span>
         ) : preview ? (
           <span>
-            {preview.count} registration numbers — {preview.first} … {preview.last}. Est. runtime ≈{" "}
+            {preview.count} registration numbers, {preview.first} … {preview.last}. Est. runtime ≈{" "}
             {estimateMinutes(preview.count, rateLimit)} min at current pace.
           </span>
         ) : (
@@ -584,14 +584,14 @@ function StudentCard({ job }: { job: BulkJob }) {
         <AccordionTrigger className="flex-1 px-3 py-3 hover:no-underline">
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 text-left">
             <span className="font-mono text-xs">{job.rollNo}</span>
-            <span className="text-sm font-medium">{job.student?.studentName ?? "—"}</span>
+            <span className="text-sm font-medium">{job.student?.studentName ?? "–"}</span>
             <span className="text-xs text-muted-foreground">{job.student?.branchName ?? ""}</span>
             <span className="ml-auto flex items-center gap-3 text-xs">
               <span>
-                SGPA avg: <b>{Number.isFinite(job.sgpaAvg) ? job.sgpaAvg : "—"}</b>
+                SGPA avg: <b>{Number.isFinite(job.sgpaAvg) ? job.sgpaAvg : "–"}</b>
               </span>
               <span>
-                CGPA: <b>{Number.isFinite(job.cgpa) ? job.cgpa : "—"}</b>
+                CGPA: <b>{Number.isFinite(job.cgpa) ? job.cgpa : "–"}</b>
               </span>
               <JobStatusBadge status={job.status} />
             </span>

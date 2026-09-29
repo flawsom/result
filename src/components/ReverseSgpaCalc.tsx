@@ -1,5 +1,5 @@
 // "What SGPA do I need next semester to hit a target CGPA?"
-// Client-only. Operates entirely on already-fetched real data — no network,
+// Client-only. Operates entirely on already-fetched real data, no network,
 // no synthetic inputs. Only shown after ≥1 real semester is loaded.
 import { useMemo, useState } from "react";
 
@@ -67,7 +67,7 @@ export function ReverseSgpaCalc({
           <div className="font-mono text-sm">Enter valid target and credits.</div>
         ) : result.trivial ? (
           <div className="font-mono text-sm">
-            You're already above this target — even a 0 next semester keeps you at or above {target}
+            You're already above this target. Even a 0 next semester keeps you at or above {target}
             .
           </div>
         ) : result.unreachable ? (

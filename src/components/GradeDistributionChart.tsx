@@ -1,5 +1,5 @@
 // Aggregate grade distribution across every real fetched subject.
-// No synthetic weights — just counts of what BPUT returned.
+// No synthetic weights, just counts of what BPUT returned.
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { GRADE_POINTS, type Grade, type SubjectsResponse } from "@/lib/sgpa";
 

@@ -26,7 +26,7 @@ import {
  * The dashboard draws the intake distribution from the embedded per-block
  * measurement, so that array has to be the evidence file rather than a copy of
  * it. Re-zip `docs/census-intake.json` in grid order and fail loudly on any
- * disagreement — a drifted constant here would quietly misstate the university.
+ * disagreement, a drifted constant here would quietly misstate the university.
  */
 function checkMeasurement() {
   const raw = readFileSync(new URL("../docs/census-intake.json", import.meta.url), "utf8");
@@ -123,7 +123,7 @@ const pct = totalBlocks > 0 ? (done / totalBlocks) * 100 : 0;
 
 const num = (n) => Number(n ?? 0).toLocaleString();
 
-console.log("BPUT census — status");
+console.log("BPUT census, status");
 console.log(`  blocks finished   ${done}/${totalBlocks}  (${pct.toFixed(1)}%)`);
 console.log(`  ranges declared   ${num(progress.ranges)}`);
 console.log(
@@ -156,7 +156,7 @@ if (rps > 0) {
       (hours < 48 ? `${hours.toFixed(1)} hours` : `${(hours / 24).toFixed(1)} days`),
   );
   console.log(
-    `Estimate basis: the grid was measured, not sampled — ${num(MEASURED_SERIALS)} registration numbers ` +
+    `Estimate basis: the grid was measured, not sampled, ${num(MEASURED_SERIALS)} registration numbers ` +
       `in ${num(totalBlocks)} blocks hold ≈ ${num(MEASURED_STUDENTS)} students, at 9 reads each plus a ` +
       `25-probe block tail = ${num(requests)} requests.`,
   );

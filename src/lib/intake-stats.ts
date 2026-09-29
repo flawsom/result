@@ -1,17 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Intake intelligence — the measured university, turned into figures.
+// Intake intelligence, the measured university, turned into figures.
 //
 // `census-blocks.ts` holds the measurement: which registration-number blocks
 // exist and how many students each holds, probed block by block on 2026-09-29.
 // This module is the analysis layer over it, written in the same spirit as
-// `analytics-stats.ts` — pure functions, one implementation of each estimator,
+// `analytics-stats.ts`, pure functions, one implementation of each estimator,
 // every figure traceable to either the measurement or the live census counters,
 // and every estimate labelled as an estimate.
 //
 // Two questions it answers:
-//   • the intake series — how many students each batch year holds, how that has
+//   • the intake series, how many students each batch year holds, how that has
 //     moved across 14 measured years, and how unevenly it sits across colleges;
-//   • the acquisition series — how much of that measured universe the running
+//   • the acquisition series, how much of that measured universe the running
 //     crawl has actually read, and what is left of it.
 //
 // What it deliberately does not do: describe a person. The finest grain here is
@@ -51,7 +51,7 @@ export interface IntakeRow {
   year: number;
   /** Colleges with a batch in this year. */
   blocks: number;
-  /** Registration numbers the year's blocks declare — an upper bound. */
+  /** Registration numbers the year's blocks declare, an upper bound. */
   serials: number;
   /** Students after the measured hole rate for the year's era is removed. */
   students: number;
@@ -69,7 +69,7 @@ export interface IntakeRow {
   share: number;
   /** Change in students against the previous batch year; null for the first. */
   yoy: number | null;
-  /** Three-year centred mean of students — the raw value at the two edges. */
+  /** Three-year centred mean of students, the raw value at the two edges. */
   trend3: number;
 }
 
@@ -90,7 +90,7 @@ export interface IntakeSeries {
   trough: IntakeRow;
   /** Least squares line through the 14 measured years. */
   fit: Regression;
-  /** Median pairwise slope — the same line, protected from the 2020 trough. */
+  /** Median pairwise slope, the same line, protected from the 2020 trough. */
   robustSlope: number;
   /** Compound annual change from the first measured year to the last. */
   growth: number | null;
@@ -214,7 +214,7 @@ export interface BlockDistribution {
   top: Array<{ label: string; serial: number }>;
   /** Share of the intake held by the largest tenth of colleges. */
   topDecileShare: number;
-  /** Colleges that never got past ten serials — a new or a dormant intake. */
+  /** Colleges that never got past ten serials, a new or a dormant intake. */
   tiny: number;
 }
 
@@ -306,8 +306,8 @@ export interface CensusAcquisition {
   firstPassReadsLeft: number;
   /**
    * Reads keeping the record current costs. A semester the portal has only now
-   * started serving is read at two requests per student — the record and the term
-   * — and never touches the semesters already captured.
+   * started serving is read at two requests per student, the record and the term
+   *, and never touches the semesters already captured.
    */
   maintenanceReads: number;
   /** Serials no block has read yet. */
@@ -376,8 +376,8 @@ function semesterReads(year: number, serials: number): number {
  * overlap. `doneRanges` only exists on the aggregate, so it cannot come from the
  * broadcast.
  *
- * `readsSpent` reproduces the runner's own accounting — one details probe per
- * number plus one read per stored semester row — and matches the request count
+ * `readsSpent` reproduces the runner's own accounting, one details probe per
+ * number plus one read per stored semester row, and matches the request count
  * the last recorded GitHub Actions slice reported (1,184 requests: 136 probes
  * and 1,048 semester rows), which is why it is presented as arithmetic rather
  * than as a model.
@@ -386,7 +386,7 @@ function semesterReads(year: number, serials: number): number {
  * than it sounds: the census is not a job with an end date. BPUT publishes on a
  * rolling window, so a batch year that answered for six semesters will answer for
  * seven, and the block that reads it will need reading again for that one term.
- * A figure of "1.4M of 1.5M" computed from a frozen total cannot express that —
+ * A figure of "1.4M of 1.5M" computed from a frozen total cannot express that,
  * it can only count down to zero and then be wrong forever. So the left side is
  * derived from the serials no block has read yet plus the semesters the portal
  * now serves that no block has captured, and the denominator is spent plus
@@ -415,7 +415,7 @@ export function censusAcquisition(
    * two reads a student over the serials each outstanding semester covers. The
    * miss tail is charged per unfinished block because a walk always pays it.
    *
-   * Without the ledger — a deployment a migration behind — the panel falls back to
+   * Without the ledger, a deployment a migration behind, the panel falls back to
    * the measurement basis and says so, rather than silently showing a number that
    * cannot notice a new publication.
    */

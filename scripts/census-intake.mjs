@@ -10,7 +10,7 @@
 // gap arbitration:
 //
 //   1. Binary search the first miss boundary, assuming hits are dense from 001.
-//   2. That assumption is wrong sometimes — serials do go missing mid-run
+//   2. That assumption is wrong sometimes, serials do go missing mid-run
 //      (college 329, batch 2023: 012, 018 and 032). So after converging, probe a
 //      small window *above* the boundary. A hit there means the boundary was a
 //      gap, not the end, and the search resumes above it. Repeat until a window
@@ -31,12 +31,12 @@
 // noticing. Discovery
 //
 //   1. scans code space at serial 001 for every batch year above the newest one in
-//      the grid, up to this calendar year — the year the portal has just started
+//      the grid, up to this calendar year, the year the portal has just started
 //      numbering, which is where a whole cohort appears at once;
 //   2. re-sweeps two declared years a day, in rotation, so a college that opens a
 //      batch in a year it never had one is found within a week;
 //   3. measures every block it found, and appends it to `census-discovered.ts`,
-//      which the grid imports — so the walk, the measurement and the dashboard all
+//      which the grid imports, so the walk, the measurement and the dashboard all
 //      grow without an edit.
 //
 //   bun scripts/census-intake.mjs --discover
@@ -76,7 +76,7 @@ const WINDOW = Number(flag("window", 6));
 /** Probes in flight inside one audited block. */
 const AUDIT_CONCURRENCY = Number(flag("audit-concurrency", 24));
 const AUDIT = Number(flag("audit", 0));
-// Named blocks to full-walk, for the cases worth checking by hand — e.g. a block
+// Named blocks to full-walk, for the cases worth checking by hand, e.g. a block
 // known to carry mid-run gaps, which is precisely where a binary search lies.
 const AUDIT_BLOCKS = String(flag("audit-blocks", ""))
   .split(",")
@@ -140,7 +140,7 @@ store.blocks ??= {};
  * Persist the evidence file.
  *
  * `measuredAt` is stamped only when a reading was established or changed, so a
- * verification pass that finds nothing new leaves the file byte-identical — and
+ * verification pass that finds nothing new leaves the file byte-identical, and
  * leaves the date the numbers were measured telling the truth. `checkedAt`
  * records the verification itself, which is what makes "verified daily" a fact
  * rather than a claim.
@@ -193,7 +193,7 @@ async function probe(roll) {
 /**
  * Highest live serial in one block. Returns `serial: null` when the block could
  * not be read at all, so an unreachable portal can never be recorded as an empty
- * college — the one error this measurement must not make.
+ * college, the one error this measurement must not make.
  */
 async function highestLive(prefix) {
   let unreadable = 0;
@@ -260,7 +260,7 @@ async function highestLive(prefix) {
  * would mean the measurement truncated a college.
  *
  * The walk is bounded by the measurement plus a generous tail, and the probes
- * inside a block go out in parallel — a 998-serial college read one at a time
+ * inside a block go out in parallel, a 998-serial college read one at a time
  * costs five minutes of somebody else's server, and the whole point of auditing
  * a sample is that a sample should be affordable.
  */
@@ -286,8 +286,8 @@ async function exactCount(prefix, upper) {
  * Does the recorded bound still describe the portal?
  *
  * Two requests: the recorded serial must still answer for a student, and the
- * serial above it must still answer for nobody. Anything else — including an
- * unreadable answer — falls through to a full re-measure, because re-measuring a
+ * serial above it must still answer for nobody. Anything else, including an
+ * unreadable answer, falls through to a full re-measure, because re-measuring a
  * block costs minutes while publishing a bound the portal has moved past costs a
  * wrong number about the university.
  */
@@ -326,7 +326,7 @@ for (const year of YEARS) {
 }
 
 if (pending.length === 0) {
-  console.log(`[intake] nothing to measure for ${YEARS.join(", ")} — already in ${FILE}.`);
+  console.log(`[intake] nothing to measure for ${YEARS.join(", ")}, already in ${FILE}.`);
 }
 
 let cursor = 0;
@@ -431,7 +431,7 @@ if (AUDIT > 0 || AUDIT_BLOCKS.length > 0) {
  * carry: everything above its newest year, up to this calendar year.
  *
  * BPUT begins a batch year's numbering during its admission season, so this
- * window is empty on most days and cheap to re-check every day — and it is the
+ * window is empty on most days and cheap to re-check every day, and it is the
  * reason a whole new cohort cannot arrive unnoticed.
  */
 function frontierYears(now = new Date()) {
@@ -457,12 +457,12 @@ function sweepRotation(now = new Date()) {
 /**
  * Which of these codes the portal answers for in this batch year.
  *
- * One probe each, `YY01CCC001` — the first student a college admits, because
+ * One probe each, `YY01CCC001`, the first student a college admits, because
  * serials run densely from 001, so a code that answers is a college with a batch
  * that year. The inverse is not proven: a college whose very first student never
  * registered stays invisible here. That inequality is why a hit is measured
  * properly before it is written, and why an unreadable probe is reported as one
- * rather than counted as an absence — a miss may only ever cost a college, never
+ * rather than counted as an absence, a miss may only ever cost a college, never
  * invent one.
  *
  * A hit is also checked against the number that was asked for. The portal echoes
@@ -579,7 +579,7 @@ async function discover() {
     const scan = await scanCodes(year, codes, until);
     if (scan.mismatched.length > 0) {
       console.warn(
-        `[intake] discover ${label}: ${scan.mismatched.length} answer(s) named a different registration number — ignored`,
+        `[intake] discover ${label}: ${scan.mismatched.length} answer(s) named a different registration number, ignored`,
       );
     }
     if (scan.found.length === 0) {
@@ -617,7 +617,7 @@ async function discover() {
     });
     if (unmeasured.length > 0) {
       console.warn(
-        `[intake] discover ${label}: found ${scan.found.length} new block(s) but the budget ran out before all of them were measured — nothing written, retried next run`,
+        `[intake] discover ${label}: found ${scan.found.length} new block(s) but the budget ran out before all of them were measured, nothing written, retried next run`,
       );
       continue;
     }
@@ -625,7 +625,7 @@ async function discover() {
     for (const code of scan.found) recordReading(year, code, measured.get(code));
     added[year] = scan.found;
     console.log(
-      `[intake] discover ${label}: ${scan.found.length} new block(s) — ` +
+      `[intake] discover ${label}: ${scan.found.length} new block(s), ` +
         `${scan.found
           .slice(0, 12)
           .map((code) => String(code).padStart(3, "0"))
@@ -634,7 +634,7 @@ async function discover() {
   }
 
   if (Object.keys(added).length === 0) {
-    console.log("[intake] discover: nothing to add — the grid covers what the portal serves");
+    console.log("[intake] discover: nothing to add, the grid covers what the portal serves");
     return { added, report, written: false };
   }
 
@@ -666,7 +666,7 @@ function renderConstants(extra = {}) {
   const flat = [];
   let missing = 0;
   // Blocks discovery added in this very process are not in the imported grid yet
-  // — the overlay file was written a moment ago — so they are handed in.
+  //, the overlay file was written a moment ago, so they are handed in.
   const grid = [...new Set([...CENSUS_YEARS, ...Object.keys(extra).map(Number)])].sort(
     (a, b) => a - b,
   );

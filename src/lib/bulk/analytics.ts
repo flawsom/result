@@ -1,5 +1,5 @@
 // Client-side analytics over cached bulk results in IndexedDB.
-// All computation is pure — no server aggregation, no network.
+// All computation is pure, no server aggregation, no network.
 import { GRADE_POINTS, type Grade } from "@/lib/sgpa";
 import type { BulkJob } from "./db";
 

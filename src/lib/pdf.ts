@@ -257,7 +257,7 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
   // Fixed target heights (pt) for rendered KaTeX formula images, calibrated
   // against the 10pt summary line and 8pt legend so the formula reads as a
   // clear visual anchor without ballooning the layout. Tune these two
-  // constants only — don't touch the spacing math below.
+  // constants only, don't touch the spacing math below.
   const FORMULA_IMG_HEIGHT_PT = 30;
   const CGPA_FORMULA_IMG_HEIGHT_PT = 34;
   const FORMULA_GAP_ABOVE_PT = 10; // summary line -> formula
@@ -275,7 +275,7 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
   y += 16;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(10);
-  doc.text("Unofficial copy — regenerated from BPUT's public result portal", margin, y);
+  doc.text("Unofficial copy: regenerated from BPUT's public result portal", margin, y);
   y += 12;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -424,7 +424,7 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
       y += 8;
     });
 
-    // Formula + legend must never split across a page — reserve room for
+    // Formula + legend must never split across a page, reserve room for
     // the whole block as a single unit.
     ensureRoom(sgpaBlockH);
     y += FORMULA_GAP_ABOVE_PT;
@@ -484,7 +484,7 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   const qrCaption = doc.splitTextToSize(
-    `Scan to verify independently at results.bput.ac.in — enter Reg. No. ${student.rollNo}.`,
+    `Scan to verify independently at results.bput.ac.in: enter Reg. No. ${student.rollNo}.`,
     qrSize + 60,
   );
   doc.text(qrCaption, qrX - 10, qrY + qrSize + 12, { align: "left" });

@@ -1,5 +1,5 @@
 // IndexedDB schema for the admin bulk-fetch queue. Everything lives in the
-// admin's browser — no server-side persistence of results. Deleting the
+// admin's browser, no server-side persistence of results. Deleting the
 // browser profile wipes the queue and cached results.
 import Dexie, { type Table } from "dexie";
 import type { StudentDetails, SubjectsResponse } from "@/lib/sgpa";

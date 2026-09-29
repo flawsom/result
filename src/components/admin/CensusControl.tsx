@@ -3,7 +3,7 @@
 // A census run is long by construction: every student costs one request for
 // their record plus one per semester, at a deliberately slow pace so the
 // university's portal is never hammered. This panel therefore refuses to hide
-// the cost — it states the request count and the wall-clock time before you
+// the cost, it states the request count and the wall-clock time before you
 // start, and it keeps the run in front of you while it works.
 //
 // Progress is persisted server-side after every batch, so closing the tab is
@@ -30,7 +30,7 @@ import { SKIP_AFTER_MISSES, censusBlocks, estimatedRequests } from "@/lib/census
 import { toast } from "sonner";
 
 function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "—";
+  if (!Number.isFinite(ms) || ms <= 0) return "–";
   const minutes = ms / 60_000;
   if (minutes < 90) return `${minutes.toFixed(0)} min`;
   const hours = minutes / 60;
@@ -97,7 +97,7 @@ export function CensusControl() {
   const startRun = async () => {
     if (!parsed) return;
     try {
-      toast.info("Census started — leave this tab open. Progress is saved after every batch.");
+      toast.info("Census started. Leave this tab open. Progress is saved after every batch.");
       await runCensus({
         rangeStart: parsed.start,
         rangeEnd: parsed.end,
@@ -116,7 +116,7 @@ export function CensusControl() {
   const startGrid = async () => {
     if (grid.selected === 0) return;
     try {
-      toast.info("Grid crawl started — leave this tab open. Progress is saved per block.");
+      toast.info("Grid crawl started. Leave this tab open. Progress is saved per block.");
       await runCensusGrid({
         years: grid.years,
         maxBlocks: gridBlocks,
@@ -138,7 +138,7 @@ export function CensusControl() {
         <div>
           <h2 className="text-lg font-semibold">BPUT census</h2>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Walks a registration-number range and stores anonymous observations only — batch year,
+            Walks a registration-number range and stores anonymous observations only: batch year,
             semester, branch, college, outcome, subject and credit totals, grade histogram. No
             registration number, name or date of birth is written, and progress is recorded as a
             range offset rather than a student.
@@ -153,8 +153,8 @@ export function CensusControl() {
 
       <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Two engines, one reduction.</span> The grid
-        below is the measured BPUT space, committed in <code>src/lib/census-blocks.ts</code> — no
-        range to configure. <code>.github/workflows/census.yml</code> walks it with no tab open: add
+        below is the measured BPUT space, committed in <code>src/lib/census-blocks.ts</code>, with
+        no range to configure. <code>.github/workflows/census.yml</code> walks it with no tab open: add
         the repository secrets <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code>{" "}
         and it ticks every five minutes on its own, resuming each block from the same saved offset.
         Pacing there is an aggregate request ceiling that ramps up and halves on any 429. The
@@ -291,7 +291,7 @@ export function CensusControl() {
           </div>
           {state.lastError ? <p className="text-xs text-destructive">{state.lastError}</p> : null}
           <p className="text-xs text-muted-foreground">
-            A run from this page needs the tab to stay open — closing it stops the crawl, and
+            A run from this page needs the tab to stay open: closing it stops the crawl, and
             pressing Start again resumes from the saved offset rather than re-walking the range. For
             a crawl that survives the tab, use the scheduled workflow described above.
           </p>
@@ -313,7 +313,7 @@ export function CensusControl() {
             <Label htmlFor="grid-years">Batch years</Label>
             <Input
               id="grid-years"
-              placeholder="23,24,25 — empty for all"
+              placeholder="23,24,25 · empty for all"
               value={years}
               onChange={(e) => setYears(e.target.value)}
               disabled={state.running}
@@ -400,7 +400,7 @@ export function CensusControl() {
               <span>
                 <span className="text-muted-foreground">In flight:</span>{" "}
                 <strong>
-                  {state.blockLabel ?? "—"} · serial {state.blockSerial}/{state.blockTotal}
+                  {state.blockLabel ?? "–"} · serial {state.blockSerial}/{state.blockTotal}
                 </strong>
               </span>
               <span>

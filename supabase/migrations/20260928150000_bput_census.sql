@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  BPUT population census — anonymous, aggregate-only.
+--  BPUT population census, anonymous, aggregate-only.
 --
 --  Why this exists
 --  ---------------
@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS bput_census_events_served_idx
 
 -- ─────────────────────────────────────────────────────────────── cursor ────
 -- One row per declared range. `next_index` is an offset into the range, not a
--- position in any student record — resuming needs the offset, not the person.
+-- position in any student record, resuming needs the offset, not the person.
 
 CREATE TABLE IF NOT EXISTS public.bput_census_cursor (
   id          bigserial   PRIMARY KEY,
@@ -292,7 +292,7 @@ REVOKE EXECUTE ON FUNCTION public.census_cursor_state(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.census_cursor_state(text, text) TO authenticated, service_role;
 
 -- ──────────────────────────────────────────────────── progress (public) ────
--- Deliberately exposes counts only — never the ranges themselves, so nobody can
+-- Deliberately exposes counts only, never the ranges themselves, so nobody can
 -- reconstruct which registration numbers have been visited.
 
 CREATE OR REPLACE FUNCTION public.census_progress()

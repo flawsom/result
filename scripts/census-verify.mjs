@@ -9,7 +9,7 @@
 //   2. One of those chunks is the census bundle, and it is the *current* build
 //      (it carries the copy and the query names this repository ships).
 //   3. That bundle carries the project URL and the publishable key it will use at
-//      runtime — the same credentials, not a guess.
+//      runtime, the same credentials, not a guess.
 //   4. Those credentials, from this machine, return the aggregate the crawl
 //      stored. If step 4 shows observations, the hosted interface is receiving
 //      the workflow's data; if it shows zero, it is not, and no amount of
@@ -28,12 +28,12 @@ const MAX_CHUNKS = 140;
 const results = [];
 function check(name, ok, detail) {
   results.push({ name, ok, detail });
-  console.log(`${ok ? "  ok  " : " FAIL "} ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(`${ok ? "  ok  " : " FAIL "} ${name}${detail ? `, ${detail}` : ""}`);
 }
 
 /** Worth reporting, not worth failing: the panel falls back to polling for this. */
 function note(name, detail) {
-  console.log(` note  ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(` note  ${name}${detail ? `, ${detail}` : ""}`);
 }
 
 async function getText(url) {

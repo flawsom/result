@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * RawBlock design system — brutalist, black/white/blue.
+ * RawBlock design system, brutalist, black/white/blue.
  * Zero border radius. No shadows. Hierarchy via border weight + scale.
  */
 

@@ -1,11 +1,11 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  Analytics v2 — real, live, privacy-safe telemetry for the public
+--  Analytics v2, real, live, privacy-safe telemetry for the public
 --  "BPUT Results Intelligence" dashboard.
 --
 --  What changes and why
 --  --------------------
 --  v1 stored a single row per *successfully served* semester: (year, semester,
---  branch). That is enough to count volume and nothing else — every chart
+--  branch). That is enough to count volume and nothing else, every chart
 --  built on it degenerates into "how many lookups happened", and the
 --  published/empty/failed split, the upstream latency and the publication
 --  timeline were all invisible.
