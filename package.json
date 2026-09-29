@@ -16,6 +16,7 @@
     "census:refresh": "bun scripts/census-intake.mjs --refresh --write-constants",
     "census:discover": "bun scripts/census-intake.mjs --discover",
     "census:ledger": "bun scripts/census-ledger.mjs --verify",
+    "census:sentinel-test": "bun scripts/census-sentinel-test.mjs",
     "census:sessions": "bun scripts/census-sessions.mjs",
     "census:heartbeat": "bun scripts/census-heartbeat.mjs",
     "census:status": "bun scripts/census-status.mjs",

@@ -132,6 +132,9 @@ jobs:
           bun tsc -b --noEmit
           bun x prettier --check src scripts
           bun x eslint src scripts
+          # The ledger's stranded-semester sentinel, against crafted ledgers: the
+          # live database cannot be made to demonstrate a gap without breaking it.
+          bun scripts/census-sentinel-test.mjs
 
       - name: Ask the crawl for a slice
         id: crawl
