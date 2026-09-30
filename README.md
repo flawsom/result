@@ -107,7 +107,10 @@
 <summary><strong>What is new in this revision</strong></summary>
 
 - **Results Intelligence** is now three panels of *measured university data* plus eight of deployment telemetry, documented end to end in [Results Intelligence](#-results-intelligence).
+- **Census coverage and yield** is a first-class panel: numbers probed, observations stored, ranges read end to end, reads left, and the maintenance work owed to semesters the portal has only now started serving. Every one of them is read from the ledger, with the read time printed beside it, so a quiet ledger looks quiet rather than stale.
 - The **census maintains itself**: a daily job re-measures every recorded bound, discovers batch years and colleges the grid does not carry, watches which semesters the portal serves, and publishes all of it to a ledger. The dashboard's remaining-work figure is derived from that ledger instead of from a constant.
+- A slice can no longer be **starved by its own maintenance queue**: maintenance still runs first, because a semester the portal has just started serving is a hole in a published figure, and the first pass now gets whatever budget is left instead of the slice ending when that queue drains. One pass that keeps failing upstream used to freeze coverage while every run reported a healthy summary.
+- The **artwork carries the live figures**: the hero and the analytics tile are drawn from the same ledger values the panels render, with the date they were read.
 - The [performance scoreboard](#scoreboard) now carries **real measured numbers** (bundle sizes, transport, timing) instead of an empty table, and still says plainly which rows have not been measured.
 - New invariants, each of which can fail a build or a job: no semester read twice, no walk past a measured bound, no finished block without a read position, no served semester stranded with nothing queued to read it.
 
@@ -249,14 +252,14 @@ flowchart LR
 
 ## 📸 Screenshots
 
-Every tile below is a **vector recreation of the live interface**, drawn from the components, design tokens and copy that actually ship in `src/`, so each stays razor-sharp at any zoom and costs a few kilobytes instead of megabytes. Prefer a real capture? The swap instructions sit under the gallery.
+Every tile below is a **vector recreation of the live interface**, drawn from the components, design tokens and copy that actually ship in `src/`, so each stays razor-sharp at any zoom and costs a few kilobytes instead of megabytes. The figures drawn inside the analytics tile are the ledger's own values, read **2026-09-30 07:35 UTC**, not placeholder copy: 25,932 numbers probed, 177,393 observations stored, 84 of 1,103 ranges read end to end. Prefer a real capture? The swap instructions sit under the gallery.
 
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="docs/screenshots/desktop.svg" alt="Desktop home page: the registration-number search form above the live BPUT Results Intelligence analytics dashboard" width="100%" />
+      <img src="docs/screenshots/desktop.svg" alt="Desktop home page: the registration-number search form above the live BPUT Results Intelligence analytics dashboard, which opens with the measured intake, college size and census coverage panels" width="100%" />
       <br/>
-      <sub><b>🖥 Desktop</b> · 1440×900 · headline, registration-number form, analytics below the fold</sub>
+      <sub><b>🖥 Desktop</b> · 1440×900 viewport · headline, registration-number form, university panels below the fold</sub>
     </td>
     <td width="50%" align="center">
       <img src="docs/screenshots/mobile.svg" alt="Mobile layout: registration-number form, a semester SGPA block and the cumulative CGPA band on a 390 pixel wide screen" width="100%" />
@@ -271,9 +274,9 @@ Every tile below is a **vector recreation of the live interface**, drawn from th
       <sub><b>🧾 Dashboard</b> · student card, SGPA band + formula, subject table</sub>
     </td>
     <td width="50%" align="center">
-      <img src="docs/screenshots/analytics.svg" alt="BPUT Results Intelligence dashboard: measured intake by batch year, college-size distribution, census coverage and yield, and the deployment's own lookup telemetry" width="100%" />
+      <img src="docs/screenshots/analytics.svg" alt="BPUT Results Intelligence dashboard: measured intake by batch year, college size across the grid with a Gini of 0.526, census coverage and yield reading 25,932 numbers probed and 177,393 observations stored, and the deployment's own lookup telemetry" width="100%" />
       <br/>
-      <sub><b>📊 Analytics</b> · 11 panels, university and deployment labelled separately</sub>
+      <sub><b>📊 Analytics</b> · 11 panels, university and deployment labelled separately · live ledger figures, read 2026-09-30</sub>
     </td>
   </tr>
   <tr>
@@ -688,14 +691,38 @@ A one-off measurement becomes a stale claim the moment BPUT publishes anything. 
 
 The dashboard's "reads left" is the sum of what is spent and what is outstanding, both read from the ledger, so it **rises** on the day the portal publishes something new, instead of counting down to zero and staying there. Where the ledger is not available the panel falls back to the baseline measurement and labels itself as doing so.
 
+### Where it stands right now
+
+These are the values the coverage panel renders, read from the ledger at **2026-09-30 07:35 UTC**, and they move as the crawl works rather than on a deploy:
+
+| Reading                       | Value         | What it counts                                                                    |
+| ----------------------------- | ------------- | --------------------------------------------------------------------------------- |
+| Ranges measured               | 1,103         | College-and-year blocks in the grid, each binary-searched for its last live serial  |
+| Registration numbers declared | 160,609       | The numbers those ranges cover, probed one at a time, never sampled                 |
+| Numbers probed                | 25,932        | Numbers the crawl has actually read, 22,107 of them live students, 3,765 absent     |
+| Observations stored           | 177,393       | One anonymous row per student-semester, 0.8 per number probed                       |
+| Ranges read end to end        | 84 of 1,103   | Blocks walked to their last live serial, `7.6%`, from 103 ranges already opened     |
+| Reads spent and outstanding   | 203k of 1.5M  | Requests issued against the budget the measurement implies, `13.58%`                |
+| Reads left, estimated         | 1.3M          | The first pass's remainder: `142,077` serials never read                            |
+| Keeping it current            | 564 reads     | The maintenance passes owed to semesters the portal has since started serving       |
+
+### Three triggers, and a slice that cannot be starved
+
+The crawl is dispatched three ways on purpose: `schedule` every five minutes is the driver, a `push` that touches the crawler verifies itself on real data in five minutes, and the daily refresh dispatches a slice itself so a quiet schedule is never mistaken for a finished census. A missed tick costs progress, never correctness, because each block resumes from the offset it persisted.
+
+When a slice does run, the phase policy is fixed rather than incidental. Maintenance goes first when any pass is owed, because a semester the portal has only now started serving is a hole in a figure somebody may already be reading. Then the first pass gets whatever budget is left. That second half is what keeps coverage moving when a pass cannot settle: a failed pass is retried from its first serial by design, so without the handover a single block that answers with an upstream error would occupy every slice while the first pass waited forever. `CENSUS_PHASE=maintain` and `CENSUS_PHASE=firstpass` still pin one phase for a targeted run.
+
 ### Where the numbers come from
 
-| Layer                      | Source                                                                                          |
-| -------------------------- | ----------------------------------------------------------------------------------------------- |
-| University figures (01–03) | `src/lib/census-blocks.ts`, constants re-derived daily from `docs/census-intake.json`            |
-| Deployment figures (04–11) | `analytics_events` / `analytics_live` via `get_results_analytics()`, k = 25 floor applied          |
-| Live counters              | A realtime subscription to `analytics_live` and the census status channel                          |
-| Coverage and remaining work | `census_plan()`, derived from the ledger, never from a compiled constant                          |
+| Layer                       | Source                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| University figures (01–03)  | `src/lib/census-blocks.ts`, constants re-derived daily from `docs/census-intake.json`            |
+| Deployment figures (04–11)  | `analytics_events` / `analytics_live` via `get_results_analytics()`, k = 25 floor applied          |
+| Coverage and yield (03)     | `census_plan()` plus the live ledger tables, never a compiled constant                            |
+| Live counters               | A realtime subscription to `analytics_live` and the census status channel                          |
+| Read time on every panel    | The timestamp the RPC answered with, printed with the figure so a stalled reading is visible       |
+
+**Nothing on the dashboard is mocked, seeded on demand or carried over from a build.** A figure is either a measured constant committed with its evidence file, a live row from Postgres, or a labelled fallback that says it could not reach the ledger. There is no sample data in the render path, and no panel renders a placeholder that could be mistaken for a measurement.
 
 <p align="right"><sub><a href="#-table-of-contents">↑ back to top</a></sub></p>
 
@@ -1983,6 +2010,8 @@ The full, user-facing version of this section lives at [`/privacy`](https://resu
 | Per-batch-year intake table                 | `MEASURED_INTAKE` in the same module               | same                                      |
 | Bundle sizes and transport timings          | the live deployment                                | re-measure with the commands in [Performance](#performance) |
 | Serial numbers remaining, passes pending    | `census_plan()`, a live read                      | every crawl slice                         |
+| Coverage and yield (numbers probed, observations stored, ranges read end to end, reads left) | `census_plan()` plus the ledger tables | every crawl slice, and on the page live |
+| Figures drawn inside the vector artwork      | the ledger read named in the tile's own caption    | redrawn when the reading moves            |
 | Read budget reasoning                       | `src/lib/intake-stats.ts`, documented in code      | when the read cost changes                |
 
 Every one of these can be re-derived from the repository alone, which is the point: nothing in this README is a number only a human remembers.
