@@ -127,6 +127,14 @@ const MAX_CONCURRENCY = 32;
 const DEFAULT_MAX_RPS = 16;
 /** Blocks that could not be read from upstream before the tick gives up. */
 const TRANSIENT_BLOCKS_BEFORE_QUIT = 4;
+/**
+ * Shortest first pass worth handing a leftover budget to.
+ *
+ * A pass writes its cursor every fifteen seconds, so a minute is enough to
+ * advance one block and be resumable; anything shorter is a phase that would
+ * spend its whole budget on setup and report nothing.
+ */
+const MIN_FIRST_PASS_SECONDS = 60;
 
 type Env = Record<string, string | undefined>;
 
@@ -438,6 +446,58 @@ export interface CensusTickSummary {
   /** Whether the ledger answered; false means this slice walked blind. */
   ledger: boolean;
   error: string | null;
+}
+
+/**
+ * Fold two phases of one slice into the summary a single log line can carry.
+ *
+ * `auto` runs maintenance and then the first pass out of what is left of the
+ * budget, and the counters are what a reader actually wants: how much was read,
+ * how much maintenance settled, how many blocks finished. The worst status wins,
+ * so a failed or interrupted phase cannot be hidden by a healthy one, and the
+ * positions come from the phase that ran last, because that is where the slice
+ * ended up.
+ */
+function mergeSummaries(first: CensusTickSummary, second: CensusTickSummary): CensusTickSummary {
+  const status: CensusTickStatus =
+    first.status === "failed" || second.status === "failed"
+      ? "failed"
+      : first.status === "interrupted" || second.status === "interrupted"
+        ? "interrupted"
+        : first.status === "done" && second.status === "done"
+          ? "done"
+          : "budget";
+  const seconds = Math.round((first.seconds + second.seconds) * 10) / 10;
+  const requests = first.requests + second.requests;
+
+  return {
+    ...second,
+    status,
+    seconds,
+    requests,
+    requestsPerSecond: seconds > 0 ? Math.round((requests / seconds) * 10) / 10 : 0,
+    rateLimits: first.rateLimits + second.rateLimits,
+    blocksTotal: first.blocksTotal + second.blocksTotal,
+    blocksVisited: first.blocksVisited + second.blocksVisited,
+    blocksDone: first.blocksDone + second.blocksDone,
+    blocksSkipped: first.blocksSkipped + second.blocksSkipped,
+    blocksPaused: first.blocksPaused + second.blocksPaused,
+    blocksDeferred: first.blocksDeferred + second.blocksDeferred,
+    blocksUnreachable: first.blocksUnreachable + second.blocksUnreachable,
+    visited: first.visited + second.visited,
+    students: first.students + second.students,
+    notFound: first.notFound + second.notFound,
+    observations: first.observations + second.observations,
+    stored: first.stored + second.stored,
+    passesAvailable: first.passesAvailable + second.passesAvailable,
+    passesClaimed: first.passesClaimed + second.passesClaimed,
+    passesDone: first.passesDone + second.passesDone,
+    passesEmpty: first.passesEmpty + second.passesEmpty,
+    passesSkipped: first.passesSkipped + second.passesSkipped,
+    semesters: [...new Set([...first.semesters, ...second.semesters])].sort((a, b) => a - b),
+    ledger: first.ledger || second.ledger,
+    error: second.error ?? first.error,
+  };
 }
 
 function emptySummary(
@@ -1339,11 +1399,46 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
           ? "maintain"
           : "grid";
 
-  const summary = !grid
-    ? await runCensusTick(config)
-    : phase === "maintain"
-      ? await runCensusMaintenance(config, Date.now, work?.maintenance)
-      : await runCensusGrid(config, Date.now, work ?? undefined);
+  let summary: CensusTickSummary;
+  if (!grid) {
+    summary = await runCensusTick(config);
+  } else if (phase === "maintain" && config.phase === "maintain") {
+    // Pinned by `CENSUS_PHASE=maintain`: a targeted run asked for maintenance and
+    // gets nothing else.
+    summary = await runCensusMaintenance(config, Date.now, work?.maintenance);
+  } else if (phase === "maintain") {
+    /*
+     * `auto`: maintenance first, then the first pass on whatever budget is left.
+     *
+     * The maintenance list is usually empty and always small, but it can also be
+     * permanently small: one pass whose block answers with an upstream error at
+     * the same serial every time keeps its status `failed`, and a failed pass is
+     * retried from the first serial by design. A slice that ended as soon as that
+     * list drained would leave the first pass untouched for as long as the pass
+     * kept failing, which is coverage that stops moving while every run reports a
+     * healthy summary. So draining the list hands the rest of the budget over
+     * instead of ending the slice.
+     */
+    const maintenance = await runCensusMaintenance(config, Date.now, work?.maintenance);
+    const remaining = config.seconds - Math.ceil(maintenance.seconds);
+    if (maintenance.status === "interrupted" || remaining < MIN_FIRST_PASS_SECONDS) {
+      summary = maintenance;
+    } else {
+      console.log(
+        `[census] maintenance settled ${maintenance.passesDone + maintenance.passesEmpty} of ` +
+          `${maintenance.passesAvailable} pass(es) in ${Math.round(maintenance.seconds)}s, ` +
+          `${remaining}s left for the first pass`,
+      );
+      const firstPass = await runCensusGrid(
+        { ...config, seconds: remaining },
+        Date.now,
+        work ?? undefined,
+      );
+      summary = mergeSummaries(maintenance, firstPass);
+    }
+  } else {
+    summary = await runCensusGrid(config, Date.now, work ?? undefined);
+  }
   console.log(`[census] ${JSON.stringify(summary)}`);
   await reportProgress(config, summary);
   if (grid) await reportPlan(config);
