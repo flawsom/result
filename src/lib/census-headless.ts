@@ -128,13 +128,25 @@ const DEFAULT_MAX_RPS = 16;
 /** Blocks that could not be read from upstream before the tick gives up. */
 const TRANSIENT_BLOCKS_BEFORE_QUIT = 4;
 /**
- * Shortest first pass worth handing a leftover budget to.
+ * Shortest phase worth starting.
  *
  * A pass writes its cursor every fifteen seconds, so a minute is enough to
  * advance one block and be resumable; anything shorter is a phase that would
  * spend its whole budget on setup and report nothing.
  */
-const MIN_FIRST_PASS_SECONDS = 60;
+const MIN_PHASE_SECONDS = 60;
+/**
+ * The most of a slice `auto` will hand to maintenance first.
+ *
+ * Maintenance is owed priority, not the whole slice. A semester pass over a
+ * block of a few hundred students costs two reads each, and against a portal
+ * answering slowly that is minutes, so an unbounded maintenance phase consumes
+ * a short slice entirely (a five minute run leaves by the same door it came in)
+ * and, while a pass that cannot settle stays pending, coverage reads nothing at
+ * all. Half the slice is always more maintenance than the queue has ever held,
+ * and the other half always belongs to the first pass.
+ */
+const MAINTENANCE_SHARE = 0.5;
 
 type Env = Record<string, string | undefined>;
 
@@ -1419,9 +1431,17 @@ export async function runCensusTickFromEnv(env: Env = process.env): Promise<Cens
      * healthy summary. So draining the list hands the rest of the budget over
      * instead of ending the slice.
      */
-    const maintenance = await runCensusMaintenance(config, Date.now, work?.maintenance);
+    const maintenanceSeconds = Math.max(
+      MIN_PHASE_SECONDS,
+      Math.round(config.seconds * MAINTENANCE_SHARE),
+    );
+    const maintenance = await runCensusMaintenance(
+      { ...config, seconds: maintenanceSeconds },
+      Date.now,
+      work?.maintenance,
+    );
     const remaining = config.seconds - Math.ceil(maintenance.seconds);
-    if (maintenance.status === "interrupted" || remaining < MIN_FIRST_PASS_SECONDS) {
+    if (maintenance.status === "interrupted" || remaining < MIN_PHASE_SECONDS) {
       summary = maintenance;
     } else {
       console.log(
