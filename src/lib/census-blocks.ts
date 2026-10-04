@@ -304,7 +304,7 @@ export const MEASURED_AT = "2026-09-29";
  * date is a fact about the published numbers rather than a claim about them, and
  * a reading that quietly went stale would show up here as a stale date.
  */
-export const MEASURED_CHECKED_AT = "2026-10-03";
+export const MEASURED_CHECKED_AT = "2026-10-04";
 
 /**
  * The highest live serial in every block, the raw measurement behind
