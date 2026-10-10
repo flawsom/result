@@ -4,10 +4,10 @@
     "serials": 160609,
     "students": 158571,
     "measuredAt": "2026-09-29",
-    "checkedAt": "2026-10-09"
+    "checkedAt": "2026-10-10"
   },
-  "lastCheckAt": "2026-10-09T09:32:31.365Z",
-  "checks": 11,
+  "lastCheckAt": "2026-10-10T08:52:33.941Z",
+  "checks": 12,
   "history": [
     {
       "at": "2026-09-29T09:15:23.024Z",
@@ -71,6 +71,12 @@
     },
     {
       "at": "2026-10-09T09:32:31.365Z",
+      "verified": 1103,
+      "changed": 0,
+      "crawl": "success"
+    },
+    {
+      "at": "2026-10-10T08:52:33.941Z",
       "verified": 1103,
       "changed": 0,
       "crawl": "success"
