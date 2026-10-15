@@ -86,9 +86,13 @@ BEGIN
 END;
 $$;
 
+-- service_role only: this counts the whole fact table, so it is a lever anyone
+-- signed in could otherwise pull in a loop. The crawler and the reconciliation
+-- above both hold the service role; a panel never needs it.
 REVOKE EXECUTE ON FUNCTION public.census_live_recount() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.census_live_recount() FROM anon;
-GRANT EXECUTE ON FUNCTION public.census_live_recount() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.census_live_recount() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.census_live_recount() TO service_role;
 
 CREATE OR REPLACE FUNCTION public.census_live_on_event_truncate()
 RETURNS trigger

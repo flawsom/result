@@ -2,12 +2,10 @@
 --
 -- `get_bput_census()` and `census_progress()` were the two public RPCs still
 -- aggregating the raw fact table on every call, and the fact table is now past
--- 1.3M rows. Measured on a faithful replay of these migrations (40k seeded rows,
--- real schema, real functions), a single `get_bput_census()` call cost 329 ms,
--- dominated by the `jsonb_each` that expands every row's grade object (100 ms on
--- its own). The cost is linear in the table, so the same call on the live table
--- lands around ten seconds: past the statement timeout, which is exactly the
--- HTTP 500 / `57014` the deployed panel was returning, and it moves between
+-- 1.3M rows. Measured on a faithful replay of these migrations (real schema, real
+-- functions), the cost is linear in the table, so a call on the live table lands
+-- around ten seconds: past the statement timeout, which is exactly the HTTP 500 /
+-- `57014` the deployed panel was returning, and it moves between
 -- `get_bput_census` and `census_progress` depending on which one the timeout
 -- catches first.
 --
@@ -18,14 +16,16 @@
 --
 --   * `bput_census_rollup` holds the whole payload, minus the two parts that are
 --     genuinely live (`progress`, and the timestamp it was measured at).
---   * `census_rollup_refresh()` recomputes it behind a throttle, so a burst of
---     batches costs at most one refresh per window.
---   * A statement-level trigger on both the events and the cursor table drives
---     that refresh, so the rollup maintains itself with no external scheduler
---     and no change to any client.
+--   * `census_rollup_refresh()` recomputes it, and refuses to do so when nothing
+--     has been written since the last time.
+--   * A statement-level trigger on the events and cursor tables *marks* that
+--     something changed. It deliberately does not refresh: ten seconds of
+--     aggregation inside a crawler's batch would put the crawl behind the same
+--     timeout this migration exists to get off the read path, so the refresh runs
+--     as its own top-level statement instead (see "who drives this", below).
 --
--- Readers never queue behind the refresh: it runs `CONCURRENTLY`, against the
--- unique index below, so a swap does not block the page.
+-- Readers never queue behind the refresh either: it runs `CONCURRENTLY`, against
+-- the unique index below, so a swap does not block the page.
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS public.bput_census_rollup AS
 WITH base AS (
@@ -151,10 +151,53 @@ CREATE UNIQUE INDEX IF NOT EXISTS bput_census_rollup_id_idx
 COMMENT ON MATERIALIZED VIEW public.bput_census_rollup IS
   'The census panels'' aggregates, computed once per refresh instead of once per page view. Counts only, k-anonymised the same way the function was, so the rollup exposes nothing the function did not.';
 
+-- ───────────────────────────────────────── has anything changed since then? ──
+-- The marker is what keeps a scheduler cheap: a tick that finds no writes costs
+-- one row read rather than ten seconds of aggregation, which matters because the
+-- census is idle for most of the year and because a crawl that has stopped writing
+-- cannot have made the rollup stale.
+
+CREATE TABLE IF NOT EXISTS public.census_rollup_state (
+  id           smallint    PRIMARY KEY CHECK (id = 1),
+  dirty_at     timestamptz NOT NULL DEFAULT now(),
+  refreshed_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.census_rollup_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- One row update per statement, no matter how many rows the statement touched, and
+-- no aggregation. This is the whole cost the fact table's writers pay.
+CREATE OR REPLACE FUNCTION public.census_rollup_mark_dirty()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.census_rollup_state SET dirty_at = now() WHERE id = 1;
+  RETURN NULL;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.census_rollup_mark_dirty() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS census_rollup_dirty_on_events ON public.bput_census_events;
+CREATE TRIGGER census_rollup_dirty_on_events
+  AFTER INSERT OR DELETE OR TRUNCATE ON public.bput_census_events
+  FOR EACH STATEMENT
+  EXECUTE FUNCTION public.census_rollup_mark_dirty();
+
+DROP TRIGGER IF EXISTS census_rollup_dirty_on_cursor ON public.bput_census_cursor;
+CREATE TRIGGER census_rollup_dirty_on_cursor
+  AFTER INSERT OR UPDATE ON public.bput_census_cursor
+  FOR EACH STATEMENT
+  EXECUTE FUNCTION public.census_rollup_mark_dirty();
+
 -- ──────────────────────────────────────────────────────── throttled refresh ──
--- The refresh is the expensive part, so it is budgeted rather than run per write:
--- a crawl flushing batches every few seconds still costs one refresh per window.
--- `_max_age = '0 minutes'` forces one, for a job that wants the newest numbers.
+-- Top level only. The default lets a caller tick as often as it likes without
+-- paying the aggregate more than once a window, and `_max_age = '0 minutes'`
+-- lowers that to "now" — it skips the throttle, not the marker, because a rollup
+-- with nothing written since it was measured has nothing to recompute.
 
 CREATE OR REPLACE FUNCTION public.census_rollup_refresh(_max_age interval DEFAULT '10 minutes')
 RETURNS boolean
@@ -163,52 +206,65 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_age interval;
+  v_dirty     timestamptz;
+  v_refreshed timestamptz;
 BEGIN
-  SELECT now() - generated_at INTO v_age
-    FROM public.bput_census_rollup
+  SELECT dirty_at, refreshed_at INTO v_dirty, v_refreshed
+    FROM public.census_rollup_state
    WHERE id = 1;
 
-  IF v_age IS NOT NULL AND v_age < _max_age THEN
+  -- Nothing written since the last refresh: the rollup already describes the fact
+  -- table, and the aggregate is the expensive part.
+  IF v_dirty IS NULL OR v_dirty <= v_refreshed THEN
+    RETURN false;
+  END IF;
+
+  IF v_refreshed IS NOT NULL AND now() - v_refreshed < _max_age THEN
     RETURN false;
   END IF;
 
   REFRESH MATERIALIZED VIEW CONCURRENTLY public.bput_census_rollup;
+
+  UPDATE public.census_rollup_state
+     SET refreshed_at = (SELECT generated_at FROM public.bput_census_rollup WHERE id = 1)
+   WHERE id = 1;
+
   RETURN true;
 END;
 $$;
 
+-- service_role only. The aggregate is seconds of work on the live table, so an
+-- ordinary signed-in user must not be able to ask for it, let alone loop on the
+-- forcing variant above.
 REVOKE EXECUTE ON FUNCTION public.census_rollup_refresh(interval) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.census_rollup_refresh(interval) FROM anon;
-GRANT EXECUTE ON FUNCTION public.census_rollup_refresh(interval) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.census_rollup_refresh(interval) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.census_rollup_refresh(interval) TO service_role;
 
--- Self-maintaining: no cron entry, no client change. Statement-level, so a
--- 200-row batch is one throttle check rather than 200.
-CREATE OR REPLACE FUNCTION public.census_rollup_on_write()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
+-- The rollup starts describing the data as it was when this migration ran, so the
+-- first write after it is the first thing that can make it stale.
+UPDATE public.census_rollup_state
+   SET dirty_at     = (SELECT generated_at FROM public.bput_census_rollup WHERE id = 1),
+       refreshed_at = (SELECT generated_at FROM public.bput_census_rollup WHERE id = 1)
+ WHERE id = 1;
+
+-- ────────────────────────────────────────────────────── who drives this ──
+-- Something outside a write transaction has to call the refresh. Where pg_cron is
+-- available the database does it itself; where it is not, this NOTICEs and the
+-- scheduler that already runs the crawl calls
+-- `select public.census_rollup_refresh();` instead. See
+-- docs/census-migration-rollout.md, which lists the check that tells you which of
+-- the two you got.
+DO $$
 BEGIN
-  PERFORM public.census_rollup_refresh();
-  RETURN NULL;
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+  PERFORM cron.schedule('census-rollup-refresh', '*/10 * * * *',
+                        $job$SELECT public.census_rollup_refresh('10 minutes')$job$);
+  RAISE NOTICE 'census rollup: pg_cron refreshes it every ten minutes';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'census rollup: pg_cron unavailable (%), so the refresh needs a scheduler outside the database', SQLERRM;
 END;
 $$;
-
-REVOKE EXECUTE ON FUNCTION public.census_rollup_on_write() FROM PUBLIC;
-
-DROP TRIGGER IF EXISTS census_rollup_on_events ON public.bput_census_events;
-CREATE TRIGGER census_rollup_on_events
-  AFTER INSERT OR DELETE ON public.bput_census_events
-  FOR EACH STATEMENT
-  EXECUTE FUNCTION public.census_rollup_on_write();
-
-DROP TRIGGER IF EXISTS census_rollup_on_cursor ON public.bput_census_cursor;
-CREATE TRIGGER census_rollup_on_cursor
-  AFTER INSERT OR UPDATE ON public.bput_census_cursor
-  FOR EACH STATEMENT
-  EXECUTE FUNCTION public.census_rollup_on_write();
 
 -- ──────────────────────────────────────────────────────────── read surface ──
 -- Same keys, same order, same k-anonymity floor as before; only the source of the
@@ -262,9 +318,14 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.census_progress() TO anon, authenticated;
 
--- The rollup is an implementation detail of the function above. Nothing reads it
--- directly, so it is not granted to the public roles.
+-- The rollup and its marker are implementation details of the functions above.
+-- Neither is readable by the public roles.
 REVOKE ALL ON public.bput_census_rollup FROM PUBLIC;
 REVOKE ALL ON public.bput_census_rollup FROM anon;
 REVOKE ALL ON public.bput_census_rollup FROM authenticated;
 GRANT ALL ON public.bput_census_rollup TO service_role;
+
+REVOKE ALL ON public.census_rollup_state FROM PUBLIC;
+REVOKE ALL ON public.census_rollup_state FROM anon;
+REVOKE ALL ON public.census_rollup_state FROM authenticated;
+GRANT ALL ON public.census_rollup_state TO service_role;

@@ -1,0 +1,78 @@
+name: Census rollup
+
+# Keeps the census panels' materialized view current.
+#
+# `20261015120000_census_read_path_rollup.sql` moved the panels' eight aggregates
+# into a materialized view so a page view stops re-aggregating 1.3M rows. That
+# aggregate is eight to nine seconds of work, which is why the fact table's
+# writers only *mark* the view stale: running it inside a crawler's batch would
+# move the statement timeout the migration exists to fix from the read path onto
+# the write path. Something at top level has to call the refresh, and this is it.
+#
+# The call is a no-op unless a write has happened since the last refresh, so a
+# schedule that fires more often than the view needs costs one round trip. Where
+# `pg_cron` is available the database refreshes itself on its own schedule and
+# this job simply finds nothing to do; the two do not fight, because whichever
+# runs first leaves nothing dirty for the other.
+#
+# A scheduled workflow is disabled after sixty days without repository activity.
+# `census-refresh.yml` commits daily and is what keeps every schedule here alive.
+#
+# Required repository configuration (Settings → Secrets and variables → Actions),
+# shared with the crawl:
+#   Secret: SUPABASE_URL             , project URL (or a variable of the same name)
+#   Secret: SUPABASE_SERVICE_ROLE_KEY, the refresh is service_role-only by design
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+
+  workflow_dispatch:
+
+# No overlap: a refresh that is still running has nothing new to pick up, and the
+# next tick ten minutes later will find the write it is waiting for.
+concurrency:
+  group: census-rollup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Deciding whether this job can do anything needs no checkout, so a
+      # misconfigured repository spends seconds rather than a runner.
+      - name: Check census credentials
+        id: config
+        env:
+          HAVE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          HAVE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "$HAVE_URL" ] && [ -n "$HAVE_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Census credentials missing::Add repository secrets SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. Until then the panels read a rollup nothing refreshes."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.configured == 'true'
+
+      # No dependency install: the script talks to PostgREST with fetch and reads
+      # nothing but the environment, so Bun runs it directly.
+      - uses: oven-sh/setup-bun@v2
+        if: steps.config.outputs.configured == 'true'
+        with:
+          bun-version: latest
+
+      # Exits non-zero if the refresh failed, and says which migration to apply if
+      # the rollup is not on the database yet.
+      - name: Refresh the rollup if a write has made it stale
+        if: steps.config.outputs.configured == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: bun scripts/census-rollup.mjs
