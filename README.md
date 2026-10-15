@@ -788,7 +788,7 @@ Every entry below is verified against `package.json`, `vite.config.ts` and the s
 **Documents, Math & Data Viz**
 
 <p>
-  <img alt="KaTeX" src="https://img.shields.io/badge/KaTeX-0.16-329894?style=for-the-badge&logo=katex&logoColor=white" />
+  <img alt="KaTeX" src="https://img.shields.io/badge/KaTeX-0.19-329894?style=for-the-badge&logo=katex&logoColor=white" />
   <img alt="MathJax" src="https://img.shields.io/badge/MathJax_3-SVG_raster_for_PDF-0F172A?style=for-the-badge" />
   <img alt="jsPDF" src="https://img.shields.io/badge/jsPDF_+_AutoTable-PDF_engine-E11D48?style=for-the-badge" />
   <img alt="JSZip" src="https://img.shields.io/badge/JSZip-ZIP_exports-F59E0B?style=for-the-badge" />
@@ -859,6 +859,7 @@ The public student flow needs **nothing**. To enable analytics, `/admin` and the
 | `build:dev`           | `vite build --mode development`             | Development-mode build including the SSR prerender pass, useful for reproducing SSR errors locally |
 | `preview`             | `vite preview`                              | Serves the build output. For Nitro output use `npx nitro preview`                                   |
 | `lint`                | `eslint .`                                  | Lint the whole repository                                                                           |
+| `typecheck`           | `tsc --noEmit`                              | Type-check `src/` and the Vite/ESLint configs without emitting                                      |
 | `format`              | `prettier --write .`                        | Format every file with the project's Prettier config                                                |
 | `census:intake`       | `bun scripts/census-intake.mjs`             | Measure every block's highest live serial, and record the evidence                                  |
 | `census:discover`     | `bun scripts/census-intake.mjs --discover`  | Ask the portal what the grid is missing, a new batch year, a college that opened a batch           |
@@ -877,7 +878,7 @@ The public student flow needs **nothing**. To enable analytics, `/admin` and the
 ```bash
 bun run dev            # dev server, HMR, http://localhost:5173
 bun run lint           # eslint
-bun tsc -b --noEmit    # type check without emitting
+bun run typecheck     # type check without emitting
 bun x prettier --check src scripts
 ```
 
@@ -1001,6 +1002,7 @@ result/
 │   └── styles.css                   # Tailwind v4 entry, design tokens, dark mode
 ├── supabase/migrations/             # append-only, timestamped SQL
 ├── components.json · eslint.config.js · .prettierrc · bunfig.toml · tsconfig.json
+├── vercel.json                      # pins `bun install` + `bun run build` for Vercel
 └── vite.config.ts                   # thin wrapper over @lovable.dev/vite-tanstack-config
 ```
 
@@ -1486,10 +1488,17 @@ bun scripts/census-verify.mjs https://result.unifies.codes
 
 ```bash
 bun run lint                     # ESLint 9 (flat config) across the repo
-bun tsc -b --noEmit              # TypeScript strict, no emit
+bun run typecheck                # TypeScript strict, no emit
 bun x prettier --check src scripts  # formatting (write with: bun run format)
 bun run build                    # full production build, the strongest local signal
 ```
+
+### Dependency pins, and why two of them are exact
+
+`npm audit` reports **0 vulnerabilities** as of 2026-10-15, and two `package.json` blocks keep it there:
+
+- `overrides` pins ten transitive packages to patched releases, each inside its consumer's major line, so no API moves. Two entries, `brace-expansion@1` and `brace-expansion@5`, are **version-scoped keys** rather than one flat pin: ESLint's `minimatch@3` needs the 1.x line and typescript-eslint's `minimatch@10` needs the 5.x line, and a single pin would break whichever one it did not match.
+- `prettier` and `katex` are pinned **exactly**, not with a caret. `lint` enforces Prettier's formatting, so a floating Prettier let npm resolve a newer release than `bun.lock` held, and the same commit passed or failed depending on which lockfile you installed from. KaTeX is exact because `src/routes/__root.tsx` loads the matching `dist/katex.min.css` from jsDelivr behind a pinned SRI hash, so the package and the stylesheet have to move together.
 
 ### Verifiers, these fail on real disagreement, not on lint style
 
@@ -1504,11 +1513,22 @@ bun run build                    # full production build, the strongest local si
 
 The sentinel is worth a sentence of its own: "a semester the portal serves, that no block has captured, and that nothing is queued to read" is the one failure the dashboard cannot show you, coverage would look complete while a semester of results sat unread. A check that can never fail is decoration, so its test case list includes the exact ledger shape that produced a real defect (a finished block with no recorded read position) and the 30-day staleness rule that makes an old pass work again.
 
+### Known open defects
+
+`bun scripts/census-verify.mjs` currently fails one of its checks against the live deployment, and **which check fails moves between runs**. Measured 2026-10-15:
+
+| Defect | Evidence | Cause |
+| ------ | -------- | ----- |
+| `census_progress` and `get_bput_census` intermittently answer HTTP 500 | PostgreSQL `57014`, `canceling statement due to statement timeout`. Run 1 failed on `census_progress`; run 2 failed on `get_bput_census`. | Both aggregate the ~1.3M-row `bput_census_events` on every call. `census_live` exists to avoid exactly that, and these two were never moved onto it. |
+| `census_live.observations` over-counts the fact table | 1,313,945 reported against 1,291,652 rows actually present: **22,293 high** | The only trigger on the fact table is `AFTER INSERT`, while re-reading a semester DELETEs its rows, so the counter only ever climbs and nothing reconciles it. |
+
+Both need a migration. Neither is applied yet.
+
 ### Continuous integration
 
 | Workflow              | Trigger                                     | What it does                                                                                                    |
 | --------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main`             | Install, lint, build (Node 22). A red build is a hard block, `main` is expected to be deployable at all times. |
+| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main`             | Install, lint, type-check, build (Node 22). A red build is a hard block, `main` is expected to be deployable at all times. |
 | [`census.yml`](.github/workflows/census.yml) | Schedule (5 min), push to crawler files, manual dispatch | One crawl slice: fetch the work list, read it, publish progress. Resumes from the ledger, so a lost run costs progress, never correctness. |
 | [`census-refresh.yml`](.github/workflows/census-refresh.yml) | Daily 02:20 UTC + manual | Re-check every recorded reading, discover what the grid lacks, watch the portal's sessions, publish the ledger, dispatch a slice, verify the regenerated tree, commit a heartbeat. |
 
@@ -1553,10 +1573,10 @@ bun run build
 
 ### ▲ Vercel
 
-Deploy-ready, no `vercel.json` required.
+Deploy-ready: the committed `vercel.json` pins `installCommand: bun install` and `buildCommand: bun run build`, so Vercel installs from `bun.lock` the way CI and a local run do instead of falling back to npm and the stale `package-lock.json`.
 
 1. Import the repository at [vercel.com/new](https://vercel.com/new).
-2. Framework preset: **Other**. Build command: `bun run build`. Leave the output directory at its default, the `vercel` preset writes the correct `.vercel/output/` structure.
+2. Framework preset: **Other**. The install and build commands are supplied by the committed `vercel.json`. Leave the output directory at its default, the `vercel` preset writes the correct `.vercel/output/` structure.
 3. Add environment variables under **Project Settings → Environment Variables** (analytics, `/admin`; the service-role key is only needed if something server-side calls it):
 
    | Key                             | Notes                            |
@@ -1662,7 +1682,7 @@ bun run dev
 
    ```bash
    bun run lint
-   bun tsc -b --noEmit
+   bun run typecheck
    bun x prettier --check src scripts
    bun scripts/census-status.mjs        # only if you touched the measurement
    bun scripts/census-sentinel-test.mjs # only if you touched the ledger

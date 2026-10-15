@@ -18,6 +18,11 @@ jobs:
       # from it pulled a Prettier older than the one any local run uses, so this
       # job reported formatting errors in files that are in fact correctly
       # formatted. Installing with Bun makes CI and a local run agree.
+      #
+      # Prettier is therefore pinned to an exact version in package.json: lint
+      # enforces its formatting, so a caret range let npm resolve a newer Prettier
+      # than bun.lock held and the same commit passed or failed depending on
+      # which lockfile you installed from.
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -29,5 +34,10 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Type-check & build
+      # `vite build` transpiles without type-checking, so a type error can reach a
+      # deploy unnoticed. This step is what turns TypeScript into an actual gate.
+      - name: Type-check
+        run: bun run typecheck
+
+      - name: Build
         run: bun run build

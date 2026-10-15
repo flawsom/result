@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.tsbuildinfo
 .output
+.vercel
 .vinxi
 .tanstack/**
 .nitro
