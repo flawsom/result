@@ -24,7 +24,9 @@
     "census:verify": "bun scripts/census-verify.mjs",
     "analytics:status": "bun scripts/analytics-status.mjs",
     "analytics:probe": "bun scripts/analytics-status.mjs --probe",
-    "census:key": "bun scripts/check-credentials.mjs"
+    "census:key": "bun scripts/check-credentials.mjs",
+    "census:rollup": "bun scripts/census-rollup.mjs",
+    "migrations:verify": "bun scripts/migrations-verify.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -104,6 +106,7 @@
     "brace-expansion@5": "5.0.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^2.7.1",
     "@types/katex": "^0.16.8",

@@ -39,5 +39,13 @@ jobs:
       - name: Type-check
         run: bun run typecheck
 
+      # Migrations here are applied by hand, so a wrong one is otherwise found in
+      # production. This replays supabase/migrations/ into PGlite (PostgreSQL
+      # compiled to WebAssembly) and checks the census read path and the live
+      # counter against an oracle recomputed in JavaScript. No server, no secrets,
+      # about ten seconds.
+      - name: Verify migrations
+        run: bun run migrations:verify
+
       - name: Build
         run: bun run build
