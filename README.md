@@ -871,6 +871,8 @@ The public student flow needs **nothing**. To enable analytics, `/admin` and the
 | `census:sentinel-test`| `bun scripts/census-sentinel-test.mjs`      | Prove the stranded-semester sentinel fires, and stays quiet otherwise                                 |
 | `census:tick`         | `bun scripts/census-tick.mjs`               | Run one crawl slice (the same entry point GitHub Actions uses)                                        |
 | `census:key`          | `bun scripts/check-credentials.mjs`         | Name and validate a Supabase key without printing it                                                  |
+| `census:rollup`       | `bun scripts/census-rollup.mjs`             | Refresh the census rollup from a scheduler (`--status` reports freshness, `--force` recomputes now)    |
+| `migrations:verify`   | `bun scripts/migrations-verify.mjs`         | Replay every migration into PGlite, then hold what they create to a JavaScript oracle                 |
 | `analytics:status`    | `bun scripts/analytics-status.mjs`          | Tell a quiet live counter from a broken one (`--probe` performs one real lookup)                       |
 
 ### Running locally
@@ -1511,6 +1513,8 @@ bun run build                    # full production build, the strongest local si
 | `bun scripts/census-status.mjs`    | Re-zips `docs/census-intake.json` against the readings embedded in the module                                    | Any reading disagrees with the evidence file                          |
 | `bun scripts/census-ledger.mjs --verify` | Publishes the measurement, then checks four invariants against the database                                 | A semester was read twice · a walk went past a measured bound · a finished block has no read position · a served semester is stranded with nothing queued |
 | `bun scripts/census-sentinel-test.mjs` | Extracts the stranded-semester sentinel **from the shipped script** and runs it against six crafted ledgers   | The sentinel cannot fire, or fires when it should not                 |
+| `bun scripts/migrations-verify.mjs` | Replays every migration into PGlite — Postgres compiled to WASM — then checks the roles, the census write path, the readers, the counter, the work list and the analytics readers against an oracle recomputed in JavaScript | A migration does not apply · a reader stops reading the rollup · the counter stops following the fact table · a replacement pass stops being atomic · the aggregate creeps back into the write path · a k-anonymity floor is lost |
+| `bun scripts/census-rollup.mjs --status` | Reports the rollup's measurement time and whether a write has left it stale                              | The refresh driver stopped, so the panels serve numbers that stop moving |
 | `bun scripts/check-credentials.mjs` | Names a Supabase key and proves the project accepts it, without printing it                                     | The pasted key is the wrong kind (JWT secret, anon key, truncated)     |
 | `bun scripts/analytics-status.mjs`  | Tells a quiet live counter from a broken one; `--probe` performs one real lookup and watches the counter move     | The write is rejected, or the row moves while the push never arrives   |
 
@@ -1527,23 +1531,30 @@ The sentinel is worth a sentence of its own: "a semester the portal serves, that
 
 Both now have a migration written against them. Both migrations are in this repository and **neither is applied to production**, so every row above still describes what is deployed:
 
-- `20261015120000_census_read_path_rollup.sql` — the eight aggregates moved into a materialized view, refreshed behind a ten-minute throttle by statement-level triggers on the events and cursor tables. No cron entry, no external scheduler, and no client change.
+- `20261015120000_census_read_path_rollup.sql` — the eight aggregates moved into a materialized view, refreshed behind a ten-minute throttle by a function only `service_role` may call. The fact table's triggers only *mark* it stale: the aggregate is 8–9 s at the deployed row count, and running that inside a crawler's batch would have moved the timeout this migration fixes from the read path onto the write path. Where `pg_cron` exists the database refreshes itself, and where it does not a scheduler runs `bun scripts/census-rollup.mjs` — step 4 of the runbook.
 - `20261015121000_census_live_delete_trigger.sql` — an `AFTER DELETE` statement trigger with a transition table, symmetric with the insert trigger, plus `census_live_recount()`, which this migration runs itself so the drift already banked is reconciled in its own transaction. Applying it prints the true row count.
 
-Validated by replaying every migration in this directory into a real Postgres (PGlite) and seeding it with 150,000 rows:
+Both administrative functions are `service_role`-only, including the `_max_age = '0 minutes'` variant that skips the throttle: each is whole-table work, and an ordinary signed-in user must not be able to ask for it in a loop.
 
-| Reader | Before | After | Change |
-| ------ | -----: | ----: | ------ |
-| `get_bput_census()` | 1194 ms | 2 ms | **597×**, JSON byte-identical apart from `meta.generatedAt` |
-| `census_progress()` | 10 ms | 1 ms | **10×**, JSON byte-identical |
+Validated by `bun scripts/migrations-verify.mjs`, which replays every migration in this directory into a real Postgres (PGlite) and checks the result against an oracle recomputed in JavaScript — 44 checks across the role enum and the census write gate, the census write path, the panels' readers, the rollup and its refresh driver, the live counter, the work list, and the analytics readers. No credentials, about ten seconds, and it runs in CI:
 
-Both readers still agreed with the fact table row for row, the counter stayed exact through a second maintenance pass, and the refresh throttle was watched declining inside its window and running when forced.
+| | Before | After |
+| - | -----: | ----: |
+| `get_bput_census()` | the eight aggregates, per page view | **0.8 ms**, measured at 20,000 and again at 60,000 rows |
+| `census_progress()` | a full scan of the fact table | **0.4–0.7 ms** |
+| the aggregate itself | once per page view | 126 ms at 20,000 rows, 393 ms at 60,000 — linear, so ≈ 8–9 s at the deployed 1,313,945 |
+| a 500-row write | no extra work | 17–27 ms, and it only marks the rollup stale |
+
+A check that cannot fail is decoration, so the suite was shown to fail: five deliberately broken copies of these migrations — a delete trigger that stops decrementing, a non-unique rollup index, a removed stale marker, an atomicity guard deleted from the replacement pass, and invalid SQL — each exited 1 and named the check that caught it.
+
+Rollout, verification and rollback: [`docs/census-migration-rollout.md`](docs/census-migration-rollout.md).
 
 ### Continuous integration
 
 | Workflow              | Trigger                                     | What it does                                                                                                    |
 | --------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main`             | Install, lint, type-check, build (Node 22). A red build is a hard block, `main` is expected to be deployable at all times. |
+| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main`             | Install, lint, type-check, replay every migration into PGlite, build (Node 22). A red build is a hard block, `main` is expected to be deployable at all times. |
+| [`census-rollup.yml`](.github/workflows/census-rollup.yml) | Schedule (10 min) + manual | Refresh the census rollup when a write has made it stale. A no-op otherwise, so it is harmless where `pg_cron` already does the same job. |
 | [`census.yml`](.github/workflows/census.yml) | Schedule (5 min), push to crawler files, manual dispatch | One crawl slice: fetch the work list, read it, publish progress. Resumes from the ledger, so a lost run costs progress, never correctness. |
 | [`census-refresh.yml`](.github/workflows/census-refresh.yml) | Daily 02:20 UTC + manual | Re-check every recorded reading, discover what the grid lacks, watch the portal's sessions, publish the ledger, dispatch a slice, verify the regenerated tree, commit a heartbeat. |
 

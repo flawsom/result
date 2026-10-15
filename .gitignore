@@ -28,6 +28,10 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Supabase CLI scaffolding: the linked project ref, written by `supabase link`
+# and `supabase db push`. Local state, not configuration.
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
