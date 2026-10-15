@@ -77,13 +77,6 @@ async function rasterizeSvgFormulaToPng(svgMarkup: string): Promise<RenderedForm
     .replace(/\swidth="[^"]+"/, ` width="${width}"`)
     .replace(/\sheight="[^"]+"/, ` height="${height}"`);
 
-  console.log("[pdf] Formula SVG before raster snapshot", {
-    renderer: "MathJax SVG paths (no web-font dependency)",
-    width,
-    height,
-    viewBox: viewBoxMatch?.[1] ?? null,
-  });
-
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
@@ -242,7 +235,6 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 52; // slightly larger outer margin for breathing room
   const footerReserve = 32;
-  console.log(`[pdf] footerReserve = ${footerReserve}`);
   let y = margin;
 
   // Pre-render both formulas once (module-level cache keeps this fast across
@@ -330,7 +322,6 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
 
   // ---------- Per-semester tables ----------
   const pageBottom = () => pageH - margin - footerReserve;
-  console.log(`[pdf] pageBottom() = ${pageBottom()}, pageH = ${pageH}, margin = ${margin}`);
   const ensureRoom = (needed: number) => {
     if (y + needed > pageBottom()) {
       doc.addPage();
@@ -342,9 +333,6 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
   // at 100% zoom without dominating the page. Width follows the aspect
   // ratio of the rasterised glyphs (padding stripped in renderKatexToPng).
   const sgpaFormulaSize = fitFormulaByHeight(sgpaFormula, FORMULA_IMG_HEIGHT_PT);
-  console.log(
-    `[pdf] SGPA formula image: ${sgpaFormulaSize.w.toFixed(2)}pt x ${sgpaFormulaSize.h.toFixed(2)}pt (natural ${sgpaFormula.width}x${sgpaFormula.height}px)`,
-  );
   const sgpaBlockH = FORMULA_GAP_ABOVE_PT + sgpaFormulaSize.h + FORMULA_GAP_BELOW_PT + 10; // + legend line height
 
   semesters.forEach((sem, semIdx) => {
@@ -409,9 +397,6 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
         margin: { top: margin, left: margin, right: margin, bottom: margin + footerReserve },
       });
       const docWithTable = doc as jsPDF & { lastAutoTable: { finalY: number } };
-      console.log(
-        `[pdf] table finalY = ${docWithTable.lastAutoTable.finalY}, pageBottom = ${pageBottom()}, pageNumber = ${(doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages()}`,
-      );
       y = docWithTable.lastAutoTable.finalY + 10;
 
       doc.setFont("helvetica", "bold");
@@ -442,9 +427,6 @@ export async function createResultPDFBlob(opts: ResultPdfOptions) {
   // ---------- CGPA total ----------
   if (cgpa !== null && cgpaFormula) {
     const cgpaFormulaSize = fitFormulaByHeight(cgpaFormula, CGPA_FORMULA_IMG_HEIGHT_PT);
-    console.log(
-      `[pdf] CGPA formula image: ${cgpaFormulaSize.w.toFixed(2)}pt x ${cgpaFormulaSize.h.toFixed(2)}pt (natural ${cgpaFormula.width}x${cgpaFormula.height}px)`,
-    );
     const cgpaBlockH =
       10 + 18 + FORMULA_GAP_ABOVE_PT + cgpaFormulaSize.h + FORMULA_GAP_BELOW_PT + 12;
     ensureRoom(cgpaBlockH + 8);
