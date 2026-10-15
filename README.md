@@ -1001,6 +1001,9 @@ result/
 │   ├── server.ts · start.ts         # SSR entry and server-function middleware
 │   └── styles.css                   # Tailwind v4 entry, design tokens, dark mode
 ├── supabase/migrations/             # append-only, timestamped SQL
+│   ├── …                            # schema, RLS, the census fact table, the census_live counters
+│   ├── 20261015120000_census_read_path_rollup.sql    # rollup-backed census_progress + get_bput_census
+│   └── 20261015121000_census_live_delete_trigger.sql # counter decrement on delete + reconciliation
 ├── components.json · eslint.config.js · .prettierrc · bunfig.toml · tsconfig.json
 ├── vercel.json                      # pins `bun install` + `bun run build` for Vercel
 └── vite.config.ts                   # thin wrapper over @lovable.dev/vite-tanstack-config
@@ -1520,9 +1523,21 @@ The sentinel is worth a sentence of its own: "a semester the portal serves, that
 | Defect | Evidence | Cause |
 | ------ | -------- | ----- |
 | `census_progress` and `get_bput_census` intermittently answer HTTP 500 | PostgreSQL `57014`, `canceling statement due to statement timeout`. Run 1 failed on `census_progress`; run 2 failed on `get_bput_census`. | Both aggregate the ~1.3M-row `bput_census_events` on every call. `census_live` exists to avoid exactly that, and these two were never moved onto it. |
-| `census_live.observations` over-counts the fact table | 1,313,945 reported against 1,291,652 rows actually present: **22,293 high** | The only trigger on the fact table is `AFTER INSERT`, while re-reading a semester DELETEs its rows, so the counter only ever climbs and nothing reconciles it. |
+| `census_live.observations` over-counts the fact table | The public counter reports **1,313,945**. The fact table has no public read path, so the true row count, and therefore the exact drift, is not measurable from a publishable key. | The only trigger on the fact table is `AFTER INSERT`, while re-reading a semester DELETEs its rows, so the counter only ever climbs and nothing reconciles it. |
 
-Both need a migration. Neither is applied yet.
+Both now have a migration written against them. Both migrations are in this repository and **neither is applied to production**, so every row above still describes what is deployed:
+
+- `20261015120000_census_read_path_rollup.sql` — the eight aggregates moved into a materialized view, refreshed behind a ten-minute throttle by statement-level triggers on the events and cursor tables. No cron entry, no external scheduler, and no client change.
+- `20261015121000_census_live_delete_trigger.sql` — an `AFTER DELETE` statement trigger with a transition table, symmetric with the insert trigger, plus `census_live_recount()`, which this migration runs itself so the drift already banked is reconciled in its own transaction. Applying it prints the true row count.
+
+Validated by replaying every migration in this directory into a real Postgres (PGlite) and seeding it with 150,000 rows:
+
+| Reader | Before | After | Change |
+| ------ | -----: | ----: | ------ |
+| `get_bput_census()` | 1194 ms | 2 ms | **597×**, JSON byte-identical apart from `meta.generatedAt` |
+| `census_progress()` | 10 ms | 1 ms | **10×**, JSON byte-identical |
+
+Both readers still agreed with the fact table row for row, the counter stayed exact through a second maintenance pass, and the refresh throttle was watched declining inside its window and running when forced.
 
 ### Continuous integration
 
