@@ -11,10 +11,9 @@
 // declared after it was read. A semester missing from a year's list is one the
 // portal did not serve on the date below, which for the early batches is the
 // portal's retention window rather than a missing result.
-export const SESSION_WATCH_CHECKED_AT = "2026-11-18";
+export const SESSION_WATCH_CHECKED_AT = "2026-11-19";
 
 export const SESSION_WATCH: Record<number, readonly number[]> = {
-  2012: [7, 8],
   2013: [5, 6, 7, 8],
   2014: [3, 4, 5, 6, 7, 8],
   2015: [1, 2, 3, 4, 5, 6, 7, 8],
