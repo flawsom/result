@@ -1,6 +1,6 @@
 {
   "firstCheckedAt": "2026-09-29T09:16:45.276Z",
-  "checkedAt": "2026-11-25T11:49:59.334Z",
+  "checkedAt": "2026-11-26T11:18:12.579Z",
   "years": {
     "2012": {
       "code": 104,
@@ -54,7 +54,7 @@
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2013": {
       "code": 104,
@@ -112,7 +112,7 @@
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2014": {
       "code": 104,
@@ -174,7 +174,7 @@
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2015": {
       "code": 104,
@@ -240,7 +240,7 @@
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2016": {
       "code": 104,
@@ -258,12 +258,12 @@
         {
           "session": "Odd-(2017-18)",
           "semester": 3,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2017-18)",
           "semester": 4,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2018-19)",
@@ -299,12 +299,14 @@
       "served": [
         1,
         2,
+        3,
+        4,
         5,
         6,
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2017": {
       "code": 104,
@@ -370,7 +372,7 @@
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2018": {
       "code": 104,
@@ -378,27 +380,27 @@
         {
           "session": "Odd-(2018-19)",
           "semester": 1,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2018-19)",
           "semester": 2,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2019-20)",
           "semester": 3,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2019-20)",
           "semester": 4,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2020-21)",
           "semester": 5,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2020-21)",
@@ -413,7 +415,7 @@
         {
           "session": "Even-(2021-22)",
           "semester": 8,
-          "state": "unreadable"
+          "state": "published"
         }
       ],
       "firstSeen": {
@@ -427,10 +429,16 @@
         "8": "2026-09-29"
       },
       "served": [
+        1,
+        2,
+        3,
+        4,
+        5,
         6,
-        7
+        7,
+        8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2019": {
       "code": 104,
@@ -443,37 +451,37 @@
         {
           "session": "Even-(2019-20)",
           "semester": 2,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2020-21)",
           "semester": 3,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2020-21)",
           "semester": 4,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2021-22)",
           "semester": 5,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2021-22)",
           "semester": 6,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2022-23)",
           "semester": 7,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2022-23)",
           "semester": 8,
-          "state": "unreadable"
+          "state": "published"
         }
       ],
       "firstSeen": {
@@ -487,9 +495,16 @@
         "8": "2026-09-29"
       },
       "served": [
-        1
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2020": {
       "code": 104,
@@ -555,7 +570,7 @@
         7,
         8
       ],
-      "checkedAt": "2026-11-24T12:51:08.008Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2021": {
       "code": 104,
@@ -563,17 +578,17 @@
         {
           "session": "Odd-(2021-22)",
           "semester": 1,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2021-22)",
           "semester": 2,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2022-23)",
           "semester": 3,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2022-23)",
@@ -583,7 +598,7 @@
         {
           "session": "Odd-(2023-24)",
           "semester": 5,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2023-24)",
@@ -612,12 +627,16 @@
         "8": "2026-09-29"
       },
       "served": [
+        1,
+        2,
+        3,
         4,
+        5,
         6,
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2022": {
       "code": 104,
@@ -645,12 +664,12 @@
         {
           "session": "Odd-(2024-25)",
           "semester": 5,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Even-(2024-25)",
           "semester": 6,
-          "state": "unreadable"
+          "state": "published"
         },
         {
           "session": "Odd-(2025-26)",
@@ -678,10 +697,12 @@
         2,
         3,
         4,
+        5,
+        6,
         7,
         8
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2023": {
       "code": 104,
@@ -743,7 +764,7 @@
         5,
         6
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2024": {
       "code": 104,
@@ -801,7 +822,7 @@
         3,
         4
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     },
     "2025": {
       "code": 104,
@@ -855,7 +876,7 @@
         1,
         2
       ],
-      "checkedAt": "2026-11-25T11:49:59.334Z"
+      "checkedAt": "2026-11-26T11:18:12.579Z"
     }
   }
 }
